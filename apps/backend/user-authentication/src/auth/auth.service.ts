@@ -21,6 +21,7 @@ export class AuthService {
   }
 
   async login(user: any) {
+    console.log("user::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::",user)
     const payload = {
       cin: user.cin,
       sub: user._id,

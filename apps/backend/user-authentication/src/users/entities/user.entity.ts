@@ -36,9 +36,6 @@ export class User extends Document {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// Optionnel : index pour recherche rapide
-UserSchema.index({ cin: 1 });
-
 // Pre-save hook to ensure roles is always an array of ObjectIds or empty
 UserSchema.pre('save', function (next) {
   if (this.roles && !Array.isArray(this.roles)) {
