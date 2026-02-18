@@ -4,20 +4,15 @@ import { Building2, Loader2 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+
 import { toast } from "sonner";
+import { LoginAction } from "@/app/action/auth.action";
+import axios from "axios";
 
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
-  const [email, setEmail] = useState("");
+  const [cin, setcin] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
@@ -25,9 +20,23 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      await login("admin@smartsite.com", "password123");
+      const res = await axios.post(`http://localhost:3000/auth/login`, {
+        cin,
+        password,
+      });
+
+      console.log(
+        `${process.env.LOGIN_API_URL}/login`,
+        "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+      );
+      if (res.status === 200) {
+        const expires = new Date(Date.now() + 1000 * 1000 * 1000);
+
+        cookieStore.set("session", res.data.token);
+        return Promise.resolve({ status: res.status, data: res.data.message });
+      }
+
       toast.success("Login successful!");
       navigate("/dashboard");
     } catch (error: any) {
@@ -41,11 +50,11 @@ export default function Login() {
     }
   };
   // <Input
-  //id="email"
-  //type="email"
-  //placeholder="your.email@smartsite.com"
-  //value={email}
-  //onChange={(e) => setEmail(e.target.value)}
+  //id="cin"
+  //type="cin"
+  //placeholder="your.cin@smartsite.com"
+  //value={cin}
+  //onChange={(e) => setcin(e.target.value)}
   //required
   //disabled={isLoading}
 
@@ -87,21 +96,21 @@ export default function Login() {
                 <form action="#" method="POST" className="space-y-6">
                   <div>
                     <label
-                      htmlFor="email"
+                      htmlFor="cin"
                       className="block text-sm font-medium leading-6 text-gray-900"
                     >
-                      Email address
+                      cin address
                     </label>
                     <div className="mt-2">
                       <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
+                        id="cin"
+                        name="cin"
+                        type="string"
+                        autoComplete="cin"
                         required
-                        value={email}
+                        value={cin}
                         disabled={isLoading}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setcin(e.target.value)}
                         className="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                       />
                     </div>

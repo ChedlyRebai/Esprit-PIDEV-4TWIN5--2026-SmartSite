@@ -25,6 +25,27 @@ export interface User {
   avatar?: string;
 }
 
+export interface Role {
+  _id: string;
+  name: string;
+  permissions: string[] | Permission[]; // ObjectId[] or populated Permission[]
+  createdAt: Date;
+  updatedAt: Date;
+  userCount?: number; // Virtual field for frontend
+}
+
+export interface Permission {
+   _id: string,
+    name: string,
+    source: boolean,
+    access: boolean,
+    create: boolean,
+    delete: boolean,
+    update: boolean,
+    createdAt: Date,
+    updatedAt: Date,
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
