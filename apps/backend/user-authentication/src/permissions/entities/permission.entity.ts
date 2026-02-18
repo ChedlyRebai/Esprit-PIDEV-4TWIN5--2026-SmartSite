@@ -9,7 +9,7 @@ export class Permission extends Document {
   name: string;
 
   @Prop()
-  source: boolean;
+  source: string;
   @Prop()
   access: boolean;
   @Prop()
