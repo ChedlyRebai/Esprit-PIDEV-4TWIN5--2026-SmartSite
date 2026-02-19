@@ -47,7 +47,7 @@ export class AuthService {
     };
   }
 
-  async register(cin: string, password: string, nom: string, prenom: string) {
+  async register(cin: string, password: string, nom: string, prenom: string,role:string) {
     const existingUser = await this.usersService.findByCin(cin);
     if (existingUser) {
       throw new Error('User already exists');
@@ -58,6 +58,7 @@ export class AuthService {
       motDePasse: hashedPassword,
       nom,
       prenom,
+      role
     });
   }
 }

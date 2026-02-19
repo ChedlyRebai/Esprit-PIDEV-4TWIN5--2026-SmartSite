@@ -38,8 +38,6 @@ export const useAuthStore = create<AuthState>()(
         // attach token globally
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         console.log('mmmmmmmmmmmmmmmmmmmmm',userWIthToken);
-        // get user profile
-        //const profileRes = await api.get("/auth/profile");
         
         set({
           

@@ -51,12 +51,11 @@ export interface Permission {
 export interface AuthState {
   user: {
     access_token: string;
-
     id: string;
     cin: string;
     nom: string;
     prenom: string;
-    roles: Array<string>;
+    role:UserRole;
   };
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;

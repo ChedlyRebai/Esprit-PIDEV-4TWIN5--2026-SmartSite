@@ -22,9 +22,9 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: any) {
-    const { cin, password, nom, prenom } = registerDto;
+    const { cin, password, nom, prenom,role } = registerDto;
     try {
-      const user = await this.authService.register(cin, password, nom, prenom);
+      const user = await this.authService.register(cin, password, nom, prenom,role);
       return {
         message: 'User registered successfully',
         user: {
@@ -32,6 +32,7 @@ export class AuthController {
           cin: user.cin,
           nom: user.nom,
           prenom: user.prenom,
+          role: user.role
         },
       };
     } catch (error) {
