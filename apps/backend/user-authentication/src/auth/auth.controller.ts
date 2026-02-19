@@ -22,16 +22,16 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: any) {
-    const { cin, password, nom, prenom,role } = registerDto;
+    const { cin, password, firstname, lastname,role } = registerDto;
     try {
-      const user = await this.authService.register(cin, password, nom, prenom,role);
+      const user = await this.authService.register(cin, password, firstname, lastname,role);
       return {
         message: 'User registered successfully',
         user: {
           id: user._id,
           cin: user.cin,
-          nom: user.nom,
-          prenom: user.prenom,
+          firstname: user.firstname,
+          lastname: user.lastname,
           role: user.role
         },
       };

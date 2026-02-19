@@ -6,20 +6,19 @@ import { Role } from 'src/roles/entities/role.entity';
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true, trim: true })
-  nom: string;
+  firstname: string;
 
   @Prop({ required: true, trim: true })
-  prenom: string;
+  lastname: string;
 
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   cin: string;
 
   @Prop({ required: true })
-  motDePasse: string; 
+  motDePasse: string;
 
-@Prop({ type: Types.ObjectId, ref: 'Role', required: true })
-role: Types.ObjectId;
-
+  @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
+  role: Types.ObjectId;
 
   @Prop({ default: true })
   estActif: boolean;

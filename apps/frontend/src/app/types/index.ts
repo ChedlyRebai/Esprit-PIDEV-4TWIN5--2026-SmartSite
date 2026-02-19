@@ -1,5 +1,5 @@
 // User Roles
-export type UserRole =
+export type RoleType =
   | "super_admin"
   | "director"
   | "project_manager"
@@ -12,8 +12,16 @@ export type UserRole =
   | "subcontractor"
   | "user";
 
+export interface UserRole {
+  _id: string;
+  name: RoleType;
+  permissions: Array<String>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface User {
-  id: string;
+  _id: string;
   nom?: string;
   prenom?: string;
   firstName?: string;
@@ -53,9 +61,9 @@ export interface AuthState {
     access_token: string;
     id: string;
     cin: string;
-    nom: string;
-    prenom: string;
-    role:UserRole;
+    firstname: string;
+    lastname: string;
+    role: UserRole;
   };
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;

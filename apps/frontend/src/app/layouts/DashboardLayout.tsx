@@ -30,7 +30,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
-
+  console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -41,11 +41,11 @@ export default function DashboardLayout() {
     return null;
   }
 
-  const navigationItems = getNavigationForRole("super_admin");
+  const navigationItems = getNavigationForRole(user.role.name);
   const unreadNotifications = mockNotifications.filter((n) => !n.read).length;
 
-  const getInitials = (nom: string, prenom: string) => {
-    return `${nom.charAt(0)}${prenom.charAt(0)}`.toUpperCase();
+  const getInitials = (nom: string, lastname: string) => {
+    return `${nom.charAt(0)}${lastname.charAt(0)}`.toUpperCase();
   };
 
   return (
@@ -107,12 +107,12 @@ export default function DashboardLayout() {
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 to-green-600 text-white">
-                      {getInitials(user.nom || "", user.prenom || "")}
+                      {getInitials(user.firstname || "", user.lastname || "")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-semibold">
-                      {user.nom} {user.prenom}
+                      {user.firstname} {user.lastname}
                     </span>
                     <span className="text-xs text-gray-500">
                       {/* {roleLabels[user.role]} */}
@@ -125,7 +125,7 @@ export default function DashboardLayout() {
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span>
-                      {user.nom} {user.prenom}
+                      {user.firstname} {user.lastname}
                     </span>
                     <span className="text-xs font-normal text-gray-500">
                       {user.cin}
