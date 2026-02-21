@@ -41,6 +41,7 @@ import {
 
 import toast from "react-hot-toast";
 import { User } from "@/app/types";
+import useAddUserModal from "@/app/hooks/use-user-Modal";
 
 interface DataTableProps<TData, TValue> {
   //columns: ColumnDef<TData, TValue>[];
@@ -188,7 +189,7 @@ export function UserDataTable<TData, TValue>({
   });
 
   console.log(users);
-
+  const {onOpen}= useAddUserModal()
   return (
     <>
       <div className="flex justify-between items-center py-4 flex-wrap">
@@ -203,12 +204,13 @@ export function UserDataTable<TData, TValue>({
           //   disabled={access.creation === "N"}
           variant="default"
           className=""
+          onClick={onOpen}
         >
           <ListPlusIcon className="mr-2 h-4 w-4" />
           Add New User
         </Button>
       </div>
-      <div className={`rounded-md border }`}>
+      <div className={`rounded-md border ${table.getRowModel().rows.length === 0 ? "border-red-500" : ""}`}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

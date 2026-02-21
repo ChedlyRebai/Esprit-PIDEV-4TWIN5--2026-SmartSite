@@ -45,6 +45,7 @@ import {
 import { PermissionsDataTable } from "./_components/permissions-data-table";
 import { set } from "zod";
 import { getAllStatics } from "@/app/action/statiscs.action";
+import useAddUserModal from "@/app/hooks/use-user-Modal";
 
 export default function UserManagement() {
   const user = useAuthStore((state) => state.user);
@@ -228,7 +229,7 @@ export default function UserManagement() {
       </div>
     );
   }
-
+  
   return (
     <div className="space-y-6">
       <div>
