@@ -1,6 +1,7 @@
 import React from "react";
 import Modal from "./Modal";
 import useAddPermissionModal from "@/app/hooks/use-permission-Modal";
+import PermissionForms from "../../forms/PermissionForms";
 
 const AddPermissionModal = () => {
   const { isOpen, onClose } = useAddPermissionModal();
@@ -11,7 +12,7 @@ const AddPermissionModal = () => {
       isOpen={isOpen}
       onChange={onClose}
     >
-      AddPermissionModal forms
+      <PermissionForms />
     </Modal>
   );
 };

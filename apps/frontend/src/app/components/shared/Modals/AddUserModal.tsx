@@ -1,6 +1,7 @@
 import React from "react";
 import Modal from "./Modal";
 import useAddUserModal from "@/app/hooks/use-user-Modal";
+import UserForms from "../../forms/UserForms";
 
 const AddUserModal = () => {
   const { isOpen, onClose } = useAddUserModal();
@@ -11,7 +12,7 @@ const AddUserModal = () => {
       isOpen={isOpen}
       onChange={onClose}
     >
-      <p>Form goes here</p>
+      <UserForms />
     </Modal>
   );
 };

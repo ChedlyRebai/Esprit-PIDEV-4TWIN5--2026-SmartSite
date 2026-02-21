@@ -1,6 +1,7 @@
 import React from "react";
 import Modal from "./Modal";
 import useRoleModal from "@/app/hooks/use-role-Modal";
+import RoleForms from "../../forms/RoleForms";
 
 const AddRoleModal = () => {
   const { isOpen, onClose } = useRoleModal();
@@ -11,7 +12,7 @@ const AddRoleModal = () => {
       isOpen={isOpen}
       onChange={onClose}
     >
-      <p>AddRoleModal forms</p>
+      <RoleForms />
     </Modal>
   );
 };

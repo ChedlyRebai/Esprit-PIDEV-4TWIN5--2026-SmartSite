@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { access } from "fs";
+import useAddPermissionModal from "@/app/hooks/use-permission-Modal";
 
 interface PermissionsDataTableProps {
   permissions: Permission[];
@@ -374,7 +375,7 @@ export function PermissionsDataTable({
       globalFilter,
     },
   });
-
+  const {onOpen} = useAddPermissionModal();
   return (
     <>
       <div className="flex justify-between items-center py-4 flex-wrap gap-4">
@@ -385,7 +386,7 @@ export function PermissionsDataTable({
           className="max-w-sm"
         />
 
-        <Button onClick={onAddNew} variant="default">
+        <Button onClick={onOpen} variant="default">
           <ListPlusIcon className="mr-2 h-4 w-4" />
           Add New Permission
         </Button>
