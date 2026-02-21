@@ -12,7 +12,7 @@ import { useAuthStore } from "../../store/authStore";
 import { canEdit } from "../../utils/permissions";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { Role, User } from "@/app/types";
+import { Permission, Role, User } from "@/app/types";
 
 import {
   getAllRoles,
@@ -24,18 +24,25 @@ import { RolesDataTable } from "./_components/roles-data-table";
 import { UserDataTable } from "./_components/data-table";
 import { deleteUser, getAllUsers } from "@/app/action/user.action";
 import { mockTeamMembers } from "@/app/utils/mockData";
+import {
+  deletePermission,
+  getAllPermissions,
+} from "@/app/action/permission.action";
+import { PermissionsDataTable } from "./_components/permissions-data-table";
 
 export default function UserManagement() {
-   const user = useAuthStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const canManageRoles = user && canEdit(user.role.name, "users");
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
+  const canManagePermissions = user && canEdit(user.role.name, "users");
+  const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  
   useEffect(() => {
     loadRoles();
+    loadPermissions();
     loadUsers();
   }, []);
 
@@ -71,64 +78,56 @@ export default function UserManagement() {
       toast.error("Failed to delete user");
     }
   };
+
+  
+
+  const loadPermissions = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getAllPermissions();
+      if (response.status === 200 && Array.isArray(response.data)) {
+        setPermissions(response.data);
+      } else {
+        toast.error("Failed to load permissions");
+      }
+    } catch (error) {
+      console.error("Failed to load permissions:", error);
+      toast.error("Failed to load permissions");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditPermission = (permission: Permission) => {
+    // toast.info(`Edit permission: ${permission.name}`);
+    // TODO: Implement edit dialog
+  };
+
+  const handleDeletePermission = async (permissionId: string) => {
+    try {
+      const response = await deletePermission(permissionId);
+      if (response.status === 200) {
+        toast.success("Permission deleted successfully");
+        loadPermissions();
+      } else {
+        toast.error(response.data || "Failed to delete permission");
+      }
+    } catch (error) {
+      console.error("Failed to delete permission:", error);
+      toast.error("Failed to delete permission");
+    }
+  };
+
+  const handleAddNewPermission = () => {
+    toast.info("Add new permission");
+    // TODO: Implement create dialog
+  };
   const loadRoles = async () => {
     setIsLoading(true);
     try {
       const response = await getAllRoles();
       if (response.status === 200 && Array.isArray(response.data)) {
         setRoles(response.data);
-      } else {
-        // Mock data for development - matches Mongoose schema
-        setRoles([
-          {
-            _id: "65a1b2c3d4e5f6g7h8i9j0k1",
-            name: "Super Administrator",
-            permissions: [], // Will be populated with Permission ObjectIds
-            userCount: 1,
-            createdAt: new Date("2026-01-01T00:00:00Z"),
-            updatedAt: new Date("2026-01-01T00:00:00Z"),
-          },
-          {
-            _id: "65a1b2c3d4e5f6g7h8i9j0k2",
-            name: "Director",
-            permissions: [],
-            userCount: 2,
-            createdAt: new Date("2026-01-01T00:00:00Z"),
-            updatedAt: new Date("2026-01-05T00:00:00Z"),
-          },
-          {
-            _id: "65a1b2c3d4e5f6g7h8i9j0k3",
-            name: "Project Manager",
-            permissions: [],
-            userCount: 5,
-            createdAt: new Date("2026-01-05T00:00:00Z"),
-            updatedAt: new Date("2026-01-10T00:00:00Z"),
-          },
-          {
-            _id: "65a1b2c3d4e5f6g7h8i9j0k4",
-            name: "Site Manager",
-            permissions: [],
-            userCount: 4,
-            createdAt: new Date("2026-01-08T00:00:00Z"),
-            updatedAt: new Date("2026-01-15T00:00:00Z"),
-          },
-          {
-            _id: "65a1b2c3d4e5f6g7h8i9j0k5",
-            name: "QHSE Manager",
-            permissions: [],
-            userCount: 2,
-            createdAt: new Date("2026-01-10T00:00:00Z"),
-            updatedAt: new Date("2026-01-12T00:00:00Z"),
-          },
-          {
-            _id: "65a1b2c3d4e5f6g7h8i9j0k6",
-            name: "Accountant",
-            permissions: [],
-            userCount: 2,
-            createdAt: new Date("2026-01-12T00:00:00Z"),
-            updatedAt: new Date("2026-01-18T00:00:00Z"),
-          },
-        ]);
       }
     } catch (error) {
       console.error("Failed to load roles:", error);
@@ -264,6 +263,7 @@ export default function UserManagement() {
               <TabsList>
                 <TabsTrigger value="role">All Roles</TabsTrigger>
                 <TabsTrigger value="users">All users</TabsTrigger>
+                <TabsTrigger value="permissions">All permissions</TabsTrigger>
               </TabsList>
             </CardTitle>
           </CardHeader>
@@ -286,6 +286,14 @@ export default function UserManagement() {
                 <div className="text-center py-12">Loading users...</div>
               ) : (
                 <UserDataTable users={users} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="permissions">
+              {isLoading ? (
+                <div className="text-center py-12">Loading permissions...</div>
+              ) : (
+                <PermissionsDataTable permissions={permissions} />
               )}
             </TabsContent>
           </CardContent>
