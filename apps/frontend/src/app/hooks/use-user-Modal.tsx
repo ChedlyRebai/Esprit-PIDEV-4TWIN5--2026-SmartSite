@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-interface addRoleModalStore {
+interface addUserModalStore {
   id?: string | number;
   setId: (id: string | number) => void;
   isOpen: boolean;
@@ -8,7 +8,7 @@ interface addRoleModalStore {
   onClose: () => void;
 }
 
-const useAddRoleModal = create<addRoleModalStore>(
+const useAddUserModal = create<addUserModalStore>(
   (set) => ({
     id: undefined,
     isOpen: false,
@@ -18,4 +18,4 @@ const useAddRoleModal = create<addRoleModalStore>(
   })
 );
 
-export default useAddRoleModal;
+export default useAddUserModal;
