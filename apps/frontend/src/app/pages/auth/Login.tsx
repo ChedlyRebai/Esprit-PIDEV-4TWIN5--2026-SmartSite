@@ -3,7 +3,7 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
+
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 
 import { useAuthStore } from "@/app/store/authStore";
 import { useNavigate } from "react-router";
+import toast from "react-hot-toast";
 
 const formSchema = z.object({
   cin: z

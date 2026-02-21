@@ -19,7 +19,7 @@ import { canEdit } from "../../utils/permissions";
 
 import { useNavigate } from "react-router";
 
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 
 import { Permission, Role, User } from "@/app/types";
 
@@ -133,7 +133,7 @@ export default function UserManagement() {
   };
 
   const handleAddNewPermission = () => {
-    toast.info("Add new permission");
+    toast.success ("Add new permission");
     // TODO: Implement create dialog
   };
   const loadRoles = async () => {
@@ -152,7 +152,7 @@ export default function UserManagement() {
   };
 
   const handleEditRole = (role: Role) => {
-    toast.info(`Edit role: ${role.name}`);
+    toast.success(`Edit role: ${role.name}`);
     // TODO: Implement edit dialog
   };
 
@@ -172,7 +172,7 @@ export default function UserManagement() {
   };
 
   const handleAddNewRole = () => {
-    toast.info("Add new role");
+    toast.success("Add new role");
     // TODO: Implement create dialog
   };
 
