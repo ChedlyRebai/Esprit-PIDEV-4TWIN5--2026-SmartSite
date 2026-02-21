@@ -23,7 +23,6 @@ import Profile from "./pages/profile/Profile";
 import Home from "./pages/Home/Home";
 import Home2 from "./pages/Home/Home2";
 import Pricing from "./pages/pricing/Pricing";
-import PermissionsPage from "./pages/users/Permissions";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -67,10 +66,7 @@ export const router = createBrowserRouter([
         path: "sites",
         element: <Sites />,
       },
-      {
-        path: "permissions",
-        element: <PermissionsPage />,
-      },
+      
     
       {
         path: "projects",
