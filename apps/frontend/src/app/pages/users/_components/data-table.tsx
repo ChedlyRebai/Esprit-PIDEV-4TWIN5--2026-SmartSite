@@ -41,6 +41,7 @@ import {
 
 import toast from "react-hot-toast";
 import { User } from "@/app/types";
+import useAddUserModal from "@/app/hooks/use-user-Modal";
 
 interface DataTableProps<TData, TValue> {
   //columns: ColumnDef<TData, TValue>[];
@@ -53,6 +54,11 @@ export function UserDataTable<TData, TValue>({
   const [data, setData] = useState<User[]>([]);
   const [TotalPages, setTotalPages] = useState(0);
   const [TotalAccount, setTotalAccount] = useState(0);
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+
   console.log("users:", users);
   const columns: ColumnDef<User>[] = [
     //     {
@@ -158,6 +164,10 @@ export function UserDataTable<TData, TValue>({
           </Button>
         );
       },
+      cell: ({ row }) => {
+        const date = new Date(row.getValue("createdAt"));
+        return <>{date.toLocaleDateString()}</>;
+      },
     },
   ];
 
@@ -165,23 +175,42 @@ export function UserDataTable<TData, TValue>({
     data: users,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+    },
   });
 
   console.log(users);
-
+  const {onOpen}= useAddUserModal()
   return (
     <>
-      <div className="flex justify-end  items-center py-4 flex-wrap">
+      <div className="flex justify-between items-center py-4 flex-wrap">
+        <Input
+          placeholder="Search users..."
+          value={globalFilter ?? ""}
+          onChange={(event) => setGlobalFilter(event.target.value)}
+          className="max-w-sm"
+        />
+
         <Button
           //   disabled={access.creation === "N"}
           variant="default"
           className=""
+          onClick={onOpen}
         >
           <ListPlusIcon className="mr-2 h-4 w-4" />
           Add New User
         </Button>
       </div>
-      <div className={`rounded-md border }`}>
+      <div className={`rounded-md border ${table.getRowModel().rows.length === 0 ? "border-red-500" : ""}`}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

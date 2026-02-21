@@ -23,15 +23,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { ArrowUpDown, ListPlusIcon, Edit, Trash2, Shield } from "lucide-react";
 import { Role, Permission } from "@/app/types";
-import { toast } from "sonner";
+import useRoleModal from "@/app/hooks/use-role-Modal";
 
 interface RolesDataTableProps {
   roles: Role[];
@@ -56,7 +51,9 @@ export function RolesDataTable({
       header: "ID",
       cell: ({ row }) => {
         const id = row.getValue("_id") as string;
-        return <div className="font-mono text-xs text-gray-500">{id.slice(-8)}</div>;
+        return (
+          <div className="font-mono text-xs text-gray-500">{id.slice(-8)}</div>
+        );
       },
     },
     {
@@ -85,12 +82,18 @@ export function RolesDataTable({
       accessorKey: "permissions",
       header: "Permissions",
       cell: ({ row }) => {
-        const permissions = row.getValue("permissions") as string[] | Permission[];
-        const permissionCount = Array.isArray(permissions) ? permissions.length : 0;
-        
+        const permissions = row.getValue("permissions") as
+          | string[]
+          | Permission[];
+        const permissionCount = Array.isArray(permissions)
+          ? permissions.length
+          : 0;
+
         return (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{permissionCount} permission{permissionCount !== 1 ? 's' : ''}</span>
+            <span className="text-sm text-gray-600">
+              {permissionCount} permission{permissionCount !== 1 ? "s" : ""}
+            </span>
           </div>
         );
       },
@@ -109,7 +112,9 @@ export function RolesDataTable({
         );
       },
       cell: ({ row }) => {
-        return <div className="text-center">{row.getValue("userCount") || 0}</div>;
+        return (
+          <div className="text-center">{row.getValue("userCount") || 0}</div>
+        );
       },
     },
     {
@@ -156,11 +161,7 @@ export function RolesDataTable({
         return (
           <div className="flex gap-2">
             {onEdit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(role)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => onEdit(role)}>
                 <Edit className="h-4 w-4" />
               </Button>
             )}
@@ -169,7 +170,11 @@ export function RolesDataTable({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  if (confirm(`Are you sure you want to delete role "${role.name}"?`)) {
+                  if (
+                    confirm(
+                      `Are you sure you want to delete role "${role.name}"?`,
+                    )
+                  ) {
                     onDelete(role._id);
                   }
                 }}
@@ -199,7 +204,7 @@ export function RolesDataTable({
       globalFilter,
     },
   });
-
+  const {onOpen}= useRoleModal();
   return (
     <>
       <div className="flex justify-between items-center py-4 flex-wrap gap-4">
@@ -209,12 +214,12 @@ export function RolesDataTable({
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
-        {onAddNew && (
-          <Button onClick={onAddNew} variant="default">
+        
+          <Button onClick={onOpen} variant="default">
             <ListPlusIcon className="mr-2 h-4 w-4" />
             Add New Role
           </Button>
-        )}
+        
       </div>
       <div className="rounded-md border">
         <Table>
@@ -236,7 +241,6 @@ export function RolesDataTable({
               </TableRow>
             ))}
           </TableHeader>
-
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
