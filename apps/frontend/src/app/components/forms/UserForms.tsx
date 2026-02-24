@@ -141,7 +141,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
       toast.error("Failed to load user data. Please try again.");
     }
   };
-  const { id } = useAddUserModal();
+  const { id, onClose, onUserChange } = useAddUserModal();
 
   const [roles, setRoles] = useState<Role[]>([]);
   const loadRoles = async () => {
@@ -176,11 +176,17 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
         const response = await createUser(data);
         if (response.status === 201) {
           toast.success("User created successfully");
+          form.reset();
+          onClose();
+          onUserChange();
         }
       }else{
         const response =await updateUser(id as string,data);
         if(response.status === 200 || response.status === 204){
           toast.success("User updated successfully");
+          form.reset();
+          onClose();
+          onUserChange();
         }
       }
     } catch (error) {

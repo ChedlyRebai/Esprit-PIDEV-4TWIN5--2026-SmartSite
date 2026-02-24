@@ -52,6 +52,7 @@ export default function UserManagement() {
   const navigate = useNavigate();
   const canManageRoles = user && canEdit(user.role.name, "users");
   const [roles, setRoles] = useState<Role[]>([]);
+  const { setOnUserChange } = useAddUserModal();
 
   const [statics, setStatics] = useState({
     totalRoles:0,
@@ -68,6 +69,7 @@ export default function UserManagement() {
     loadPermissions();
     loadUsers();
     loadStatics();
+    setOnUserChange(() => loadUsers);
   }, []);
 
   const loadStatics = async () =>{
@@ -319,7 +321,7 @@ export default function UserManagement() {
               {isLoading ? (
                 <div className="text-center py-12">Loading users...</div>
               ) : (
-                <UserDataTable users={users} />
+                <UserDataTable users={users} onDelete={handleDeleteUser} />
               )}
             </TabsContent>
 

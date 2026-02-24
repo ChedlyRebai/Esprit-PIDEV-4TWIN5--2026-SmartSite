@@ -24,6 +24,17 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/app/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -53,10 +64,12 @@ import { Badge } from "@/app/components/ui/badge";
 interface DataTableProps<TData, TValue> {
   //columns: ColumnDef<TData, TValue>[];
   users: User[];
+  onDelete?: (userId: string) => Promise<void> | void;
 }
 
 export function UserDataTable<TData, TValue>({
   users,
+  onDelete,
 }: DataTableProps<TData, TValue>) {
   const [data, setData] = useState<User[]>([]);
   const [TotalPages, setTotalPages] = useState(0);
@@ -65,8 +78,21 @@ export function UserDataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { setId, id, onOpen, setType } = useAddUserModal();
   console.log("users:", users);
+  const handleDelete = async (userId: string) => {
+    if (!onDelete) {
+      return;
+    }
+
+    setDeletingId(userId);
+    try {
+      await onDelete(userId);
+    } finally {
+      setDeletingId(null);
+    }
+  };
   const columns: ColumnDef<User>[] = [
     //     {
     //     id: '12',
@@ -228,6 +254,9 @@ export function UserDataTable<TData, TValue>({
       // },
       cell: ({ row }) => {
         const id = row.getValue("_id") as string;
+        const firstname = row.getValue("firstname") as string | undefined;
+        const lastname = row.getValue("lastname") as string | undefined;
+        const fullName = [firstname, lastname].filter(Boolean).join(" ");
 
         return (
           <>
@@ -240,9 +269,31 @@ export function UserDataTable<TData, TValue>({
             >
               <Edit className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm">
-              <Trash className="h-4 w-4 text-red-600" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Trash className="h-4 w-4 text-red-600" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete user</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete{fullName ? ` ${fullName}` : " this user"}
+                    and remove the account from the system.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDelete(id)}
+                    disabled={deletingId === id}
+                  >
+                    {deletingId === id ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         );
       },
@@ -282,7 +333,8 @@ export function UserDataTable<TData, TValue>({
           //   disabled={access.creation === "N"}
           variant="default"
           className=""
-          onClick={onOpen}
+
+          onClick={()=>{onOpen(),setType("add")}}
         >
           <ListPlusIcon className="mr-2 h-4 w-4" />
           Add New User

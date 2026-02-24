@@ -8,10 +8,12 @@ interface addUserModalStore {
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  onUserChange: () => void;
+  setOnUserChange: (callback: () => void) => void;
 }
 
 const useAddUserModal = create<addUserModalStore>(
-  (set) => ({
+  (set, get) => ({
     id: undefined,
     type:undefined,
     setType: (type) => set({type}),
@@ -20,6 +22,8 @@ const useAddUserModal = create<addUserModalStore>(
     setId: (id) => set({ id }),
     onOpen: () => set({ isOpen: true }),
     onClose: () => set({ isOpen: false }),
+    onUserChange: () => {},
+    setOnUserChange: (callback) => set({ onUserChange: callback }),
   })
 );
 
