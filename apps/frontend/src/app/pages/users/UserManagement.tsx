@@ -47,6 +47,7 @@ import { set } from "zod";
 import { getAllStatics } from "@/app/action/statiscs.action";
 import useAddUserModal from "@/app/hooks/use-user-Modal";
 import useAddPermissionModal from "@/app/hooks/use-permission-Modal";
+import useRoleModal from "@/app/hooks/use-role-Modal";
 
 export default function UserManagement() {
   const user = useAuthStore((state) => state.user);
@@ -55,6 +56,7 @@ export default function UserManagement() {
   const [roles, setRoles] = useState<Role[]>([]);
   const { setOnUserChange } = useAddUserModal();
   const { setOnPermissionChange } = useAddPermissionModal();
+  const { setOnRoleChange } = useRoleModal();
 
   const [statics, setStatics] = useState({
     totalRoles:0,
@@ -73,6 +75,7 @@ export default function UserManagement() {
     loadStatics();
     setOnUserChange(() => loadUsers);
     setOnPermissionChange(() => loadPermissions);
+    setOnRoleChange(() => loadRoles);
   }, []);
 
   const loadStatics = async () =>{
@@ -174,8 +177,10 @@ export default function UserManagement() {
   };
 
   const handleEditRole = (role: Role) => {
-    toast.success(`Edit role: ${role.name}`);
-    // TODO: Implement edit dialog
+    const { setId, setType, onOpen } = useRoleModal.getState();
+    setId(role._id);
+    setType("edit");
+    onOpen();
   };
 
   const handleDeleteRole = async (roleId: string) => {

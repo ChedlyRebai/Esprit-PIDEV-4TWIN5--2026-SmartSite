@@ -20,7 +20,6 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { createRole, getRoleById, updateRole } from "@/app/action/role.action";
 import useRoleModal from "@/app/hooks/use-role-Modal";
-import { ca } from "zod/v4/locales";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -40,7 +39,7 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
       description: "",
     },
   });
-  const { id } = useRoleModal();
+  const { id, onClose, onRoleChange } = useRoleModal();
   const loadRoleData = async () => {
     try {
       console.log("Loading role data for ID:", id);
@@ -70,15 +69,25 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
         const res = await createRole(data.name, data.description);
         if (res.status === 201) {
           toast.success("Role created successfully");
+          form.reset();
+          onClose();
+          onRoleChange();
+        } else {
+          toast.error(res.data || "Failed to create role");
         }
       } else {
         const res = await updateRole(data.id!, data.name, data.description);
         if (res.status === 200 || res.status === 204) {
           toast.success("Role updated successfully");
+          form.reset();
+          onClose();
+          onRoleChange();
+        } else {
+          toast.error(res.data || "Failed to update role");
         }
       }
     } catch (error: any) {
-      toast.error("Failed to create role. PPlease try again.");
+      toast.error("Failed to save role. Please try again.");
     }
   };
   return (

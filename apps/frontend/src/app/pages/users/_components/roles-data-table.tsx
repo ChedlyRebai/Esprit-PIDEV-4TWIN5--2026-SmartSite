@@ -270,7 +270,13 @@ export function RolesDataTable({
           className="max-w-sm"
         />
 
-        <Button onClick={onOpen} variant="default">
+        <Button 
+          onClick={() => {
+            setType("add");
+            onOpen();
+          }} 
+          variant="default"
+        >
           <ListPlusIcon className="mr-2 h-4 w-4" />
           Add New Role
         </Button>
