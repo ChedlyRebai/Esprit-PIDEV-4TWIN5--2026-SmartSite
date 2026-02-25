@@ -88,7 +88,7 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
     loadPermissions();
     if (type === "edit") {
       loadRoleData();
-    }
+    }loadRoleData();
   }, [type]);
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {

@@ -10,6 +10,8 @@ interface RolePermissionsModalStore {
   onClose: () => void;
   onPermissionsChange: () => void;
   setOnPermissionsChange: (callback: () => void) => void;
+  refreshData: () => void;
+  setRefreshData: (callback: () => void) => void;
 }
 
 const useRolePermissionsModal = create<RolePermissionsModalStore>(
@@ -23,6 +25,8 @@ const useRolePermissionsModal = create<RolePermissionsModalStore>(
     onClose: () => set({ isOpen: false }),
     onPermissionsChange: () => {},
     setOnPermissionsChange: (callback) => set({ onPermissionsChange: callback }),
+    refreshData: () => {},
+    setRefreshData: (callback) => set({ refreshData: callback }),
   })
 );
 

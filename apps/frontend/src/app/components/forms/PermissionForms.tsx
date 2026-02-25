@@ -27,24 +27,32 @@ import {
   SelectValue,
 } from "../ui/select";
 
-// Predefined permission categories with their hrefs
 const PERMISSION_CATEGORIES = [
+  { name: "Dashboard", href: "/dashboard" },
   { name: "User Management", href: "/users" },
   { name: "Role Management", href: "/roles" },
   { name: "Permission Management", href: "/permissions" },
-  { name: "Site Management", href: "/sites" },
-  { name: "Content Management", href: "/content" },
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Analytics", href: "/analytics" },
-  { name: "Settings", href: "/settings" },  
+  { name: "Sites", href: "/sites" },
   { name: "Projects", href: "/projects" },
+  { name: "Planning", href: "/planning" },
+  { name: "Team", href: "/team" },
+  { name: "Clients", href: "/clients" },
+  { name: "Suppliers", href: "/suppliers" },
+  { name: "Materials", href: "/materials" },
+  { name: "Finance", href: "/finance" },
+  { name: "QHSE & Safety", href: "/qhse" },
+  { name: "Incidents", href: "/incidents" },
   { name: "Reports", href: "/reports" },
-  { name: "Custom", href: "" }, // For custom entries
+  { name: "Analytics", href: "/analytics" },
+  { name: "Map View", href: "/map" },
+  { name: "Notifications", href: "/notifications" },
+  { name: "Pending Approvals", href: "/admin/pending-users" },
+  
 ];
 
 const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const [isCustomCategory, setIsCustomCategory] = React.useState(false);
-  
+
   let formSchema;
   if (type === "edit") {
     formSchema = z.object({
@@ -77,7 +85,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
       href: z.string(),
       access: z.boolean().optional(),
       create: z.boolean().optional(),
-      update: z.boolean().optional(), 
+      update: z.boolean().optional(),
       delete: z.boolean().optional(),
     });
   }
@@ -110,9 +118,9 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
       if (res.status === 200) {
         // Check if the permission name matches a predefined category
         const matchedCategory = PERMISSION_CATEGORIES.find(
-          (cat) => cat.name === res.data.name
+          (cat) => cat.name === res.data.name,
         );
-        
+
         form.reset({
           name: res.data.name || "",
           category: matchedCategory ? res.data.name : "Custom",
@@ -123,8 +131,8 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
           update: res.data.update || false,
           delete: res.data.delete || false,
         });
+
         
-        setIsCustomCategory(!matchedCategory || matchedCategory.name === "Custom");
       }
     } catch (error: any) {
       toast.error("Failed to load permission data. Please try again.");
@@ -133,19 +141,15 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
 
   const handleCategoryChange = (categoryName: string) => {
     const selectedCategory = PERMISSION_CATEGORIES.find(
-      (cat) => cat.name === categoryName
+      (cat) => cat.name === categoryName,
     );
-    
+
     if (selectedCategory) {
-      if (selectedCategory.name === "Custom") {
-        setIsCustomCategory(true);
-        form.setValue("name", "");
-        form.setValue("href", "");
-      } else {
+      
         setIsCustomCategory(false);
         form.setValue("name", selectedCategory.name);
         form.setValue("href", selectedCategory.href);
-      }
+      
     }
   };
 
@@ -153,13 +157,13 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
     try {
       if (type === "add") {
         const response = await createPermission(data);
-        console.log("data",data)
+        console.log("data", data);
         if (response.status === 201) {
           toast.success("Permission created successfully");
           form.reset();
           onClose();
           onPermissionChange();
-          loadPermissionData()
+          loadPermissionData();
         } else {
           toast.error(response.data || "Failed to create permission");
         }
@@ -250,9 +254,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="form-permission-href">
-                  Href *
-                </FieldLabel>
+                <FieldLabel htmlFor="form-permission-href">Href *</FieldLabel>
                 <Input
                   {...field}
                   id="form-permission-href"
@@ -295,7 +297,10 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
               name="access"
               control={form.control}
               render={({ field }) => (
-                <Field orientation="horizontal" className="items-center justify-between">
+                <Field
+                  orientation="horizontal"
+                  className="items-center justify-between"
+                >
                   <FieldLabel htmlFor="form-permission-access">
                     Access
                   </FieldLabel>
@@ -312,7 +317,10 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
               name="create"
               control={form.control}
               render={({ field }) => (
-                <Field orientation="horizontal" className="items-center justify-between">
+                <Field
+                  orientation="horizontal"
+                  className="items-center justify-between"
+                >
                   <FieldLabel htmlFor="form-permission-create">
                     Create
                   </FieldLabel>
@@ -329,7 +337,10 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
               name="update"
               control={form.control}
               render={({ field }) => (
-                <Field orientation="horizontal" className="items-center justify-between">
+                <Field
+                  orientation="horizontal"
+                  className="items-center justify-between"
+                >
                   <FieldLabel htmlFor="form-permission-update">
                     Update
                   </FieldLabel>
@@ -346,7 +357,10 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
               name="delete"
               control={form.control}
               render={({ field }) => (
-                <Field orientation="horizontal" className="items-center justify-between">
+                <Field
+                  orientation="horizontal"
+                  className="items-center justify-between"
+                >
                   <FieldLabel htmlFor="form-permission-delete">
                     Delete
                   </FieldLabel>

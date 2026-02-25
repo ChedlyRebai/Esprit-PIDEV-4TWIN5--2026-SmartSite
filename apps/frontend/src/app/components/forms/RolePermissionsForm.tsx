@@ -20,11 +20,16 @@ const RolePermissionsForm = () => {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { roleId, onClose, onPermissionsChange } = useRolePermissionsModal();
+  const { roleId, onClose, onPermissionsChange, setRefreshData, isOpen } = useRolePermissionsModal();
 
   useEffect(() => {
     loadData();
-  }, [roleId]);
+  }, [roleId, isOpen]);
+
+  useEffect(() => {
+    // Set the refresh callback so it can be called from outside
+    setRefreshData(() => loadData);
+  }, []);
 
   const loadData = async () => {
     if (!roleId) return;

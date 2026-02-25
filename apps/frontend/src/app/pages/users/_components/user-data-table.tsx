@@ -369,7 +369,6 @@ export function UserDataTable<TData, TValue>({
                   </TableRow>
                 ))
               ) : (
-                // Replace <TableCell>Pas de résultats.</TableCell> with your custom no results component
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}

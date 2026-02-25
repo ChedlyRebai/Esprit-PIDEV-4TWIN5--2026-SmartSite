@@ -58,7 +58,7 @@ export default function UserManagement() {
   const { setOnUserChange } = useAddUserModal();
   const { setOnPermissionChange } = useAddPermissionModal();
   const { setOnRoleChange } = useRoleModal();
-  const { setOnPermissionsChange } = useRolePermissionsModal();
+  const { setOnPermissionsChange, setRefreshData } = useRolePermissionsModal();
 
   const [statics, setStatics] = useState({
     totalRoles:0,
@@ -76,8 +76,18 @@ export default function UserManagement() {
     loadUsers();
     loadStatics();
     setOnUserChange(() => loadUsers);
-    setOnPermissionChange(() => loadPermissions);
-    setOnRoleChange(() => loadRoles);
+    setOnPermissionChange(() => {
+      loadPermissions();
+      // Also refresh the role permissions modal data when permissions change
+      const { refreshData } = useRolePermissionsModal.getState();
+      refreshData();
+    });
+    setOnRoleChange(() => {
+      loadRoles();
+      // Also refresh the role permissions modal data when roles change
+      const { refreshData } = useRolePermissionsModal.getState();
+      refreshData();
+    });
     setOnPermissionsChange(() => loadRoles);
   }, []);
 
