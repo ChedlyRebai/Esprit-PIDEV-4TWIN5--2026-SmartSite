@@ -71,7 +71,7 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
               typeof p === 'string' ? p : p._id
             )
           : [];
-        
+            
         form.reset({
           id: res.data._id,
           name: res.data.name,

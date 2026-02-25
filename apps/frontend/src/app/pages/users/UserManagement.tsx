@@ -48,6 +48,7 @@ import { getAllStatics } from "@/app/action/statiscs.action";
 import useAddUserModal from "@/app/hooks/use-user-Modal";
 import useAddPermissionModal from "@/app/hooks/use-permission-Modal";
 import useRoleModal from "@/app/hooks/use-role-Modal";
+import useRolePermissionsModal from "@/app/hooks/use-role-permissions-modal";
 
 export default function UserManagement() {
   const user = useAuthStore((state) => state.user);
@@ -57,6 +58,7 @@ export default function UserManagement() {
   const { setOnUserChange } = useAddUserModal();
   const { setOnPermissionChange } = useAddPermissionModal();
   const { setOnRoleChange } = useRoleModal();
+  const { setOnPermissionsChange } = useRolePermissionsModal();
 
   const [statics, setStatics] = useState({
     totalRoles:0,
@@ -76,6 +78,7 @@ export default function UserManagement() {
     setOnUserChange(() => loadUsers);
     setOnPermissionChange(() => loadPermissions);
     setOnRoleChange(() => loadRoles);
+    setOnPermissionsChange(() => loadRoles);
   }, []);
 
   const loadStatics = async () =>{

@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { Role, Permission } from "@/app/types";
 import useRoleModal from "@/app/hooks/use-role-Modal";
+import useRolePermissionsModal from "@/app/hooks/use-role-permissions-modal";
 
 interface RolesDataTableProps {
   roles: Role[];
@@ -64,6 +65,11 @@ export function RolesDataTable({
   const [globalFilter, setGlobalFilter] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { setId, id, onOpen, setType } = useRoleModal();
+  const { 
+    setRoleId, 
+    setRoleName, 
+    onOpen: onOpenPermissions 
+  } = useRolePermissionsModal();
   const handleDelete = async (roleId: string) => {
     if (!onDelete) {
       return;
@@ -209,8 +215,21 @@ export function RolesDataTable({
               }}
               variant="ghost"
               size="sm"
+              title="Edit Role"
             >
               <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => {
+                setRoleId(id);
+                setRoleName(name);
+                onOpenPermissions();
+              }}
+              variant="ghost"
+              size="sm"
+              title="Manage Permissions"
+            >
+              <Shield className="h-4 w-4 text-blue-600" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
