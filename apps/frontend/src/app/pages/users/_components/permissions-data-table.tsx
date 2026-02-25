@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import {  useState } from "react";
 import { Input } from "@/components/ui/input";
 
 import {
@@ -42,7 +42,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { access } from "fs";
-import useAddPermissionModal from "@/app/hooks/use-permission-Modal";
 
 interface PermissionsDataTableProps {
   permissions: Permission[];
@@ -88,7 +87,7 @@ export function PermissionsDataTable({
         return <div className="font-medium">{row.getValue("name")}</div>;
       },
     },
-
+    
     {
       accessorKey: "access",
       header: ({ column }) => {
@@ -118,15 +117,14 @@ export function PermissionsDataTable({
 
             defaultValue={row.getValue("access")}
           >
+           
             <SelectTrigger
               className={` w-fit ${
                 row.getValue("access") == "1"
                   ? "border-green-500"
                   : "border-red-500"
               }`}
-            >
-              {" "}
-              {row.getValue("access") === "1" ? "Oui" : "Non"}
+            > {row.getValue("access") === "1" ? "Oui" : "Non"}
               <SelectValue placeholder="Select a fruit" />
             </SelectTrigger>
             <SelectContent>
@@ -168,15 +166,14 @@ export function PermissionsDataTable({
 
             defaultValue={row.getValue("create")}
           >
+           
             <SelectTrigger
               className={` w-fit ${
                 row.getValue("create") == "1"
                   ? "border-green-500"
                   : "border-red-500"
               }`}
-            >
-              {" "}
-              {row.getValue("create") === "1" ? "Oui" : "Non"}
+            > {row.getValue("create") === "1" ? "Oui" : "Non"}
               <SelectValue placeholder="Select a fruit" />
             </SelectTrigger>
             <SelectContent>
@@ -218,15 +215,14 @@ export function PermissionsDataTable({
 
             defaultValue={row.getValue("update")}
           >
+          
             <SelectTrigger
               className={` w-fit ${
                 row.getValue("update") == "1"
                   ? "border-green-500"
                   : "border-red-500"
               }`}
-            >
-              {" "}
-              {row.getValue("update") === "1" ? "Oui" : "Non"}
+            >  {row.getValue("update") === "1" ? "Oui" : "Non"}
               <SelectValue placeholder="Select a fruit" />
             </SelectTrigger>
             <SelectContent>
@@ -254,8 +250,8 @@ export function PermissionsDataTable({
       },
       cell: ({ row }) => {
         return (
-          <>
-            {/* <span
+        <>
+           {/* <span
              className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-lg font-medium ${
                row.getValue("acces") === "O"
                  ? "bg-green-100 text-green-800"
@@ -265,28 +261,28 @@ export function PermissionsDataTable({
            >
              {row.getValue("delete") === "1" ? "Oui" : "Non"}
            </span> */}
-            <Select
-              // disabled={access.modification === "N"}
+          <Select
+            // disabled={access.modification === "N"}
 
-              defaultValue={row.getValue("delete")}
-            >
-              <SelectTrigger
-                className={` w-fit ${
-                  row.getValue("delete") == "1"
-                    ? "border-green-500"
-                    : "border-red-500"
-                }`}
-              >
-                {row.getValue("delete") === "1" ? "Oui" : "Non"}
-                <SelectValue placeholder="Select a fruit" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="1">Oui</SelectItem>
-                  <SelectItem value="0">Non</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            defaultValue={row.getValue("delete")}
+          >
+            <SelectTrigger
+              className={` w-fit ${
+                row.getValue("delete") == "1"
+                  ? "border-green-500"
+                  : "border-red-500"
+              }`}
+            >{row.getValue("delete") === "1" ? "Oui" : "Non"}
+              <SelectValue placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="1">Oui</SelectItem>
+                <SelectItem value="0">Non</SelectItem>
+              </SelectGroup>
+              
+            </SelectContent>
+          </Select>
           </>
         );
       },
@@ -320,43 +316,43 @@ export function PermissionsDataTable({
         return <div>{date.toLocaleDateString()}</div>;
       },
     },
-     {
-       id: "actions",
-       header: "Actions",
-       cell: ({ row }) => {
-         const permission = row.original;
-         return (
-           <div className="flex gap-2">
-             {onEdit && (
-               <Button
-                 variant="ghost"
-                 size="sm"
-                 onClick={() => onEdit(permission)}
-               >
-                 <Edit className="h-4 w-4" />
-               </Button>
-             )}
-             {onDelete && (
-               <Button
-                 variant="ghost"
-                 size="sm"
-                 onClick={() => {
-                   if (
-                     confirm(
-                       `Are you sure you want to delete permission "${permission.name}"?`,
-                     )
-                   ) {
-                     onDelete(permission._id);
-                   }
-                 }}
-               >
-                 <Trash2 className="h-4 w-4 text-red-500" />
-               </Button>
-             )}
-           </div>
-         );
-       },
-     },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const permission = row.original;
+        return (
+          <div className="flex gap-2">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(permission)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Are you sure you want to delete permission "${permission.name}"?`,
+                    )
+                  ) {
+                    onDelete(permission._id);
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
   ];
 
   const table = useReactTable({
@@ -375,7 +371,7 @@ export function PermissionsDataTable({
       globalFilter,
     },
   });
-  const {onOpen} = useAddPermissionModal();
+
   return (
     <>
       <div className="flex justify-between items-center py-4 flex-wrap gap-4">
@@ -385,11 +381,12 @@ export function PermissionsDataTable({
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
-
-        <Button onClick={onOpen} variant="default">
-          <ListPlusIcon className="mr-2 h-4 w-4" />
-          Add New Permission
-        </Button>
+        {onAddNew && (
+          <Button onClick={onAddNew} variant="default">
+            <ListPlusIcon className="mr-2 h-4 w-4" />
+            Add New Permission
+          </Button>
+        )}
       </div>
       <div className="rounded-md border">
         <Table>

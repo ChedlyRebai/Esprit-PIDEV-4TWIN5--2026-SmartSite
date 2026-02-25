@@ -27,8 +27,20 @@ export const useAuthStore = create<AuthState>()(
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         console.log('mmmmmmmmmmmmmmmmmmmmm',userWIthToken);
 
+        // Transform role if it's a string (from API) to match expected format
+        const userData = res.data;
+        if (typeof userData.role === 'string') {
+          userData.role = {
+            _id: '',
+            name: userData.role,
+            permissions: [],
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+        }
+
         set({
-          user: res.data,
+          user: userData,
           isAuthenticated: true,
         });
       },

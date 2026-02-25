@@ -16,7 +16,6 @@ export class RolesService {
     return this.roleModel.find().populate('permissions').exec();
   }
 
-  
   async findById(id: string) {
     return this.roleModel.findById(id).populate('permissions').exec();
   }

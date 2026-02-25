@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import type { User } from "../../types";
 
 export default function PendingUsers() {
@@ -78,7 +78,7 @@ export default function PendingUsers() {
             <div className="space-y-3">
               {users.map((u) => (
                 <div
-                  key={u._id}
+                  key={u.id}
                   className="flex items-center justify-between p-3 border rounded-md"
                 >
                   <div>
@@ -86,7 +86,7 @@ export default function PendingUsers() {
                       {u.firstName} {u.lastName}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {u.email} • {u.role.name}
+                      {u.email} • {u.role}
                     </div>
                     <div className="text-xs text-gray-400">
                       Registered: {new Date(u.createdDate).toLocaleString()}
@@ -95,18 +95,18 @@ export default function PendingUsers() {
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleApprove(u._id)}
+                      onClick={() => handleApprove(u.id)}
                       disabled={actionLoading !== null}
                     >
-                      {actionLoading === u._id ? "..." : "Approve"}
+                      {actionLoading === u.id ? "..." : "Approve"}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleReject(u._id)}
+                      onClick={() => handleReject(u.id)}
                       disabled={actionLoading !== null}
                     >
-                      {actionLoading === u._id ? "..." : "Reject"}
+                      {actionLoading === u.id ? "..." : "Reject"}
                     </Button>
                   </div>
                 </div>

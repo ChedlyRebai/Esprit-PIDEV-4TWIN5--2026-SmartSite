@@ -41,7 +41,9 @@ export default function DashboardLayout() {
     return null;
   }
 
-  const navigationItems = getNavigationForRole(user.role.name);
+  // Get role name - handle both string and object formats from API
+  const roleName = typeof user.role === 'string' ? user.role : user.role?.name || 'user';
+  const navigationItems = getNavigationForRole(roleName);
   const unreadNotifications = mockNotifications.filter((n) => !n.read).length;
 
   const getInitials = (nom: string, lastname: string) => {
