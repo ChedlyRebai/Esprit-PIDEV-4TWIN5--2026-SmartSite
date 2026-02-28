@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
@@ -44,7 +44,7 @@ export class UsersService {
 
   async findByCin(cin: string) {
     console.log('from user service', cin);
-    return this.userModel.findOne({ cin }).populate('role').exec();
+    return await this.userModel.findOne({ cin }).populate('role').exec();
   }
 
   async findById(id: string) {
@@ -52,16 +52,26 @@ export class UsersService {
   }
 
   async findAll() {
-    return this.userModel.find().populate('role').exec();
+    return await this.userModel.find().populate('role').exec();
   }
 
   async update(id: string, updateUserDto: any) {
-    return this.userModel
+    return await this.userModel
       .findByIdAndUpdate(id, updateUserDto, { new: true })
       .exec();
   }
 
   async remove(id: string) {
-    return this.userModel.findByIdAndDelete(id).exec();
+    return await this.userModel.findByIdAndDelete(id).exec();
   }
+
+
+  async handleBan(id:string,data:boolean){
+    const bannedUser = await this.userModel.findByIdAndUpdate(id,{estActif:data},{new:true}).exec()
+    if(!bannedUser){
+      throw new NotFoundException(`Usser with id ${id} not exist`)
+    }
+    return bannedUser;
+  }
+
 }

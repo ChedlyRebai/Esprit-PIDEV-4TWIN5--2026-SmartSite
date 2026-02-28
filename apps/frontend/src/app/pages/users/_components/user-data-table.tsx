@@ -36,6 +36,7 @@ import {
 } from "@/app/components/ui/alert-dialog";
 import {
   ArrowUpDown,
+  BanIcon,
   Edit,
   ListPlusIcon,
   SearchIcon,
@@ -51,11 +52,13 @@ interface DataTableProps<TData, TValue> {
   //columns: ColumnDef<TData, TValue>[];
   users: User[];
   onDelete?: (userId: string) => Promise<void> | void;
+  onBan?: (userId: string) => Promise<void> | void;
 }
 
 export function UserDataTable<TData, TValue>({
   users,
   onDelete,
+  onBan
 }: DataTableProps<TData, TValue>) {
   const [data, setData] = useState<User[]>([]);
   const [TotalPages, setTotalPages] = useState(0);
@@ -65,8 +68,21 @@ export function UserDataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [banningId, setBaningId] = useState<string | null>(null);
   const { setId, id, onOpen, setType } = useAddUserModal();
   console.log("users:", users);
+
+   const handleBan = async (userId:string)=>{
+       if(  !onBan){
+        return;
+       }
+       setBaningId(userId);
+       try {
+        await onBan(userId);
+       } finally {
+        setBaningId(null);
+       }
+   }
   const handleDelete = async (userId: string) => {
     if (!onDelete) {
       return;
@@ -266,7 +282,8 @@ export function UserDataTable<TData, TValue>({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete user</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete{fullName ? ` ${fullName}` : " this user"}
+                    This will permanently delete
+                    {fullName ? ` ${fullName}` : " this user"}
                     and remove the account from the system.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -277,6 +294,33 @@ export function UserDataTable<TData, TValue>({
                     disabled={deletingId === id}
                   >
                     {deletingId === id ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <BanIcon className="h-4 w-4 " />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ban user</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently ban
+                    {fullName ? ` ${fullName}` : " this user"}
+                    and remove the account from the system.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                   onClick={() => handleBan(id)}
+                   disabled={banningId === id}
+                  >
+                    {banningId === id ? "Banning..." : "Ban"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -320,8 +364,9 @@ export function UserDataTable<TData, TValue>({
           //   disabled={access.creation === "N"}
           variant="default"
           className=""
-
-          onClick={()=>{onOpen(),setType("add")}}
+          onClick={() => {
+            (onOpen(), setType("add"));
+          }}
         >
           <ListPlusIcon className="mr-2 h-4 w-4" />
           Add New User
