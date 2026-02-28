@@ -93,4 +93,14 @@ export class AuthController {
       user: updatedUser,
     };
   }
+
+  @Post('verify-otp')
+  async verifyOTP(@Body() body: { cin: string; otp: string }) {
+    return this.authService.verifyOTP(body.cin, body.otp);
+  }
+
+  @Post('resend-otp')
+  async resendOTP(@Body() body: { cin: string }) {
+    return this.authService.resendOTP(body.cin);
+  }
 }

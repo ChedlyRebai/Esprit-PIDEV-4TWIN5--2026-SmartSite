@@ -24,12 +24,12 @@ export class EmailService {
     } else {
       // Development: Use Ethereal test account with valid credentials
       this.transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
+        host: 'smtp.gmail.com',
         port: 587,
         secure: false,
         auth: {
-          user: 'wzcnrlxs5my3lf5m@ethereal.email',
-          pass: 'eyyBm8xBw1Ugz8rMFc',
+          user: 'chedly.rebai123@gmail.com',
+          pass: process.env.EMAIL_PASS,
         },
       });
     }
@@ -99,6 +99,56 @@ export class EmailService {
       }
     } catch (error) {
       console.error('❌ EMAIL SERVICE: Erreur envoi email:', error);
+      throw error;
+    }
+  }
+
+  async sendOTPEmail(
+    userEmail: string,
+    firstName: string,
+    otp: string,
+  ): Promise<void> {
+    console.log('📧 EMAIL SERVICE: Envoi OTP à', userEmail);
+    
+    const subject = 'Code de vérification SmartSite';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Vérification de votre email</h2>
+        <p>Bonjour ${firstName},</p>
+        <p>Merci de vous être inscrit sur SmartSite. Pour finaliser votre inscription, veuillez utiliser le code de vérification ci-dessous:</p>
+        
+        <div style="background-color: #F3F4F6; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
+          <h1 style="color: #4F46E5; font-size: 48px; margin: 0; letter-spacing: 8px;">${otp}</h1>
+        </div>
+
+        <p style="color: #6B7280;">Ce code est valide pendant <strong>10 minutes</strong>.</p>
+        
+        <p style="margin-top: 30px;">Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email.</p>
+        
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
+        <p style="color: #9CA3AF; font-size: 12px;">
+          Ceci est un email automatique, merci de ne pas y répondre.<br>
+          © ${new Date().getFullYear()} SmartSite. Tous droits réservés.
+        </p>
+      </div>
+    `;
+
+    try {
+      const result = await this.transporter.sendMail({
+        from: process.env.EMAIL_USER || 'noreply@smartsite.com',
+        to: userEmail,
+        subject,
+        html: htmlContent,
+      });
+
+      console.log('✅ EMAIL SERVICE: OTP envoyé avec succès !');
+      
+      if (!process.env.EMAIL_USER) {
+        console.log('\n📧 OTP EMAIL - Preview URL:', nodemailer.getTestMessageUrl(result));
+        console.log('📧 You can view the email at the URL above.\n');
+      }
+    } catch (error) {
+      console.error('❌ EMAIL SERVICE: Erreur envoi OTP:', error);
       throw error;
     }
   }

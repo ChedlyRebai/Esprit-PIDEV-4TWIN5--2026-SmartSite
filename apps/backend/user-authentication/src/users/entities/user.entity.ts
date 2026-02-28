@@ -14,7 +14,7 @@ export class User extends Document {
   @Prop({ required: true, unique: true, trim: true })
   cin: string;
 
-  @Prop({ required: false }) // Rendre le mot de passe optionnel pour inscription sans mot de passe
+  @Prop({ required: false }) 
   password: string;
 
   @Prop()
@@ -63,6 +63,15 @@ export class User extends Document {
 
   @Prop()
   companyName?: string;
+
+  @Prop({ default: false })
+  emailVerified: boolean;
+
+  @Prop()
+  emailVerificationOtp?: string;
+
+  @Prop()
+  otpExpiresAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

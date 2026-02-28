@@ -95,20 +95,26 @@ export default function Register() {
     try {
       await register(
         data.cin,
-
+        "", // mot de passe vide à l'inscription, généré à l'approbation
         data.firstName,
         data.lastName,
         data.email,
         data.phoneNumber || "",
-
+        
         data.address || "",
-
+       
         data.companyName || "",
       );
       toast.success(
-        "Inscription réussie! Votre compte est en attente d'approbation. Vous recevrez un email avec vos identifiants.",
+        "Inscription réussie! Un code de vérification a été envoyé à votre email.",
       );
-      navigate("/login");
+      // Redirect to OTP verification page with user data
+      navigate("/verify-otp", {
+        state: {
+          cin: data.cin,
+          email: data.email,
+        },
+      });
     } catch (error: any) {
       console.error("Erreur inscription:", error);
       const message =
