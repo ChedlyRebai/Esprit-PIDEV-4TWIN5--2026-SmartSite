@@ -29,10 +29,25 @@ export interface User {
   email?: string;
   phone?: string;
   role: UserRole;
+  profilePicture?: string;
   isActive: boolean;
+  preferredLanguage?: string;
+  projectsCount?: number;
+  companyName?: string;
   createdDate: string;
   lastLoginDate?: string;
   avatar?: string;
+}
+
+export interface Permisssion {
+  _id: string;
+  name: string;
+  href: string;
+  access: boolean;
+  create: boolean;
+  delete: boolean;
+  update: boolean;
+  description?: string;
 }
 
 export interface Role {

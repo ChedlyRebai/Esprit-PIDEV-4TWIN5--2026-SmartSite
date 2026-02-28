@@ -51,7 +51,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
           .max(32, "Lastname must be at most 32 characters.")
           .optional(),
         email: z.string().email("Invalid email address").optional(),
-        telephone: z.string().optional(),
+        phoneNumber: z.string().optional(),
         password: z
           .string()
           .max(32, "Password must be at most 32 characters.")
@@ -83,7 +83,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
           .min(5, "Lastname must be at least 5 characters.")
           .max(32, "Lastname must be at most 32 characters."),
         email: z.string().email("Invalid email address"),
-        telephone: z.string(),
+        phoneNumber: z.string(),
         password: z
           .string()
           .max(32, "Password must be at most 32 characters.")
@@ -109,7 +109,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
       firstname: "",
       lastname: "",
       email: "",
-      telephone: "",
+      phoneNumber: "",
       password: "",
       address: "",
       confirmPassword: "",
@@ -132,7 +132,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
           firstname: res.data.firstname,
           lastname: res.data.lastname,
           email: res.data.email,
-          telephone: res.data.telephone,
+          phoneNumber: res.data.phoneNumber,
           address: res.data.address,
           role: res.data.role?._id || "",
         });
@@ -156,7 +156,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
   };
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     // try {
-    //   const res = await createUser(data.firstname, data.lastname, data.email, data.telephone, data.password, data.address);
+    //   const res = await createUser(data.firstname, data.lastname, data.email, data.phoneNumber, data.password, data.address);
     //   if (res.status === 201) {
     //     toast.success("User created successfully");
     //   }
@@ -168,7 +168,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
       data.email,
       data.firstname,
       data.lastname,
-      data.telephone,
+      data.phoneNumber,
       data,
     );
     try {
@@ -286,18 +286,18 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
               )}
             />
             <Controller
-              name="telephone"
+              name="phoneNumber"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-telephone">
-                    Telephone
+                  <FieldLabel htmlFor="form-rhf-demo-phoneNumber">
+                    phoneNumber
                   </FieldLabel>
                   <Input
                     {...field}
-                    id="form-rhf-demo-telephone"
+                    id="form-rhf-demo-phoneNumber"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Enter telephone"
+                    placeholder="Enter phoneNumber"
                     autoComplete="off"
                   />
                   {fieldState.invalid && (

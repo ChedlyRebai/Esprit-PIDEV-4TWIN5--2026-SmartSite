@@ -17,6 +17,9 @@ export class User extends Document {
   @Prop({ required: false }) // Rendre le mot de passe optionnel pour inscription sans mot de passe
   password: string;
 
+  @Prop()
+  profilePicture?: string;
+  
   @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
   role: Types.ObjectId;
 
@@ -27,13 +30,19 @@ export class User extends Document {
   connected: boolean;
 
   @Prop()
+  preferredLanguage?: string;
+
+  @Prop()
+  projectsCount?: number;
+
+  @Prop()
   address: string;
 
   @Prop({ default: true })
   estActif: boolean;
 
   @Prop()
-  telephone?: string;
+  phoneNumber?: string;
 
   @Prop()
   departement?: string;
@@ -52,6 +61,9 @@ export class User extends Document {
 
   @Prop([String])
   certifications?: string[];
+
+  @Prop()
+  companyName?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

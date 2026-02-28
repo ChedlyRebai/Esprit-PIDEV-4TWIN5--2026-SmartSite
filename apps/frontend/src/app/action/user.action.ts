@@ -38,7 +38,7 @@ export const createUser = async (userData: {
   firstName?: string;
   lastName?: string;
   email?: string;
-  telephone?: string;
+  phoneNumber?: string;
   address?: string;
 }) => {
   try {
@@ -63,7 +63,7 @@ export const updateUser = async (
     firstName?: string;
     lastName?: string;
     email?: string;
-    telephone?: string;
+    phoneNumber?: string;
     address?: string;
   },
 ) => {
