@@ -37,6 +37,7 @@ import {
 import {
   ArrowUpDown,
   BanIcon,
+  CheckIcon,
   Edit,
   ListPlusIcon,
   SearchIcon,
@@ -302,16 +303,24 @@ export function UserDataTable<TData, TValue>({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm">
-                  <BanIcon className="h-4 w-4 " />
+                  {row.getValue("estActif") ? (
+                    <BanIcon className="h-4 w-4 " />
+                  ) : (
+                    <CheckIcon className="h-4 w-4 text-green-600" />
+                  )}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Ban user</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently ban
+                    This will permanently{" "}
+                    {row.getValue("estActif") ? "ban" : "unban"}
                     {fullName ? ` ${fullName}` : " this user"}
-                    and remove the account from the system.
+                    and {row.getValue("estActif")
+                      ? "disactivate"
+                      : "activate"}{" "}
+                    the account from the system
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -320,7 +329,8 @@ export function UserDataTable<TData, TValue>({
                     onClick={() => handleBan(id)}
                     disabled={banningId === id}
                   >
-                    {banningId === id ? "Banning..." : "Ban"}
+                    {" "}
+                    {row.getValue("estActif") ? "Ban" : "Unban"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
