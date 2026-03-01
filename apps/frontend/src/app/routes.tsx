@@ -25,6 +25,7 @@ import PendingUsers from "./pages/admin/PendingUsers";
 import Profile from "./pages/profile/Profile";
 import Home2 from "./pages/Home/Home2";
 import Pricing from "./pages/pricing/Pricing";
+import ClientsNew from "./pages/clients/ClientsNew";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -104,7 +105,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "clients",
-        element: <Clients />,
+        element: <ClientsNew />,
       },
       {
         path: "suppliers",

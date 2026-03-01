@@ -1,4 +1,4 @@
-import { UserCog, Edit, Eye } from 'lucide-react';
+import { UserCog, Edit, Eye, Trash2, Plus, Search, RefreshCw, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -6,54 +6,190 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../components/ui/alert-dialog';
 import { useAuthStore } from '../../store/authStore';
 import { canEdit } from '../../utils/permissions';
-import { mockClients } from '../../utils/mockData';
 import { toast } from 'sonner';
-import { getAllClients } from '@/app/action/user.action';
+import { getAllClients, createClient, updateClient, deleteClient } from '@/app/action/user.action';
 import { User } from '@/app/types';
 
 export default function Clients() {
   const user = useAuthStore((state) => state.user);
   const canManageClients = user && canEdit(user.role.name, 'clients');
-  const [clients, setClients] = useState<User[]>([] as User[]);
+  const [clients, setClients] = useState<User[]>([]);
+  const [filteredClients, setFilteredClients] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [editData, setEditData] = useState({ name: '', email: '', phone: '' });
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<User | null>(null);
+  const [editData, setEditData] = useState({ 
+    firstName: '', 
+    lastName: '', 
+    email: '', 
+    phoneNumber: '', 
+    address: '', 
+    companyName: '' 
+  }); 
+  const [newClientData, setNewClientData] = useState({
+    cin: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
+    companyName: ''
+  });
 
-  const handleViewDetails = (client: any) => {
+  // Load clients on mount
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  // Filter clients based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredClients(clients);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = clients.filter(client => 
+        `${client.firstName} ${client.lastName}`.toLowerCase().includes(query) ||
+        client.email?.toLowerCase().includes(query) ||
+        client.phoneNumber?.toLowerCase().includes(query) ||
+        client.companyName?.toLowerCase().includes(query)
+      );
+      setFilteredClients(filtered);
+    }
+  }, [searchQuery, clients]);
+
+  const loadClients = async () => {
+    setIsLoading(true);
+    try {
+      const token = user?.access_token;
+      const res = await getAllClients(token);
+      if (res.status === 200) {
+        setClients(res.data);
+        toast.success('Clients loaded successfully');
+      } else {
+        toast.error(res.data || 'Failed to load clients');
+      }
+    } catch (error) {
+      console.error('Error loading clients:', error);
+      toast.error('Failed to load clients');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleViewDetails = (client: User) => {
     setSelectedClient(client);
     setViewDetailsOpen(true);
   };
 
-  const handleEditClient = (client: any) => {
+  const handleEditClient = (client: User) => {
     setSelectedClient(client);
-    setEditData({ name: client.name, email: client.email, phone: client.phone });
+    setEditData({ 
+      firstName: client.firstName || '',
+      lastName: client.lastName || '',
+      email: client.email || '', 
+      phoneNumber: client.phoneNumber || '',
+      address: client.address || '',
+      companyName: client.companyName || ''
+    });
     setEditOpen(true);
   };
 
-  const handleSaveEdit = () => {
-    if (!editData.name || !editData.email || !editData.phone) {
-      toast.error('All fields are required');
+  const handleSaveEdit = async () => {
+    if (!editData.firstName || !editData.lastName || !editData.email || !editData.phoneNumber) {
+      toast.error('First name, last name, email, and phone are required');
       return;
     }
-    setClients(clients.map(c => 
-      c._id === selectedClient._id 
-        ? { ...c, name: editData.name, email: editData.email, phone: editData.phone }
-        : c
-    ));
-    setEditOpen(false);
-    toast.success('Client updated successfully!');
+
+    if (!selectedClient) return;
+
+    setIsLoading(true);
+    try {
+      const token = user?.access_token;
+      const res = await updateClient(selectedClient._id, editData, token);
+      if (res.status === 200) {
+        toast.success('Client updated successfully!');
+        setEditOpen(false);
+        loadClients();
+      } else {
+        toast.error(res.data || 'Failed to update client');
+      }
+    } catch (error) {
+      console.error('Error updating client:', error);
+      toast.error('Failed to update client');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  useEffect(() => {
-    getAllClients().then((res) => {
-      setClients(res.data)
-      console.log(res.data, "clients" )
-    })
-      ;
-  },[]);
+
+  const handleCreateClient = async () => {
+    if (!newClientData.cin || !newClientData.firstName || !newClientData.lastName || 
+        !newClientData.email || !newClientData.phoneNumber) {
+      toast.error('CIN, first name, last name, email, and phone are required');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const token = user?.access_token;
+      const res = await createClient(newClientData, token);
+      if (res.status === 201) {
+        toast.success('Client created successfully!');
+        setCreateOpen(false);
+        setNewClientData({
+          cin: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          phoneNumber: '',
+          address: '',
+          companyName: ''
+        });
+        loadClients();
+      } else {
+        toast.error(res.data || 'Failed to create client');
+      }
+    } catch (error) {
+      console.error('Error creating client:', error);
+      toast.error('Failed to create client');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!selectedClient) return;
+
+    setIsLoading(true);
+    try {
+      const token = user?.access_token;
+      const res = await deleteClient(selectedClient._id, token);
+      if (res.status === 200) {
+        toast.success('Client deleted successfully!');
+        setDeleteOpen(false);
+        setSelectedClient(null);
+        loadClients();
+      } else {
+        toast.error(res.data || 'Failed to delete client');
+      }
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast.error('Failed to delete client');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openDeleteDialog = (client: User) => {
+    setSelectedClient(client);
+    setDeleteOpen(true);
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -141,8 +277,16 @@ export default function Clients() {
                             <Label htmlFor="edit-name">Client Name</Label>
                             <Input
                               id="edit-name"
-                              value={editData.name}
-                              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                              value={editData.firstName}
+                              onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-last-name">Last Name</Label>
+                            <Input
+                              id="edit-last-name"
+                              value={editData.lastName}
+                              onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
                             />
                           </div>
                           <div className="space-y-2">
@@ -158,8 +302,8 @@ export default function Clients() {
                             <Label htmlFor="edit-phone">Phone</Label>
                             <Input
                               id="edit-phone"
-                              value={editData.phone}
-                              onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                              value={editData.phoneNumber}
+                              onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })}
                             />
                           </div>
                           <Button 
