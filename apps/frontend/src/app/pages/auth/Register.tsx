@@ -4,6 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
+import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ import {
 import { useAuthStore } from "@/app/store/authStore";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
+import { roleLabels } from "@/app/utils/roleConfig";
 
 const formSchema = z.object({
   cin: z
@@ -53,10 +55,6 @@ const formSchema = z.object({
     .string()
     .min(8, "Le téléphone est requis et doit contenir au moins 8 caractères.")
     .max(20, "Le téléphone ne doit pas dépasser 20 caractères."),
-  departement: z
-    .string()
-    .min(2, "Le département est requis.")
-    .max(50, "Le département ne doit pas dépasser 50 caractères."),
   adresse: z
     .string()
     .min(5, "L'adresse est requise et doit contenir au moins 5 caractères.")
@@ -72,6 +70,34 @@ export default function Register() {
   const navigate = useNavigate();
   const register = useAuthStore((state) => state.register);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [roles, setRoles] = React.useState<any[]>([]);
+  const [rolesLoading, setRolesLoading] = React.useState(false);
+  const [rolesError, setRolesError] = React.useState<string | null>(null);
+
+  // Charger les rôles depuis le backend (et exclure super_admin)
+  React.useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        setRolesLoading(true);
+        const res = await axios.get("http://localhost:3001/roles");
+        const allRoles = res.data || [];
+        const filtered = allRoles.filter(
+          (r: any) => r.name && r.name !== "super_admin",
+        );
+        setRoles(filtered);
+      } catch (err: any) {
+        console.error("Erreur chargement rôles:", err);
+        setRolesError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Impossible de charger les rôles.",
+        );
+      } finally {
+        setRolesLoading(false);
+      }
+    };
+    loadRoles();
+  }, []);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(formSchema),
@@ -81,7 +107,6 @@ export default function Register() {
       lastname: "",
       email: "",
       telephone: "",
-      departement: "",
       adresse: "",
       role: "",
     },
@@ -97,7 +122,7 @@ export default function Register() {
         data.lastname,
         data.email,
         data.telephone,
-        data.departement,
+        "", // pas de département
         data.adresse,
         data.role
       );
@@ -238,49 +263,26 @@ export default function Register() {
                     </FieldGroup>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FieldGroup>
-                      <Controller
-                        name="telephone"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="telephone">Téléphone</FieldLabel>
-                            <Input
-                              {...field}
-                              id="telephone"
-                              placeholder="Entrez votre téléphone"
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
-                            )}
-                          </Field>
-                        )}
-                      />
-                    </FieldGroup>
-
-                    <FieldGroup>
-                      <Controller
-                        name="departement"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="departement">Département</FieldLabel>
-                            <Input
-                              {...field}
-                              id="departement"
-                              placeholder="Entrez votre département"
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
-                            )}
-                          </Field>
-                        )}
-                      />
-                    </FieldGroup>
-                  </div>
+                  <FieldGroup>
+                    <Controller
+                      name="telephone"
+                      control={form.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="telephone">Téléphone</FieldLabel>
+                          <Input
+                            {...field}
+                            id="telephone"
+                            placeholder="Entrez votre téléphone"
+                            aria-invalid={fieldState.invalid}
+                          />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
 
                   <FieldGroup>
                     <Controller
@@ -315,10 +317,23 @@ export default function Register() {
                               <SelectValue placeholder="Sélectionnez un rôle" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="699e1c79ccc723bcf4a61cad">Utilisateur</SelectItem>
-                              <SelectItem value="699e1c79ccc723bcf4a61cb0">Manager</SelectItem>
-                              <SelectItem value="699e1c79ccc723bcf4a61cb4">Superviseur</SelectItem>
-                              <SelectItem value="699e18e14a81d6ab38948763">Super Admin</SelectItem>
+                              {rolesLoading && (
+                                <SelectItem value="__loading" disabled>
+                                  Chargement des rôles...
+                                </SelectItem>
+                              )}
+                              {rolesError && !rolesLoading && (
+                                <SelectItem value="__error" disabled>
+                                  {rolesError}
+                                </SelectItem>
+                              )}
+                              {!rolesLoading &&
+                                !rolesError &&
+                                roles.map((role) => (
+                                  <SelectItem key={role._id} value={role._id}>
+                                    {roleLabels[role.name] || role.name}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                           {fieldState.invalid && (

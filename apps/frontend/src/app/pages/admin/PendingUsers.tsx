@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { toast } from "react-hot-toast";
 import type { User } from "../../types";
 
@@ -27,6 +23,8 @@ export default function PendingUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const load = async () => {
     if (!getPendingUsers) return;
@@ -93,7 +91,11 @@ export default function PendingUsers() {
               {users.map((u) => (
                 <div
                   key={u._id}
-                  className="flex items-center justify-between p-3 border rounded-md"
+                  className="flex items-center justify-between p-3 border rounded-md cursor-pointer hover:bg-gray-50"
+                  onClick={() => {
+                    setSelectedUser(u);
+                    setDetailsOpen(true);
+                  }}
                 >
                   <div>
                     <div className="font-semibold">
@@ -140,7 +142,10 @@ export default function PendingUsers() {
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleApprove(u._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApprove(u._id);
+                      }}
                       disabled={actionLoading !== null}
                     >
                       {actionLoading === u._id ? "..." : "Approuver"}
@@ -148,7 +153,10 @@ export default function PendingUsers() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleReject(u._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReject(u._id);
+                      }}
                       disabled={actionLoading !== null}
                     >
                       {actionLoading === u._id ? "..." : "Rejeter"}
@@ -160,6 +168,31 @@ export default function PendingUsers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Détails utilisateur en attente */}
+      <Dialog open={detailsOpen} onOpenChange={(open) => {
+        setDetailsOpen(open);
+        if (!open) setSelectedUser(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Détails de l'utilisateur en attente</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-2 text-sm">
+              <p><span className="font-semibold">Nom complet :</span> {(selectedUser as any).firstname || (selectedUser as any).firstName} {(selectedUser as any).lastname || (selectedUser as any).lastName}</p>
+              <p><span className="font-semibold">CIN :</span> {(selectedUser as any).cin || "N/A"}</p>
+              <p><span className="font-semibold">Email :</span> {selectedUser.email || "N/A"}</p>
+              <p><span className="font-semibold">Téléphone :</span> {(selectedUser as any).telephone || (selectedUser as any).phone || "N/A"}</p>
+              <p><span className="font-semibold">Adresse :</span> {(selectedUser as any).address || (selectedUser as any).adresse || "N/A"}</p>
+              <p><span className="font-semibold">Département :</span> {(selectedUser as any).departement || (selectedUser as any).department || "N/A"}</p>
+              <p><span className="font-semibold">Rôle :</span> {selectedUser.role?.name || "Rôle non défini"}</p>
+              <p><span className="font-semibold">Statut :</span> {(selectedUser as any).status || "pending"}</p>
+              <p><span className="font-semibold">Créé le :</span> {selectedUser.createdDate ? new Date(selectedUser.createdDate).toLocaleString() : "N/A"}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
