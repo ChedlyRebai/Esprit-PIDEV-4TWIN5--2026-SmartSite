@@ -250,6 +250,13 @@ export default function GestionFournisseurs() {
                     <TabsTrigger value="categories">Catégories</TabsTrigger>
                   </TabsList>
 
+                  {/* Show Evaluation tab only when editing an existing supplier */}
+                  {selectedFournisseur && (
+                    <TabsList className="grid w-full grid-cols-5 mt-2">
+                      <TabsTrigger value="evaluation">Évaluation</TabsTrigger>
+                    </TabsList>
+                  )}
+
                   <TabsContent value="general" className="space-y-4 mt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -350,6 +357,7 @@ export default function GestionFournisseurs() {
                   </TabsContent>
 
                   <TabsContent value="contacts" className="space-y-4 mt-4">
+                    {/* Simple contact fields */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Personne à contacter</Label>
@@ -365,6 +373,109 @@ export default function GestionFournisseurs() {
                           onChange={(e) => setFormData({...formData, telephoneContact: e.target.value})}
                         />
                       </div>
+                    </div>
+
+                    {/* Multiple contacts */}
+                    <div className="border-t pt-4 mt-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <Label className="text-lg font-semibold">Contacts multiples</Label>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const newContact = { nom: '', fonction: '', telephone: '', email: '', estPrincipal: false };
+                            setFormData({...formData, contacts: [...(formData.contacts || []), newContact]});
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Ajouter
+                        </Button>
+                      </div>
+                      
+                      {(formData.contacts || []).map((contact, index) => (
+                        <div key={index} className="border rounded-lg p-3 mb-3 bg-gray-50">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium text-sm">Contact {index + 1}</span>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                const newContacts = [...(formData.contacts || [])];
+                                newContacts.splice(index, 1);
+                                setFormData({...formData, contacts: newContacts});
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Nom</Label>
+                              <Input 
+                                value={contact.nom || ''}
+                                onChange={(e) => {
+                                  const newContacts = [...(formData.contacts || [])];
+                                  newContacts[index] = {...newContacts[index], nom: e.target.value};
+                                  setFormData({...formData, contacts: newContacts});
+                                }}
+                                placeholder="Nom complet"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Fonction</Label>
+                              <Input 
+                                value={contact.fonction || ''}
+                                onChange={(e) => {
+                                  const newContacts = [...(formData.contacts || [])];
+                                  newContacts[index] = {...newContacts[index], fonction: e.target.value};
+                                  setFormData({...formData, contacts: newContacts});
+                                }}
+                                placeholder="Fonction"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Téléphone</Label>
+                              <Input 
+                                value={contact.telephone || ''}
+                                onChange={(e) => {
+                                  const newContacts = [...(formData.contacts || [])];
+                                  newContacts[index] = {...newContacts[index], telephone: e.target.value};
+                                  setFormData({...formData, contacts: newContacts});
+                                }}
+                                placeholder="+216 ..."
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Email</Label>
+                              <Input 
+                                type="email"
+                                value={contact.email || ''}
+                                onChange={(e) => {
+                                  const newContacts = [...(formData.contacts || [])];
+                                  newContacts[index] = {...newContacts[index], email: e.target.value};
+                                  setFormData({...formData, contacts: newContacts});
+                                }}
+                                placeholder="email@fournisseur.tn"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input 
+                                type="checkbox"
+                                checked={contact.estPrincipal || false}
+                                onChange={(e) => {
+                                  const newContacts = [...(formData.contacts || [])];
+                                  newContacts[index] = {...newContacts[index], estPrincipal: e.target.checked};
+                                  setFormData({...formData, contacts: newContacts});
+                                }}
+                              />
+                              Contact principal
+                            </label>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </TabsContent>
 
@@ -452,6 +563,19 @@ export default function GestionFournisseurs() {
                         />
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Remise (%)</Label>
+                        <Input 
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={formData.remise || 0}
+                          onChange={(e) => setFormData({...formData, remise: parseFloat(e.target.value)})}
+                        />
+                      </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="categories" className="space-y-4 mt-4">
@@ -478,6 +602,81 @@ export default function GestionFournisseurs() {
                       </div>
                     </div>
                   </TabsContent>
+
+                  {/* Show Evaluation tab content only when editing */}
+                  {selectedFournisseur && (
+                    <TabsContent value="evaluation" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Note de fiabilité (0-5)</Label>
+                          <Input 
+                            type="number"
+                            min="0"
+                            max="5"
+                            value={formData.noteFiabilite || 0}
+                            onChange={(e) => setFormData({...formData, noteFiabilite: parseFloat(e.target.value)})}
+                          />
+                          <div className="flex gap-1 mt-1">
+                            {[1,2,3,4,5].map(star => (
+                              <Star 
+                                key={star} 
+                                className={`h-5 w-5 cursor-pointer ${star <= (formData.noteFiabilite || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                onClick={() => setFormData({...formData, noteFiabilite: star})}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Note de qualité (0-5)</Label>
+                          <Input 
+                            type="number"
+                            min="0"
+                            max="5"
+                            value={formData.noteQualite || 0}
+                            onChange={(e) => setFormData({...formData, noteQualite: parseFloat(e.target.value)})}
+                          />
+                          <div className="flex gap-1 mt-1">
+                            {[1,2,3,4,5].map(star => (
+                              <Star 
+                                key={star} 
+                                className={`h-5 w-5 cursor-pointer ${star <= (formData.noteQualite || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                onClick={() => setFormData({...formData, noteQualite: star})}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Respect des délais (0-5)</Label>
+                          <Input 
+                            type="number"
+                            min="0"
+                            max="5"
+                            value={formData.noteRespectDelais || 0}
+                            onChange={(e) => setFormData({...formData, noteRespectDelais: parseFloat(e.target.value)})}
+                          />
+                          <div className="flex gap-1 mt-1">
+                            {[1,2,3,4,5].map(star => (
+                              <Star 
+                                key={star} 
+                                className={`h-5 w-5 cursor-pointer ${star <= (formData.noteRespectDelais || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                onClick={() => setFormData({...formData, noteRespectDelais: star})}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mt-4">
+                        <Label>Notes et observations</Label>
+                        <textarea 
+                          className="w-full px-3 py-2 border rounded-md min-h-[100px]"
+                          value={formData.notes || ''}
+                          onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                          placeholder="Notes sur le fournisseur..."
+                        />
+                      </div>
+                    </TabsContent>
+                  )}
                 </Tabs>
 
                 <div className="flex justify-end gap-2 pt-4">

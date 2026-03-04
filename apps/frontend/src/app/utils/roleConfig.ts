@@ -18,6 +18,7 @@ import {
   MapPin,
   type LucideIcon,
   Clock,
+  Truck,
 } from "lucide-react";
 
 export interface NavItem {
@@ -26,8 +27,6 @@ export interface NavItem {
   icon: LucideIcon;
   roles?: RoleType[];
 }
-
-
 
 export const roleLabels: Record<RoleType, string> = {
   super_admin: "Super Administrator",
@@ -48,21 +47,21 @@ export const navigationItems: NavItem[] = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-     roles: [
-       "super_admin",
-       "director",
-       "project_manager",
-       "site_manager",
-       "works_manager",
-       "accountant",
-       "procurement_manager",
-       "qhse_manager",
-       "client",
-       "subcontractor",
-       "user",
-     ],
+    roles: [
+      "super_admin",
+      "director",
+      "project_manager",
+      "site_manager",
+      "works_manager",
+      "accountant",
+      "procurement_manager",
+      "qhse_manager",
+      "client",
+      "subcontractor",
+      "user",
+    ],
   },
-  
+
   {
     label: "User Management",
     href: "/users",
@@ -124,6 +123,18 @@ export const navigationItems: NavItem[] = [
     href: "/suppliers",
     icon: Warehouse,
     roles: ["super_admin", "procurement_manager", "accountant"],
+  },
+  {
+    label: "Suppliers",
+    href: "/gestion-fournisseurs",
+    icon: Truck,
+    roles: ["super_admin", "project_manager"],
+  },
+  {
+    label: "Articles Catalog",
+    href: "/catalogue-articles",
+    icon: Package,
+    roles: ["super_admin", "project_manager"],
   },
   {
     label: "Materials",
@@ -222,8 +233,6 @@ export const navigationItems: NavItem[] = [
 export const getNavigationForRole = (role: RoleType): NavItem[] => {
   return navigationItems.filter((item) => item.roles.includes(role));
 };
-
-
 
 export const canAccessRoute = (role: RoleType, path: string): boolean => {
   const navItem = navigationItems.find((item) => path.startsWith(item.href));
