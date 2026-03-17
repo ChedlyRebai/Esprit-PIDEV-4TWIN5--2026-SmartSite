@@ -180,13 +180,12 @@ export default function Login() {
                   <a
                     href="/forgot-password"
                     className="font-semibold text-indigo-600 hover:text-indigo-500"
-<<<<<<< HEAD
-=======
+
                   >
                     Mot de passe oublié?
                   </a>
                 </p>
-<<<<<<< HEAD
+
                 {/* <form
                   onSubmit={form.handleSubmit(onSubmit)}>
                   <FieldGroup>
@@ -247,13 +246,11 @@ export default function Login() {
                     className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                     type="submit"
                     form="bug-report-form"
->>>>>>> 9c0a5749 (feat: implement password reset functionality with forgot password and resend code features)
                   >
                     Mot de passe oublié?
                   </a>
                 </p>
-=======
->>>>>>> 888e7f86 (feat: add user creation with temporary password functionality and email notification)
+                */}
               </div>
             </div>
           </div>
