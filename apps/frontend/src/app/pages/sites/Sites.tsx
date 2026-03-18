@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MapPin, Search, Filter, Trash2, Edit, ChevronRight, AlertCircle, CheckCircle2, Clock, PauseCircle, Users } from 'lucide-react';
+import { Plus, MapPin, Search, Filter, Trash2, Edit, ChevronRight, AlertCircle, CheckCircle2, Clock, PauseCircle, Users, FileDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -17,9 +17,10 @@ import { useAuthStore } from '../../store/authStore';
 import { mockSites, mockTeamMembers } from '../../utils/mockData';
 import { toast } from 'sonner';
 import type { Site } from '../../types';
-import { fetchSites, createSite, updateSite, deleteSite, assignTeamToSite, removeTeamFromSite, getTeamsAssignedToSite } from '../../action/site.action';
+import { fetchSites, createSite, updateSite, deleteSite, assignTeamToSite, removeTeamFromSite, getTeamsAssignedToSite, getAllSitesWithTeams } from '../../action/site.action';
 import { getAllUsers, assignUserToSite } from '../../action/user.action';
 import { getAllTeams, getTeamById, assignSiteToTeam } from '../../action/team.action';
+import { exportSitesToPDF, exportSingleSiteToPDF, type SiteWithTeams } from '../../utils/pdfExport';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import type { LatLngExpression } from 'leaflet';
 import L from 'leaflet';
@@ -83,6 +84,7 @@ export default function Sites() {
   const canManageSites = true;
   const [searchTerm, setSearchTerm] = useState('');
   const [sites, setSites] = useState<Site[]>([]);
+  const [sitesWithTeams, setSitesWithTeams] = useState<SiteWithTeams[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
@@ -149,12 +151,20 @@ export default function Sites() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetchSites({ 
-        limit: 100,
-        status: selectedStatus === 'all' ? undefined : selectedStatus
-      });
+      
+      // Load both sites and sites with teams in parallel
+      const [response, sitesWithTeamsData] = await Promise.all([
+        fetchSites({ 
+          limit: 100,
+          status: selectedStatus === 'all' ? undefined : selectedStatus
+        }),
+        getAllSitesWithTeams()
+      ]);
+      
       console.log('Sites loaded from API:', response.data);
+      console.log('Sites with teams:', sitesWithTeamsData);
       setSites(response.data);
+      setSitesWithTeams(sitesWithTeamsData as SiteWithTeams[]);
       setUseMockData(false);
     } catch (err) {
       console.error('Error loading sites, using mock data:', err);
@@ -494,6 +504,16 @@ export default function Sites() {
     return <Icon className={`h-4 w-4 ${config.color.split(' ')[0]}`} />;
   };
 
+  // Handle PDF export
+  const handleExportPDF = () => {
+    if (sitesWithTeams.length > 0) {
+      exportSitesToPDF(sitesWithTeams, `smartsite-sites-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF exported successfully!');
+    } else {
+      toast.error('No sites to export');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -508,7 +528,16 @@ export default function Sites() {
           </p>
         </div>
         {canManageSites ? (
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              className="border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all">
                 <Plus className="h-4 w-4 mr-2" />
@@ -682,6 +711,7 @@ export default function Sites() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         ) : (
           <Button disabled className="opacity-50 cursor-not-allowed">
             <Plus className="h-4 w-4 mr-2" />
