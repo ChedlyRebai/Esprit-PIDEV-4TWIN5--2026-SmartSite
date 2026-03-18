@@ -152,6 +152,25 @@ export interface Site {
   createdAt: string;
   updatedAt: string;
   teams?: SiteTeam[];
+  priority?: "low" | "medium" | "high" | "critical";
+  comments?: SiteComment[];
+  issues?: SiteIssue[];
+}
+
+export interface SiteComment {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: string;
+}
+
+export interface SiteIssue {
+  id: string;
+  type: "delay" | "budget" | "safety" | "quality" | "resource" | "other";
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
+  createdAt: string;
+  resolved: boolean;
 }
 
 export interface SiteTeam {

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, MapPin, Search, Filter, Trash2, Edit, ChevronRight, AlertCircle, CheckCircle2, Clock, PauseCircle, Users, FileDown } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, MapPin, Search, Filter, Trash2, Edit, ChevronRight, AlertCircle, CheckCircle2, Clock, PauseCircle, Users, FileDown, SortAsc, SortDesc, RefreshCw, MessageSquare, AlertTriangle, Flag, X, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -76,6 +76,24 @@ const STATUS_CONFIG = {
   }
 };
 
+// Priority configuration
+const PRIORITY_CONFIG = {
+  low: { label: 'Low', color: 'bg-gray-100 text-gray-700 border-gray-300', icon: Flag },
+  medium: { label: 'Medium', color: 'bg-blue-100 text-blue-700 border-blue-300', icon: Flag },
+  high: { label: 'High', color: 'bg-orange-100 text-orange-700 border-orange-300', icon: Flag },
+  critical: { label: 'Critical', color: 'bg-red-100 text-red-700 border-red-300', icon: Flag }
+};
+
+// Issue type configuration
+const ISSUE_CONFIG = {
+  delay: { label: 'Delay', color: 'text-amber-600 bg-amber-50', icon: Clock },
+  budget: { label: 'Budget', color: 'text-red-600 bg-red-50', icon: AlertCircle },
+  safety: { label: 'Safety', color: 'text-red-600 bg-red-50', icon: AlertTriangle },
+  quality: { label: 'Quality', color: 'text-purple-600 bg-purple-50', icon: AlertCircle },
+  resource: { label: 'Resource', color: 'text-blue-600 bg-blue-50', icon: Users },
+  other: { label: 'Other', color: 'text-gray-600 bg-gray-50', icon: AlertCircle }
+};
+
 // Map picker component
 function MapPicker({ position, setPosition }: { position: { lat: number; lng: number } | null; setPosition: (pos: { lat: number; lng: number }) => void }) {
   useMapEvents({
@@ -89,21 +107,50 @@ function MapPicker({ position, setPosition }: { position: { lat: number; lng: nu
 export default function Sites() {
   const user = useAuthStore((state) => state.user);
   const canManageSites = true;
+  
+  // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedPriority, setSelectedPriority] = useState('all');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'progress' | 'priority' | 'budget'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showProblemsOnly, setShowProblemsOnly] = useState(false);
+  
+  // Sites data
   const [sites, setSites] = useState<Site[]>([]);
   const [sitesWithTeams, setSitesWithTeams] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
+  
+  // Real-time refresh
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Form state
   const [newSite, setNewSite] = useState({ name: '', address: '', area: '', budget: '' });
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStatusEdit, setSelectedStatusEdit] = useState('all');
+  
+  // Dialog state
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [issuesDialogOpen, setIssuesDialogOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [manageData, setManageData] = useState({ status: '', progress: 0, name: '', address: '', area: 0, budget: 0 });
+  
+  // Manage data
+  const [manageData, setManageData] = useState({ 
+    status: '', 
+    progress: 0, 
+    name: '', 
+    address: '', 
+    area: 0, 
+    budget: 0,
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'critical'
+  });
   const [mapPosition, setMapPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [editMapPosition, setEditMapPosition] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -111,11 +158,50 @@ export default function Sites() {
   const [errors, setErrors] = useState<{ name?: string; address?: string; area?: string; budget?: string }>({});
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [availableTeams, setAvailableTeams] = useState<Array<{_id: string; name: string}>>([]);
+  
+  // Comments state
+  const [newComment, setNewComment] = useState('');
+  const [siteComments, setSiteComments] = useState<Record<string, Array<{id: string; text: string; author: string; createdAt: string}>>>(() => {
+    // Load comments from localStorage on initial render
+    const saved = localStorage.getItem('siteComments');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  // Issues state
+  const [newIssue, setNewIssue] = useState({ type: 'other', severity: 'medium', description: '' });
+  const [siteIssues, setSiteIssues] = useState<Record<string, Array<{id: string; type: string; severity: string; description: string; createdAt: string; resolved: boolean}>>>(() => {
+    // Load issues from localStorage on initial render
+    const saved = localStorage.getItem('siteIssues');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  // Export history state
+  const [exportHistoryOpen, setExportHistoryOpen] = useState(false);
+  const [exportHistory, setExportHistory] = useState<Array<{id: string; format: string; filename: string; siteCount: number; downloadedAt: string; downloadedBy: string}>>(() => {
+    // Load export history from localStorage on initial render
+    const saved = localStorage.getItem('exportHistory');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  // Team management state
+  const [siteTeams, setSiteTeams] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [loadingTeams, setLoadingTeams] = useState(false);
 
-  // Fetch sites from API
+  // Auto-refresh for real-time updates
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        loadSites();
+      }, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh]);
+
+  // Load sites from API
   useEffect(() => {
     loadSites();
-  }, [selectedStatus]);
+  }, [selectedStatus, selectedPriority]);
 
   // Load available teams when add dialog opens
   useEffect(() => {
@@ -184,11 +270,47 @@ export default function Sites() {
     }
   };
 
-  const filteredSites = sites.filter(site => {
-    const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      site.address.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredAndSortedSites = sites
+    .filter(site => {
+      const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        site.address.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Check priority filter
+      const matchesPriority = selectedPriority === 'all' || site.priority === selectedPriority;
+      
+      // Check for problems (issues or delays)
+      const hasIssues = siteIssues[site.id]?.some(issue => !issue.resolved) || false;
+      const isOverdue = site.status !== 'completed' && new Date(site.workEndDate || site.workStartDate) < new Date();
+      const hasProblems = hasIssues || isOverdue;
+      
+      if (showProblemsOnly && !hasProblems) return false;
+      if (!matchesPriority) return false;
+      return matchesSearch;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'date':
+          comparison = new Date(a.workStartDate).getTime() - new Date(b.workStartDate).getTime();
+          break;
+        case 'progress':
+          comparison = a.progress - b.progress;
+          break;
+        case 'priority':
+          const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+          comparison = (priorityOrder[a.priority || 'low'] || 3) - (priorityOrder[b.priority || 'low'] || 3);
+          break;
+        case 'budget':
+          comparison = a.budget - b.budget;
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
 
   // Format budget in Tunisian Dinar
   const formatBudget = (budget: number) => {
@@ -207,6 +329,73 @@ export default function Sites() {
       month: '2-digit',
       year: 'numeric'
     });
+  };
+
+  // Handle add comment
+  const handleAddComment = () => {
+    if (!selectedSite || !newComment.trim()) return;
+    
+    const comment = {
+      id: Date.now().toString(),
+      text: newComment,
+      author: user?.firstName || 'User',
+      createdAt: new Date().toISOString()
+    };
+    
+    setSiteComments(prev => {
+      const newComments = {
+        ...prev,
+        [selectedSite.id]: [...(prev[selectedSite.id] || []), comment]
+      };
+      localStorage.setItem('siteComments', JSON.stringify(newComments));
+      return newComments;
+    });
+    
+    setNewComment('');
+    toast.success('Comment added');
+  };
+  
+  // Handle add issue
+  const handleAddIssue = () => {
+    if (!selectedSite || !newIssue.description.trim()) return;
+    
+    const issue = {
+      id: Date.now().toString(),
+      type: newIssue.type,
+      severity: newIssue.severity,
+      description: newIssue.description,
+      createdAt: new Date().toISOString(),
+      resolved: false
+    };
+    
+    setSiteIssues(prev => {
+      const newIssues = {
+        ...prev,
+        [selectedSite.id]: [...(prev[selectedSite.id] || []), issue]
+      };
+      localStorage.setItem('siteIssues', JSON.stringify(newIssues));
+      return newIssues;
+    });
+    
+    setNewIssue({ type: 'other', severity: 'medium', description: '' });
+    toast.success('Issue reported');
+  };
+  
+  // Handle resolve issue
+  const handleResolveIssue = (issueId: string) => {
+    if (!selectedSite) return;
+    
+    setSiteIssues(prev => {
+      const newIssues = {
+        ...prev,
+        [selectedSite.id]: prev[selectedSite.id].map(issue =>
+          issue.id === issueId ? { ...issue, resolved: true } : issue
+        )
+      };
+      localStorage.setItem('siteIssues', JSON.stringify(newIssues));
+      return newIssues;
+    });
+    toast.success('Issue resolved');
   };
 
   // Validate new site form
@@ -241,8 +430,6 @@ export default function Sites() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  // Validate edit form
   const validateEditForm = () => {
     const newErrors: { name?: string; address?: string; area?: string; budget?: string } = {};
     
@@ -265,11 +452,6 @@ export default function Sites() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  // Team management state
-  const [siteTeams, setSiteTeams] = useState<any[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState('');
-  const [loadingTeams, setLoadingTeams] = useState(false);
 
   // Handle open team dialog
   const handleOpenTeamDialog = async (site: Site) => {
@@ -422,7 +604,8 @@ export default function Sites() {
       name: site.name, 
       address: site.address, 
       area: site.area, 
-      budget: site.budget 
+      budget: site.budget,
+      priority: site.priority || 'medium'
     });
     setEditMapPosition(site.coordinates || null);
     setErrors({});
@@ -543,25 +726,47 @@ export default function Sites() {
       }
 
       const dateStr = new Date().toISOString().split('T')[0];
+      const formatLabels = { pdf: 'PDF', csv: 'CSV', excel: 'Excel', json: 'JSON' };
+      let filename = '';
       
       switch (format) {
         case 'pdf':
-          exportSitesToPDF(sitesData as Site[], `smartsite-sites-${dateStr}.pdf`);
+          filename = `smartsite-sites-${dateStr}.pdf`;
+          exportSitesToPDF(sitesData as Site[], filename);
           toast.success('PDF exported with ' + sitesData.length + ' sites!');
           break;
         case 'csv':
-          exportSitesToCSV(sitesData as Site[], `smartsite-sites-${dateStr}.csv`);
+          filename = `smartsite-sites-${dateStr}.csv`;
+          exportSitesToCSV(sitesData as Site[], filename);
           toast.success('CSV exported with ' + sitesData.length + ' sites!');
           break;
         case 'excel':
-          exportSitesToExcel(sitesData as Site[], `smartsite-sites-${dateStr}.xls`);
+          filename = `smartsite-sites-${dateStr}.xls`;
+          exportSitesToExcel(sitesData as Site[], filename);
           toast.success('Excel exported with ' + sitesData.length + ' sites!');
           break;
         case 'json':
-          exportSitesToJSON(sitesData as Site[], `smartsite-sites-${dateStr}.json`);
+          filename = `smartsite-sites-${dateStr}.json`;
+          exportSitesToJSON(sitesData as Site[], filename);
           toast.success('JSON exported with ' + sitesData.length + ' sites!');
           break;
       }
+      
+      // Record export in history
+      const exportRecord = {
+        id: Date.now().toString(),
+        format: formatLabels[format],
+        filename: filename,
+        siteCount: sitesData.length,
+        downloadedAt: new Date().toISOString(),
+        downloadedBy: user?.firstName || 'User'
+      };
+      setExportHistory(prev => {
+        const newHistory = [exportRecord, ...prev];
+        localStorage.setItem('exportHistory', JSON.stringify(newHistory));
+        return newHistory;
+      });
+      
     } catch (error) {
       console.error('Error exporting:', error);
       toast.error('Failed to export - please ensure backend is running');
@@ -575,10 +780,15 @@ export default function Sites() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sites</h1>
           <p className="text-sm sm:text-base text-gray-500 mt-1">
-            {filteredSites.length} site{filteredSites.length !== 1 ? 's' : ''} • 
+            {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
             <span className="ml-1">
               {sites.filter(s => s.status === 'in_progress').length} in progress
             </span>
+            {siteIssues && Object.keys(siteIssues).length > 0 && (
+              <span className="ml-1 text-amber-600">
+                {' • '}{Object.values(siteIssues).flat().filter(i => !i.resolved).length} issues
+              </span>
+            )}
           </p>
         </div>
         {canManageSites ? (
@@ -612,6 +822,23 @@ export default function Sites() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* Export History Button */}
+            <Button
+              variant="outline"
+              onClick={() => setExportHistoryOpen(true)}
+              className="border-gray-200"
+              title="Export History"
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              History
+              {exportHistory.length > 0 && (
+                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                  {exportHistory.length}
+                </Badge>
+              )}
+            </Button>
+            
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all">
@@ -808,14 +1035,62 @@ export default function Sites() {
                 className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
               />
             </div>
+            
+            {/* Sort Dropdown */}
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+              <SelectTrigger className="w-[160px] border-gray-200">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="progress">Progress</SelectItem>
+                <SelectItem value="priority">Priority</SelectItem>
+                <SelectItem value="budget">Budget</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Sort Order */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="border-gray-200"
+            >
+              {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
+            
+            {/* Problems Filter Toggle */}
+            <Button
+              variant={showProblemsOnly ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => setShowProblemsOnly(!showProblemsOnly)}
+              className="border-gray-200"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Problems
+            </Button>
+            
+            {/* Auto-refresh Toggle */}
+            <Button
+              variant={autoRefresh ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={autoRefresh ? "bg-green-600 hover:bg-green-700" : "border-gray-200"}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
+              {autoRefresh ? 'Live' : 'Static'}
+            </Button>
+            
+            {/* Status/Priority Filter */}
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" className="sm:w-auto w-full border-gray-200">
                   <Filter className="h-4 w-4 mr-2" />
                   Filters
-                  {selectedStatus !== 'all' && (
+                  {(selectedStatus !== 'all' || selectedPriority !== 'all') && (
                     <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                      1
+                      {(selectedStatus !== 'all' ? 1 : 0) + (selectedPriority !== 'all' ? 1 : 0)}
                     </Badge>
                   )}
                 </Button>
@@ -824,38 +1099,116 @@ export default function Sites() {
                 <DialogHeader>
                   <DialogTitle>Filter Sites</DialogTitle>
                   <DialogDescription>
-                    Select a status to filter the list
+                    Select status and priority filters
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-2 py-4">
-                  {[
-                    { value: 'all', label: 'All Sites', icon: MapPin },
-                    { value: 'planning', label: 'Planning', icon: Clock },
-                    { value: 'in_progress', label: 'In Progress', icon: CheckCircle2 },
-                    { value: 'on_hold', label: 'On Hold', icon: PauseCircle },
-                    { value: 'completed', label: 'Completed', icon: CheckCircle2 }
-                  ].map((status) => {
-                    const Icon = status.icon;
-                    const isSelected = selectedStatus === status.value;
-                    return (
-                      <Button
-                        key={status.value}
-                        variant={isSelected ? 'default' : 'ghost'}
-                        className={`w-full justify-start gap-2 ${
-                          isSelected ? 'bg-gradient-to-r from-blue-600 to-green-600' : ''
-                        }`}
-                        onClick={() => setSelectedStatus(status.value)}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {status.label}
-                        {isSelected && <ChevronRight className="h-4 w-4 ml-auto" />}
-                      </Button>
-                    );
-                  })}
+                <div className="space-y-4 py-4">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Status</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'all', label: 'All' },
+                        { value: 'planning', label: 'Planning' },
+                        { value: 'in_progress', label: 'In Progress' },
+                        { value: 'on_hold', label: 'On Hold' },
+                        { value: 'completed', label: 'Completed' }
+                      ].map((status) => (
+                        <Button
+                          key={status.value}
+                          variant={selectedStatus === status.value ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSelectedStatus(status.value)}
+                          className={selectedStatus === status.value ? 'bg-blue-600' : ''}
+                        >
+                          {status.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-2">Priority</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'all', label: 'All' },
+                        { value: 'critical', label: 'Critical', color: 'text-red-600' },
+                        { value: 'high', label: 'High', color: 'text-orange-600' },
+                        { value: 'medium', label: 'Medium', color: 'text-blue-600' },
+                        { value: 'low', label: 'Low', color: 'text-gray-600' }
+                      ].map((priority) => (
+                        <Button
+                          key={priority.value}
+                          variant={selectedPriority === priority.value ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSelectedPriority(priority.value)}
+                          className={selectedPriority === priority.value ? 'bg-blue-600' : ''}
+                        >
+                          {priority.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
+          
+          {/* Active Filters Display */}
+          {(selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly || searchTerm) && (
+            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+              {searchTerm && (
+                <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                  Search: {searchTerm}
+                  <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {selectedStatus !== 'all' && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                  Status: {selectedStatus.replace('_', ' ')}
+                  <button onClick={() => setSelectedStatus('all')} className="ml-1 hover:text-red-500">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {selectedPriority !== 'all' && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                  Priority: {selectedPriority}
+                  <button onClick={() => setSelectedPriority('all')} className="ml-1 hover:text-red-500">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {showProblemsOnly && (
+                <Badge variant="destructive" className="bg-amber-500">
+                  Problems only
+                  <button onClick={() => setShowProblemsOnly(false)} className="ml-1">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedStatus('all');
+                  setSelectedPriority('all');
+                  setShowProblemsOnly(false);
+                }}
+                className="text-xs text-gray-500"
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+          
+          {/* Last updated timestamp */}
+          {lastUpdated && autoRefresh && (
+            <p className="text-xs text-gray-400 mt-2">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -885,7 +1238,7 @@ export default function Sites() {
             </div>
           </CardContent>
         </Card>
-      ) : filteredSites.length === 0 ? (
+      ) : filteredAndSortedSites.length === 0 ? (
         <Card className="border-none shadow-md">
           <CardContent className="py-16">
             <div className="text-center">
@@ -894,11 +1247,11 @@ export default function Sites() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No sites found</h3>
               <p className="text-gray-500 mb-6">
-                {searchTerm || selectedStatus !== 'all' 
+                {searchTerm || selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly
                   ? 'No results match your criteria'
                   : 'Start by adding your first site'}
               </p>
-              {(searchTerm || selectedStatus !== 'all') && (
+              {(searchTerm || selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly) && (
                 <div className="flex gap-3 justify-center">
                   {searchTerm && (
                     <Button
@@ -913,12 +1266,28 @@ export default function Sites() {
                       variant="outline"
                       onClick={() => setSelectedStatus('all')}
                     >
-                      Clear filters
+                      Clear status
+                    </Button>
+                  )}
+                  {selectedPriority !== 'all' && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedPriority('all')}
+                    >
+                      Clear priority
+                    </Button>
+                  )}
+                  {showProblemsOnly && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowProblemsOnly(false)}
+                    >
+                      Show all
                     </Button>
                   )}
                 </div>
               )}
-              {!searchTerm && selectedStatus === 'all' && canManageSites && (
+              {!searchTerm && selectedStatus === 'all' && selectedPriority === 'all' && !showProblemsOnly && canManageSites && (
                 <Button
                   className="bg-gradient-to-r from-blue-600 to-green-600"
                   onClick={() => setAddDialogOpen(true)}
@@ -932,9 +1301,12 @@ export default function Sites() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredSites.map((site) => {
+          {filteredAndSortedSites.map((site) => {
             const statusConfig = STATUS_CONFIG[site.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.planning;
             const StatusIcon = statusConfig.icon;
+            const priorityConfig = PRIORITY_CONFIG[site.priority || 'medium'];
+            const siteIssueCount = siteIssues[site.id]?.filter(i => !i.resolved).length || 0;
+            const siteCommentCount = siteComments[site.id]?.length || 0;
             
             return (
               <Card 
@@ -948,22 +1320,37 @@ export default function Sites() {
                       <div className={`p-2.5 rounded-xl ${statusConfig.color}`}>
                         <MapPin className={`h-5 w-5 ${statusConfig.color.split(' ')[0]}`} />
                       </div>
-                      <div>
-                        <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
-                          {site.name}
-                        </CardTitle>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                            {site.name}
+                          </CardTitle>
+                          {/* Priority Badge */}
+                          <span className={`text-xs px-1.5 py-0.5 rounded border ${priorityConfig.color}`}>
+                            {priorityConfig.label}
+                          </span>
+                        </div>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {formatDate(site.workStartDate)}
                         </p>
                       </div>
                     </div>
-                    <Badge 
-                      variant={statusConfig.variant}
-                      className={`flex items-center gap-1 px-2 py-1 ${statusConfig.color}`}
-                    >
-                      <StatusIcon className="h-3 w-3" />
-                      <span className="text-xs font-medium">{statusConfig.label}</span>
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge 
+                        variant={statusConfig.variant}
+                        className={`flex items-center gap-1 px-2 py-1 ${statusConfig.color}`}
+                      >
+                        <StatusIcon className="h-3 w-3" />
+                        <span className="text-xs font-medium">{statusConfig.label}</span>
+                      </Badge>
+                      {/* Problem Indicator */}
+                      {siteIssueCount > 0 && (
+                        <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          {siteIssueCount}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 
@@ -1023,11 +1410,46 @@ export default function Sites() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                      className="border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors px-2"
+                      onClick={() => {
+                        setSelectedSite(site);
+                        setCommentsDialogOpen(true);
+                      }}
+                      title="Comments"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      {siteCommentCount > 0 && (
+                        <span className="ml-1 text-xs bg-blue-100 text-blue-700 rounded-full px-1">
+                          {siteCommentCount}
+                        </span>
+                      )}
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors px-2"
+                      onClick={() => {
+                        setSelectedSite(site);
+                        setIssuesDialogOpen(true);
+                      }}
+                      title="Issues"
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      {siteIssueCount > 0 && (
+                        <span className="ml-1 text-xs bg-red-100 text-red-700 rounded-full px-1">
+                          {siteIssueCount}
+                        </span>
+                      )}
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                       onClick={() => handleOpenTeamDialog(site)}
                     >
                       <Users className="h-4 w-4 mr-1" />
-                      Team
                     </Button>
                     
                     <Button 
@@ -1160,6 +1582,21 @@ export default function Sites() {
                   value={manageData.progress}
                   onChange={(e) => setManageData({ ...manageData, progress: parseInt(e.target.value) || 0 })}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-priority" className="text-sm font-medium">Priority</Label>
+                <select
+                  id="edit-priority"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={manageData.priority}
+                  onChange={(e) => setManageData({ ...manageData, priority: e.target.value as any })}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -1400,6 +1837,246 @@ export default function Sites() {
                 </div>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comments Dialog */}
+      <Dialog open={commentsDialogOpen} onOpenChange={setCommentsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Comments & Notes
+            </DialogTitle>
+            <DialogDescription>
+              Site: {selectedSite?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Add comment form */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add a comment or note..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                className="flex-1"
+              />
+              <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Comments list */}
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {siteComments[selectedSite?.id || '']?.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No comments yet</p>
+              ) : (
+                siteComments[selectedSite?.id || '']?.map((comment) => (
+                  <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-sm">{comment.author}</span>
+                      <span className="text-xs text-gray-400">
+                        {formatDate(comment.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 text-sm">{comment.text}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Issues Dialog */}
+      <Dialog open={issuesDialogOpen} onOpenChange={setIssuesDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Issues & Problems
+            </DialogTitle>
+            <DialogDescription>
+              Site: {selectedSite?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Add issue form */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-3">
+              <p className="font-medium text-sm text-amber-800">Report an issue</p>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  className="px-3 py-2 border border-amber-300 rounded-md text-sm"
+                  value={newIssue.type}
+                  onChange={(e) => setNewIssue({ ...newIssue, type: e.target.value })}
+                >
+                  <option value="delay">Delay</option>
+                  <option value="budget">Budget</option>
+                  <option value="safety">Safety</option>
+                  <option value="quality">Quality</option>
+                  <option value="resource">Resource</option>
+                  <option value="other">Other</option>
+                </select>
+                <select
+                  className="px-3 py-2 border border-amber-300 rounded-md text-sm"
+                  value={newIssue.severity}
+                  onChange={(e) => setNewIssue({ ...newIssue, severity: e.target.value })}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Describe the issue..."
+                  value={newIssue.description}
+                  onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleAddIssue} 
+                  disabled={!newIssue.description.trim()}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Issues list */}
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {siteIssues[selectedSite?.id || '']?.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No issues reported</p>
+              ) : (
+                siteIssues[selectedSite?.id || '']?.map((issue) => {
+                  const issueConfig = ISSUE_CONFIG[issue.type as keyof typeof ISSUE_CONFIG];
+                  return (
+                    <div 
+                      key={issue.id} 
+                      className={`rounded-lg p-3 border ${
+                        issue.resolved 
+                          ? 'bg-gray-50 border-gray-200 opacity-60' 
+                          : 'bg-red-50 border-red-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded ${issueConfig?.color || ''}`}>
+                            {issueConfig?.label || issue.type}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            issue.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                            issue.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                            issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {issue.severity}
+                          </span>
+                          {issue.resolved && (
+                            <Badge variant="secondary" className="text-xs">Resolved</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400">
+                            {formatDate(issue.createdAt)}
+                          </span>
+                          {!issue.resolved && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleResolveIssue(issue.id)}
+                              className="text-xs"
+                            >
+                              Resolve
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700">{issue.description}</p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export History Dialog */}
+      <Dialog open={exportHistoryOpen} onOpenChange={setExportHistoryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Export History
+            </DialogTitle>
+            <DialogDescription>
+              History of downloaded documents with dates
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {exportHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No exports yet</p>
+                <p className="text-sm text-gray-400">Downloaded documents will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {exportHistory.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        record.format === 'PDF' ? 'bg-red-100 text-red-600' :
+                        record.format === 'Excel' ? 'bg-green-100 text-green-600' :
+                        record.format === 'CSV' ? 'bg-blue-100 text-blue-600' :
+                        'bg-purple-100 text-purple-600'
+                      }`}>
+                        <FileDown className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{record.format}</p>
+                        <p className="text-xs text-gray-500">{record.filename}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">
+                        {record.siteCount} site{record.siteCount !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {formatDate(record.downloadedAt)}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        by {record.downloadedBy}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {exportHistory.length > 0 && (
+              <div className="flex justify-between items-center pt-2 border-t">
+                <p className="text-sm text-gray-500">
+                  Total exports: {exportHistory.length}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                  setExportHistory([]);
+                  localStorage.setItem('exportHistory', JSON.stringify([]));
+                }}
+                >
+                  Clear History
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
