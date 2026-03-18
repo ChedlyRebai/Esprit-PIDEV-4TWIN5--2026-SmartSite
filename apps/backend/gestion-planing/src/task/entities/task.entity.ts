@@ -1,3 +1,4 @@
+import { StatusEnum } from '@/StatusEnum';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
@@ -30,8 +31,8 @@ export class Task extends Document {
   @Prop()
   updatedBy: string;
 
-  @Prop({ default: 'TODO' })
-  status: string;
+  @Prop({ type:String,enum:StatusEnum,default:StatusEnum.BACKLOG })
+  status: StatusEnum;
 
   @Prop({ default: 0 })
   progress: number;
