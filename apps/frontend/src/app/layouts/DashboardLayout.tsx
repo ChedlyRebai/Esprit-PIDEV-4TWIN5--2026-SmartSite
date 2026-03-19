@@ -47,6 +47,13 @@ export default function DashboardLayout() {
       console.log("Role est null, utilisation du role par défaut");
       // Contournement : si le role est null, on considère que c'est un admin
       // TODO: Résoudre le problème de populate dans le backend
+    } else {
+      // Redirection automatique pour les Project Managers
+      const userRole = user.role?.name || user.role;
+      if (userRole === 'project_manager') {
+        console.log("Redirection automatique vers dashboard Project Manager");
+        navigate("/project-manager-dashboard");
+      }
     }
   }, [user, navigate]);
 

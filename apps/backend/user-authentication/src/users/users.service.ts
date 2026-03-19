@@ -10,8 +10,30 @@ export class UsersService {
   async create(createUserDto: any) {
     console.log(' DEBUG: createUserDto:', createUserDto);
 
-    if (createUserDto.role && typeof createUserDto.role === 'string') {
-      createUserDto.role = new Types.ObjectId(createUserDto.role);
+    // Gérer le rôle correctement
+    if (createUserDto.role) {
+      if (typeof createUserDto.role === 'string') {
+        // Si c'est une chaîne, chercher l'ObjectId correspondant
+        const roleMap: { [key: string]: Types.ObjectId } = {
+          'super_admin': new Types.ObjectId('699e1c79ccc723bcf4a61cad'),
+          'director': new Types.ObjectId('699e1c79ccc723bcf4a61cae'),
+          'project_manager': new Types.ObjectId('699e1c79ccc723bcf4a61caf'),
+          'site_manager': new Types.ObjectId('699e1c79ccc723bcf4a61cb0'),
+          'works_manager': new Types.ObjectId('699e1c79ccc723bcf4a61cb1'),
+          'accountant': new Types.ObjectId('699e1c79ccc723bcf4a61cb2'),
+          'procurement_manager': new Types.ObjectId('699e1c79ccc723bcf4a61cb3'),
+          'qhse_manager': new Types.ObjectId('699e1c79ccc723bcf4a61cb4'),
+          'client': new Types.ObjectId('699e1c79ccc723bcf4a61cb5'),
+          'subcontractor': new Types.ObjectId('699e1c79ccc723bcf4a61cb6'),
+          'user': new Types.ObjectId('699e1c79ccc723bcf4a61cb7'),
+        };
+
+        createUserDto.role = roleMap[createUserDto.role] || createUserDto.role;
+        console.log(' DEBUG: Role mappé (chaîne -> ObjectId):', createUserDto.role, '->', roleMap[createUserDto.role]);
+      } else if (createUserDto.role instanceof Types.ObjectId) {
+        // Si c'est déjà un ObjectId, le garder tel quel
+        console.log(' DEBUG: Role déjà ObjectId:', createUserDto.role);
+      }
     }
 
     try {

@@ -135,9 +135,36 @@ export default function PendingUsers() {
   // Obtenir la liste des roles uniques pour le filtre
   const uniqueRoles = Array.from(new Set(users.map(u => u.role?.name).filter(Boolean)));
 
-  // Fonction pour obtenir le label du role
-  const getRoleLabel = (roleName: string) => {
-    return roleLabels[roleName] || roleName;
+  // Fonction pour obtenir le label du rôle
+  const getRoleLabel = (role: any) => {
+    if (!role) return "Rôle non défini";
+    if (typeof role === 'object' && role.name) {
+      return roleLabels[role.name] || "Rôle non défini";
+    }
+    if (typeof role === 'string') {
+      return roleLabels[role] || "Rôle non défini";
+    }
+    // Si c'est un document contenant _id, essayer de mapper l'id du rôle
+    if (typeof role === 'object' && role._id) {
+      const roleMap: { [key: string]: string } = {
+        '699e1c79ccc723bcf4a61cad': 'super_admin',
+        '699e1c79ccc723bcf4a61cae': 'director',
+        '699e1c79ccc723bcf4a61caf': 'project_manager',
+        '699e1c79ccc723bcf4a61cb0': 'site_manager',
+        '699e1c79ccc723bcf4a61cb1': 'works_manager',
+        '699e1c79ccc723bcf4a61cb2': 'accountant',
+        '699e1c79ccc723bcf4a61cb3': 'procurement_manager',
+        '699e1c79ccc723bcf4a61cb4': 'qhse_manager',
+        '699e1c79ccc723bcf4a61cb5': 'client',
+        '699e1c79ccc723bcf4a61cb6': 'subcontractor',
+        '699e1c79ccc723bcf4a61cb7': 'user',
+      };
+
+      const roleId = String(role._id);
+      return roleMap[roleId] ? (roleLabels as any)[roleMap[roleId]] || roleMap[roleId] : "Rôle non défini";
+    }
+
+    return roleLabels[role] || "Rôle non défini";
   };
 
   // Fonction pour générer un motif de rejet avec IA
@@ -248,7 +275,7 @@ Le motif doit être:
                       </div>
                       <div>
                         <span className="font-medium">Rôle:</span>{" "}
-                        {getRoleLabel(u.role?.name) || "Rôle non défini"}
+                        {getRoleLabel(u.role)}
                       </div>
                       <div className="text-xs text-gray-400">
                         <span className="font-medium">Statut:</span>{" "}
@@ -309,7 +336,7 @@ Le motif doit être:
               <p><span className="font-semibold">Téléphone :</span> {(selectedUser as any).telephone || (selectedUser as any).phone || "N/A"}</p>
               <p><span className="font-semibold">Adresse :</span> {(selectedUser as any).address || (selectedUser as any).adresse || "N/A"}</p>
               <p><span className="font-semibold">Département :</span> {(selectedUser as any).departement || (selectedUser as any).department || "N/A"}</p>
-              <p><span className="font-semibold">Rôle :</span> {getRoleLabel(selectedUser.role?.name) || "Rôle non défini"}</p>
+              <p><span className="font-semibold">Rôle :</span> {getRoleLabel(selectedUser.role) || "Rôle non défini"}</p>
               <p><span className="font-semibold">Statut :</span> {(selectedUser as any).status || "pending"}</p>
               <p><span className="font-semibold">Créé le :</span> {selectedUser.createdDate ? new Date(selectedUser.createdDate).toLocaleString() : "N/A"}</p>
             </div>

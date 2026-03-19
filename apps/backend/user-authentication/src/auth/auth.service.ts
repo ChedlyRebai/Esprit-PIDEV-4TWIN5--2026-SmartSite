@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
+import { RolesService } from '../roles/roles.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto';
 
@@ -11,6 +12,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private rolesService: RolesService,
   ) { }
 
   async validateUser(cin: string, password: string): Promise<any> {
@@ -96,27 +98,21 @@ export class AuthService {
 
     const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
 
-    // Mapper les roles string vers ObjectIds
-    const roleMapping: { [key: string]: string } = {
-      'super_admin': '699e1c79ccc723bcf4a61cad',
-      'director': '699e1c79ccc723bcf4a61cae',
-      'project_manager': '699e1c79ccc723bcf4a61caf',
-      'site_manager': '699e1c79ccc723bcf4a61cb0',
-      'works_manager': '699e1c79ccc723bcf4a61cb1',
-      'accountant': '699e1c79ccc723bcf4a61cb2',
-      'procurement_manager': '699e1c79ccc723bcf4a61cb3',
-      'qhse_manager': '699e1c79ccc723bcf4a61cb4',
-      'client': '699e1c79ccc723bcf4a61cb5',
-      'subcontractor': '699e1c79ccc723bcf4a61cb6',
-      'user': '699e1c79ccc723bcf4a61cb7'
-    };
+    // Récupérer le rôle demandé depuis la base (plus fiable que des IDs hardcodés)
+    const normalizedRole = (role || 'user').trim();
+    const roleDoc = await this.rolesService.findByName(normalizedRole);
+    const fallbackRoleDoc = roleDoc ? null : await this.rolesService.findByName('user');
+    const resolvedRole = roleDoc || fallbackRoleDoc;
+    if (!resolvedRole) {
+      throw new BadRequestException('Aucun rôle valide trouvé en base (seed roles manquant)');
+    }
 
     const userData = {
       cin,
       password: hashedPassword,
       lastname,
       firstname,
-      role: roleMapping[role] || '699e1c79ccc723bcf4a61cb7', // Default to 'user' role
+      role: resolvedRole._id,
       email: email || address,
       telephone,
       departement,
