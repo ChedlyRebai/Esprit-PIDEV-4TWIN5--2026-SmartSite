@@ -26,9 +26,23 @@ const incidentsApi = axios.create({
   timeout: 10000, // 10 secondes timeout
 });
 
+// Récupérer le token depuis plusieurs sources (store persist + clé directe)
+const getAuthToken = (): string | null => {
+  const directToken = localStorage.getItem('access_token');
+  if (directToken) return directToken;
+  const persisted = localStorage.getItem('smartsite-auth');
+  if (!persisted) return null;
+  try {
+    const parsed = JSON.parse(persisted);
+    return parsed?.state?.user?.access_token || null;
+  } catch {
+    return null;
+  }
+};
+
 // Configuration des headers pour l'authentification - incidents API
 incidentsApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -50,7 +64,7 @@ incidentsApi.interceptors.response.use(
 
 // Configuration des headers pour l'authentification
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -105,6 +119,8 @@ export default function Incidents() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedUserForIncident, setSelectedUserForIncident] = useState<any>(null);
+  const [assignRoleFilter, setAssignRoleFilter] = useState<string>('all');
+  const [assignCinSearch, setAssignCinSearch] = useState<string>('');
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [selectedIncidentDetails, setSelectedIncidentDetails] = useState<any>(null);
   const [showIncidentDetailsDialog, setShowIncidentDetailsDialog] = useState(false);
@@ -131,6 +147,29 @@ export default function Incidents() {
 
   // Calculer le nombre total de pages
   const totalPages = Math.ceil(filteredIncidents.length / incidentsPerPage);
+
+  // Utilisateurs disponibles pour assignation (comptes déjà créés/validés)
+  const assignableUsers = allUsers.filter((u) => {
+    const isActive = (u as any).isActive ?? (u as any).estActif ?? true;
+    const hasCin = !!u?.cin;
+    return isActive && hasCin;
+  });
+
+  const assignableRoles = Array.from(
+    new Set(assignableUsers.map((u) => u?.role?.name).filter(Boolean)),
+  ) as string[];
+
+  const filteredAssignableUsers = assignableUsers.filter((u) => {
+    const matchesRole = assignRoleFilter === 'all' || u?.role?.name === assignRoleFilter;
+    const q = assignCinSearch.trim().toLowerCase();
+    const matchesCin =
+      !q ||
+      String(u?.cin || '').toLowerCase().includes(q) ||
+      `${u?.firstname || u?.firstName || ''} ${u?.lastname || u?.lastName || ''}`
+        .toLowerCase()
+        .includes(q);
+    return matchesRole && matchesCin;
+  });
 
   // Filtrer les utilisateurs par recherche et rôle
   useEffect(() => {
@@ -164,7 +203,7 @@ export default function Incidents() {
         console.log('🔍 Frontend: Début du chargement des utilisateurs...');
 
         // Vérifier le token directement
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         console.log('🔍 Frontend: Token brut:', token ? 'présent' : 'absent');
 
         if (!token) {
@@ -611,31 +650,66 @@ Pour toute question, veuillez contacter l'administrateur système.
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="assignedUserCin">Assigner à un utilisateur (Optionnel)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="assignedUserCin"
-                      placeholder="CIN de l'utilisateur"
-                      value={newIncident.assignedUserCin}
-                      onChange={(e) => setNewIncident({ ...newIncident, assignedUserCin: e.target.value })}
-                      className="flex-1"
-                    />
-                    <Select value={newIncident.assignedUserRole} onValueChange={(value) => setNewIncident({ ...newIncident, assignedUserRole: value })}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Rôle" />
+                  <Label htmlFor="assignedUserCin">Assigner à un utilisateur (optionnel)</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <Select value={assignRoleFilter} onValueChange={setAssignRoleFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filtrer par rôle" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Tous les rôles</SelectItem>
-                        {getUniqueRoles().map(role => (
+                        {assignableRoles.map((role) => (
                           <SelectItem key={role} value={role}>
                             {role}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <Input
+                      placeholder="Rechercher nom ou CIN"
+                      value={assignCinSearch}
+                      onChange={(e) => setAssignCinSearch(e.target.value)}
+                    />
                   </div>
+                  <Select
+                    value={newIncident.assignedUserCin || "none"}
+                    onValueChange={(value) =>
+                      setNewIncident({
+                        ...newIncident,
+                        assignedUserCin: value === "none" ? "" : value,
+                        assignedUserRole: value === "none"
+                          ? "all"
+                          : (assignableUsers.find((u) => u.cin === value)?.role?.name || "all"),
+                      })
+                    }
+                  >
+                    <SelectTrigger id="assignedUserCin">
+                      <SelectValue placeholder="Sélectionner un utilisateur" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Non assigné</SelectItem>
+                      {filteredAssignableUsers.map((u) => (
+                        <SelectItem key={u._id} value={u.cin}>
+                          {(u.firstname || u.firstName || "")} {(u.lastname || u.lastName || "")} - CIN: {u.cin}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="manualCin"
+                    placeholder="Ou entrer manuellement un CIN"
+                    value={newIncident.assignedUserCin}
+                    onChange={(e) =>
+                      setNewIncident({
+                        ...newIncident,
+                        assignedUserCin: e.target.value,
+                        assignedUserRole:
+                          assignableUsers.find((u) => u.cin === e.target.value)?.role?.name || "all",
+                      })
+                    }
+                  />
                   <p className="text-xs text-gray-500">
-                    Optionnel: Entrez le CIN et/ou sélectionnez un rôle pour assigner cet incident
+                    Choisir depuis la base, filtrer par rôle, ou saisir directement le CIN.
                   </p>
                 </div>
                 <div className="space-y-2">
