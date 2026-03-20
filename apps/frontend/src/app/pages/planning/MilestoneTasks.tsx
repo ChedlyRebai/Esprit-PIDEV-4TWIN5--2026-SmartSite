@@ -92,7 +92,8 @@ type Column = {
 };
 
 export default function MilestoneTasks() {
-  const { isOpen, setType, onOpen } = useTaskModal();
+  const {milestoneId}=useParams();
+  const { isOpen, setType, onOpen,setMilestoneid } = useTaskModal();
   return (
     <div className="space-y-6">
       <div className="flex taskssetType-center justify-between">
@@ -115,7 +116,9 @@ export default function MilestoneTasks() {
               variant="default"
               size="sm"
               onClick={() => {
-                (setType("add"), onOpen());
+                setMilestoneid(milestoneId);
+                setType("add");
+                onOpen();
               }}
             >
               <PlusIcon className="h-4 w-4" />
