@@ -41,6 +41,7 @@ import {
   updateTask,
 } from "@/app/action/planing.action";
 import { getAllUsers } from "@/app/action/user.action";
+import { useParams } from "react-router";
 
 const todayAtMidnight = () => {
   const today = new Date();
@@ -90,8 +91,9 @@ const formSchema = z
   });
 
 const TaskForms = ({ type }: { type: "edit" | "add" }) => {
-  //const { milestoneId } = useParams();
-  const milestoneId = "69bc78a30912805125e58f72";
+  const { milestoneId } = useParams();
+ // const milestoneId = "69bc78a30912805125e58f72";
+  
   const { id, onClose, onTaskChange } = useTaskModal();
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
 

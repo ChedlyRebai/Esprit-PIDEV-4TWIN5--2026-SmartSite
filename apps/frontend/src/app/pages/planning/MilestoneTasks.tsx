@@ -92,9 +92,10 @@ type Column = {
 };
 
 export default function MilestoneTasks() {
+  const { isOpen, setType, onOpen } = useTaskModal();
   return (
     <div className="space-y-6">
-      <div className="flex tasks-center justify-between">
+      <div className="flex taskssetType-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Milestone</h1>
           <p className="text-gray-500 mt-1">
@@ -104,10 +105,23 @@ export default function MilestoneTasks() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="flex tasks-center gap-2">
-            <Warehouse className="h-5 w-5" />
-            Milestone Management
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex tasks-center gap-2">
+              <Warehouse className="h-5 w-5" />
+              Milestone Management
+            </CardTitle>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                (setType("add"), onOpen());
+              }}
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span className="ml-2">Add Task</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid h-screen grid-rows-[var(--header-height)_1fr_6rem] overflow-x-hidden sm:grid-rows-[var(--header-height)_1fr_var(--header-height)]">
@@ -235,7 +249,11 @@ export function MyKanbanBoard() {
     }
   }
 
-  async function handleMoveCardToColumn(columnId: string, index: number, card: Task) {
+  async function handleMoveCardToColumn(
+    columnId: string,
+    index: number,
+    card: Task,
+  ) {
     // const { data, isSuccess } = useQuery({
     //   queryKey: ["moveTask", card._id],
     //   queryFn: async () => {
@@ -245,7 +263,7 @@ export function MyKanbanBoard() {
     //   },
     // });
     card.status = columnId as TaskStatusEnum;
-    const response=await updateTask(card._id, card);
+    const response = await updateTask(card._id, card);
 
     console.log(response);
 
@@ -999,20 +1017,7 @@ function MyNewKanbanBoardCard({
       </form>
     </>
   ) : (
-    <KanbanBoardColumnFooter>
-      <KanbanBoardColumnButton
-        onClick={() => {
-          (onOpen(), setType("add"));
-        }}
-        ref={newCardButtonReference}
-      >
-        <PlusIcon />
-
-        <span aria-hidden>New card</span>
-
-        <span className="sr-only">Add new card to {column.title}</span>
-      </KanbanBoardColumnButton>
-    </KanbanBoardColumnFooter>
+    <KanbanBoardColumnFooter></KanbanBoardColumnFooter>
   );
 }
 

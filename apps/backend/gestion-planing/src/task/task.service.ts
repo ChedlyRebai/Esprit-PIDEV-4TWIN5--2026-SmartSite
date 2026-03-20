@@ -1,4 +1,3 @@
-
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Body, Injectable } from '@nestjs/common';
@@ -26,7 +25,7 @@ export class TaskService {
     response.tasks.push(newTask._id);
     await response.save();
     return newTask;
-  }
+  } 
 
   async findAll() {
     try {
@@ -73,47 +72,39 @@ export class TaskService {
   }
 
   async getTasksBYMilestoneId(milestoneId: string) {
-  try {
-    const response = await this.taskModel
-      .aggregate([
-       
-        { $match: { milestoneId } },
-
-      
-        {
-          $group: {
-            _id: '$status',
-            tasks: { $push: '$$ROOT' }, 
+    try {
+      const response = await this.taskModel
+        .aggregate([
+          { $match: { milestoneId } },
+          {
+            $group: {
+              _id: '$status',
+              tasks: { $push: '$$ROOT' },
+            },
           },
-        },
 
-        
-        {
-          $project: {
-            title: '$_id',
-            tasks: 1,
-            _id: 0,
+          {
+            $project: {
+              title: '$_id',
+              tasks: 1,
+              _id: 0,
+            },
           },
-        },
-      ])
-      .exec();
-      const columns= response.map((group,i) => ({
-      id: `${group.title}`, // or use uuid/v4 for random unique id
-      title: group.title,
-      color: getColorForStatus(group.status),
-      tasks: group.tasks,
-    }));
+        ])
+        .exec();
+      const columns = response.map((group, i) => ({
+        id: `${group.title}`, // or use uuid/v4 for random unique id
+        title: group.title,
+        color: getColorForStatus(group.status),
+        tasks: group.tasks,
+      }));
 
-    return columns;
-    
-  } catch (error: any) {
-    throw new Error(
-      `Error fetching tasks by milestone id: ${error.message}`
-    );
+      return columns;
+    } catch (error: any) {
+      throw new Error(`Error fetching tasks by milestone id: ${error.message}`);
+    }
   }
 }
-}
 function getColorForStatus(status: string) {
-  return "primary"
+  return 'primary';
 }
-
