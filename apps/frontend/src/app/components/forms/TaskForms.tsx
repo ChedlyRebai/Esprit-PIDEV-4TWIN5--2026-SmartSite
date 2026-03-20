@@ -91,12 +91,12 @@ const formSchema = z
   });
 
 const TaskForms = ({ type }: { type: "edit" | "add" }) => {
-  const { milestoneId } = useParams();
+ 
  // const milestoneId = "69bc78a30912805125e58f72";
   
-  const { id, onClose, onTaskChange } = useTaskModal();
+  const { id, onClose, onTaskChange,milestoneId } = useTaskModal();
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-
+  console.log("milestone from task form",milestoneId);
   const [openStartDate, setOpenStartDate] = React.useState(false);
   const [openEndDate, setOpenEndDate] = React.useState(false);
 

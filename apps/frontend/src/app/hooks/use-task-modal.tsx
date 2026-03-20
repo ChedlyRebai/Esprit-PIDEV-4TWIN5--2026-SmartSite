@@ -6,6 +6,7 @@ interface TaskModalStore {
   id?: string | number;
   setId: (id: string | number) => void;
   setMilestoneid:(id:string) => void;
+  milestoneId:string;
   type: "add" | "edit";
   setType:(type: "add" | "edit") => void
   isOpen: boolean;
@@ -19,8 +20,9 @@ const useTaskModal = create<TaskModalStore>(
   (set) => ({
     id: undefined,
     type:"add",
+    milestoneId:undefined,
     setType: (type) => set({type}),
-    setMilestoneid:(id) => set({id}),
+    setMilestoneid:(id) => set({milestoneId: id}),
     isOpen: false,
     setId: (id) => set({ id }),
     onOpen: () => set({ isOpen: true }),
