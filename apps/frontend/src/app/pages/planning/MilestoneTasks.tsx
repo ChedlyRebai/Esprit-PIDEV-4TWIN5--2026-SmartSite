@@ -980,7 +980,7 @@ function MyKanbanBoardCard({
     handleBlur();
   }
 
-  const {isOpen,onOpen,onClose,setType}=useTaskModal();
+  const {isOpen,onOpen,onClose,setType,setId,id}=useTaskModal();
 
   return isEditingTitle ? (
     <form onBlur={handleBlur} onSubmit={handleSubmit}>
@@ -1023,6 +1023,7 @@ function MyKanbanBoardCard({
       //onClick={() => setIsEditingTitle(true)}
       onClick={
         ()=>{
+          setId(card._id);
           setType("edit"),
           onOpen()
         }
