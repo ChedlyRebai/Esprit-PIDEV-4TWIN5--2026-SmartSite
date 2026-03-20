@@ -17,7 +17,9 @@ export default defineConfig({
       
     },
   },
-
+  define: {
+    "process.env": {},
+  },
   // API Proxy configuration for backend communication
   server: {
     proxy: {

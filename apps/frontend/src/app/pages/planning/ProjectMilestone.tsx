@@ -13,20 +13,22 @@ import {
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 
-import type { Site } from "../../types";
+import type { Milestone, Site } from "../../types";
 
 import "leaflet/dist/leaflet.css";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
+import { getMilestonesByProjectId } from "@/app/action/planing.action";
 
 const ProjectMilestone = () => {
-  const [sites, setSites] = useState<Site[]>([]);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
 
+  const {projectId}=useParams()
   const { data, isPending, isLoading, isError } = useQuery({
-    queryKey: ["sites"],
+    queryKey: ["siteMilestoneData"],
     queryFn: async () => {
-      const response = await fetchSites();
-      setSites(response.data);
+      const response = await getMilestonesByProjectId(projectId);
+      setMilestones(response.data);
       console.log(response.data);
     },
   });
@@ -50,19 +52,19 @@ const ProjectMilestone = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {sites.map((site) => (
-              <div key={site.id} className="p-4 border rounded-lg">
+            {milestones.map((milestone) => (
+              <div key={milestone._id} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{site.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{site.address}</p>
+                    <h3 className="font-semibold text-gray-900">{milestone.title}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{milestone.description}</p>
                     <p className="text-sm text-gray-600 mt-2">
-                      {site.budget} DT • {site.area} m²
+                      {milestone.startDate?.toLocaleDateString()} • {milestone.endDate?.toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <Button  size="sm" variant="outline">
-                     <Link to={`/project-milestone/${site.id}`} >Milestones</Link>
+                     <Link to={`/project-milestone/${milestone._id}`} >Milestones</Link>
                     </Button>
                   </div>
                 </div>

@@ -49,7 +49,7 @@ const PLaningProjects = () => {
   const [sites, setSites] = useState<Site[]>([]);
 
   const { data, isPending, isLoading, isError } = useQuery({
-    queryKey: ["sites"],
+    queryKey: ["sitesData"],
     queryFn: async () => {
       const response = await fetchSites();
       setSites(response.data);

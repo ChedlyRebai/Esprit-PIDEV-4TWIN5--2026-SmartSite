@@ -112,7 +112,7 @@ export const router = createBrowserRouter([
         element: <PLaningProjects />,
       },
       {
-        path: "project-milestone/:id",
+        path: "project-milestone/:projectId",
         element: <ProjectMilestone />,
       },
       {
