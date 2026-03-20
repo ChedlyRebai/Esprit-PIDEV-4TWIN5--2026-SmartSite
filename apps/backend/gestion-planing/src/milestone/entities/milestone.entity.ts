@@ -6,8 +6,8 @@ export class Milestone extends Document {
   @Prop({ required: true })
   title: string;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Task' }], required: true })
-  tasks: Types.ObjectId[] | Task[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Task' }], required: true, default: [] })
+  tasks: Types.ObjectId[];
 
   @Prop()
   description: string;

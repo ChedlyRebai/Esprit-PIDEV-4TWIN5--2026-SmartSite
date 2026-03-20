@@ -31,6 +31,7 @@ import KanbanBoardPage from "./pages/planning/MyTask";
 import MyTasks from "./pages/planning/Planning";
 import PLaningProjects from "./pages/planning/PLaningProjects";
 import ProjectMilestone from "./pages/planning/ProjectMilestone";
+import MilestoneTasks from "./pages/planning/MilestoneTasks";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -110,6 +111,10 @@ export const router = createBrowserRouter([
       {
         path: "planning",
         element: <PLaningProjects />,
+      },
+      {
+        path: "milestone-tasks/:milestoneId",
+        element: <MilestoneTasks />,
       },
       {
         path: "project-milestone/:projectId",

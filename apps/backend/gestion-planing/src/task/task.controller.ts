@@ -4,7 +4,7 @@ import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
-@Controller()
+@Controller('task')
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
@@ -17,6 +17,12 @@ export class TaskController {
   findAll() {
     return this.taskService.findAll();
   }
+
+
+  @Get("milestone/:milestoneId")
+  findBYmilestoneId(@Param("milestoneId") milestoneId:string){
+    return this.taskService.getTasksBYMilestoneId(milestoneId);
+  }  
 
   @Get(':id')
   findOne(@Param("id") id: number) {

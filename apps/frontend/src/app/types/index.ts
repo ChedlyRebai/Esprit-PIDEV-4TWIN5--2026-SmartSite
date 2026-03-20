@@ -208,14 +208,14 @@ export interface Task {
 
   updatedBy: string;
 
-  status: StatusEnum;
+  status: TaskStatusEnum;
   progress: number;
 
   startDate: Date;
 
   endDate: Date;
 }
-export enum StatusEnum {
+export enum TaskStatusEnum {
   BACKLOG = "BACKLOG",
   TODO = "TODO",
   IN_PROGRESS = "IN_PROGRESS",

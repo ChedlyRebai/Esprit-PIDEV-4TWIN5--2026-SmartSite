@@ -2,9 +2,9 @@ import axios from "axios";
 import { Milestone } from "../types";
 
 
-const baseUrl = (import.meta.env as any).PLANNING_URL || 'http://localhost:3002';
+const baseUrl = process.env.PLANNING_URL || 'http://localhost:3002';
 
-export const getMilestonesByProjectId = async (projectId:string):Promise<Milestone[]> =>{
+export const getMilestonesByProjectId = async (projectId:string) =>{
     try {
         //http://localhost:3002/milestone/project/69bc6b4219254da8217aaadf
         const response = await axios.get(`${baseUrl}/milestone/project/${projectId}`);
@@ -15,6 +15,16 @@ export const getMilestonesByProjectId = async (projectId:string):Promise<Milesto
     }
 }
 
+
+export const getTasksBYMilestoneId= async (milestoneId:string) =>{
+    try{
+        const response = await axios.get(`${baseUrl}/task/milestone/${milestoneId}`);
+        return response.data;
+    }catch(error){
+        console.log('Error fetching tasks by milestone id:', error);
+        return Promise.reject(error);
+    }
+}
 
 export const createMilestone=async (milestone : Milestone) =>{
     try {

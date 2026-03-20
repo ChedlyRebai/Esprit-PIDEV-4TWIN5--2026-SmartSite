@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { MilestoneService } from './milestone.service';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
@@ -21,12 +29,16 @@ export class MilestoneController {
   findOne(@Param('id') id: string) {
     return this.milestoneService.findOne(+id);
   }
-   @Get('project/:projectId')
-   getMilesSToneByProjectId(@Param('projectId') projectId:string){
-     return this.milestoneService.getMilestonesByProjectId(projectId);
-   }
+  @Get('project/:projectId')
+  getMilesSToneByProjectId(@Param('projectId') projectId: string) {
+    return this.milestoneService.getMilestonesByProjectId(projectId);
+  }
+
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMilestoneDto: UpdateMilestoneDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateMilestoneDto: UpdateMilestoneDto,
+  ) {
     return this.milestoneService.update(+id, updateMilestoneDto);
   }
 

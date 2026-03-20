@@ -64,7 +64,7 @@ const ProjectMilestone = () => {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <Button  size="sm" variant="outline">
-                     <Link to={`/project-milestone/${milestone._id}`} >Milestones</Link>
+                     <Link to={`/milestone-tasks/${milestone._id}`} >Tasks</Link>
                     </Button>
                   </div>
                 </div>
