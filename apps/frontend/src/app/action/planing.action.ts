@@ -35,6 +35,8 @@ export interface CreateTaskPayload {
     projectId?: string;
     siteId?: string;
     assignedUsers?: string[];
+    startDate?: Date;
+    endDate?: Date;
 }
 
 export interface UpdateTaskPayload {
@@ -46,6 +48,8 @@ export interface UpdateTaskPayload {
     siteId?: string;
     assignedUsers?: string[];
     progress?: number;
+    startDate?: Date;
+    endDate?: Date;
 }
 
 export const createTask = async (task: CreateTaskPayload) => {

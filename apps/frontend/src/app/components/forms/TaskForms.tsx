@@ -4,6 +4,14 @@ import {
   FieldLabel,
   FieldError,
 } from "@/components/ui/field";
+
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
 import {
   InputGroup,
   InputGroupTextarea,
@@ -25,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useParams } from "react-router";
 import { TaskStatusEnum, User } from "@/app/types";
 import useTaskModal from "@/app/hooks/use-task-modal";
 import {
@@ -35,22 +42,61 @@ import {
 } from "@/app/action/planing.action";
 import { getAllUsers } from "@/app/action/user.action";
 
-const formSchema = z.object({
-  id: z.string().optional(),
-  title: z
-    .string()
-    .min(3, "Task title must be at least 3 characters.")
-    .max(120, "Task title must be at most 120 characters."),
-  description: z.string().optional(),
-  status: z.nativeEnum(TaskStatusEnum),
-  assignedUsers: z.array(z.string()).optional(),
-});
+const todayAtMidnight = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
+const toMidnight = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const formSchema = z
+  .object({
+    id: z.string().optional(),
+    title: z
+      .string()
+      .min(3, "Task title must be at least 3 characters.")
+      .max(120, "Task title must be at most 120 characters."),
+    description: z
+      .string()
+      .max(500, "Description must be at most 500 characters.")
+      .optional(),
+    status: z.nativeEnum(TaskStatusEnum),
+    assignedUsers: z.array(z.string()).optional(),
+    startDate: z.date(),
+    endDate: z.date(),
+  })
+  .superRefine((data, ctx) => {
+    const today = todayAtMidnight();
+    if (data.startDate < today) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Start date cannot be in the past.",
+        path: ["startDate"],
+      });
+    }
+
+    if (data.endDate < data.startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date must be after or equal to start date.",
+        path: ["endDate"],
+      });
+    }
+  });
 
 const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   //const { milestoneId } = useParams();
-  const milestoneId= "69bc78a30912805125e58f72"
+  const milestoneId = "69bc78a30912805125e58f72";
   const { id, onClose, onTaskChange } = useTaskModal();
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+
+  const [openStartDate, setOpenStartDate] = React.useState(false);
+  const [openEndDate, setOpenEndDate] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,6 +106,8 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
       description: "",
       status: TaskStatusEnum.BACKLOG,
       assignedUsers: [],
+      startDate: new Date(),
+      endDate: new Date(),
     },
   });
 
@@ -90,6 +138,10 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           assignedUsers: Array.isArray(res.data.assignedUsers)
             ? res.data.assignedUsers
             : [],
+          startDate: res.data.startDate
+            ? new Date(res.data.startDate)
+            : new Date(),
+          endDate: res.data.endDate ? new Date(res.data.endDate) : new Date(),
         });
       }
     } catch {
@@ -118,6 +170,8 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           milestoneId: milestoneId as string,
           status: data.status,
           assignedUsers: data.assignedUsers,
+          startDate: data.startDate,
+          endDate: data.endDate,
         });
 
         if (res.status === 201 || res.status === 200) {
@@ -128,6 +182,8 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
             description: "",
             status: TaskStatusEnum.BACKLOG,
             assignedUsers: [],
+            startDate: new Date(),
+            endDate: new Date(),
           });
           onClose();
           onTaskChange();
@@ -145,6 +201,8 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           description: data.description,
           status: data.status,
           assignedUsers: data.assignedUsers,
+          startDate: data.startDate,
+          endDate: data.endDate,
         });
 
         if (res.status === 200) {
@@ -169,7 +227,9 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="form-rhf-demo-title">Task Title</FieldLabel>
+                <FieldLabel htmlFor="form-rhf-demo-title">
+                  Task Title
+                </FieldLabel>
                 <Input
                   {...field}
                   id="form-rhf-demo-title"
@@ -241,12 +301,17 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                             id={`task-user-${userId}`}
                             onCheckedChange={(checked) => {
                               if (checked) {
-                                field.onChange([...(field.value ?? []), userId]);
+                                field.onChange([
+                                  ...(field.value ?? []),
+                                  userId,
+                                ]);
                                 return;
                               }
 
                               field.onChange(
-                                (field.value ?? []).filter((id) => id !== userId),
+                                (field.value ?? []).filter(
+                                  (id) => id !== userId,
+                                ),
                               );
                             }}
                           />
@@ -283,6 +348,120 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="startDate"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="task-start-date">Start date</FieldLabel>
+                <Popover
+                  open={openStartDate}
+                  onOpenChange={setOpenStartDate}
+                  modal={false}
+                >
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline">
+                      {field.value?.toLocaleDateString() || "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-auto p-0 z-50 pointer-events-auto">
+                    <Calendar
+                    disabled={(date) => date < todayAtMidnight()}
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        field.onChange(date);
+                        setOpenStartDate(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="endDate"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="task-end-date">End date</FieldLabel>
+                
+                {/* <Popover
+                  modal={false}
+                  open={openEndDate}
+                  onOpenChange={setOpenEndDate}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      id="task-end-date"
+                      className="justify-start font-normal"
+                    >
+                      {field.value
+                        ? field.value.toLocaleDateString()
+                        : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto overflow-hidden p-0"
+                    align="start"
+                  >
+                    <Calendar
+                      initialFocus
+                      mode="single"
+                      selected={field.value}
+                      defaultMonth={field.value}
+                      captionLayout="dropdown"
+                      disabled={(date) =>
+                        toMidnight(date) < toMidnight(form.watch("startDate"))
+                      }
+                      onSelect={(selectedDate) => {
+                        if (!selectedDate) return;
+                        field.onChange(selectedDate);
+                        setOpenEndDate(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover> */}
+
+                <Popover
+                  open={openEndDate}
+                  onOpenChange={setOpenEndDate}
+                  modal={false}
+                >
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="ml-auto">
+                      {field.value?.toLocaleDateString() || "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-auto p-0 z-50 pointer-events-auto">
+                    <Calendar
+                    disabled={(date) => date < form.watch("startDate")}
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        field.onChange(date);
+                        setOpenEndDate(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}
