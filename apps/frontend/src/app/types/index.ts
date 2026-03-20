@@ -20,6 +20,19 @@ export interface UserRole {
   updatedAt: Date;
 }
 
+export interface Milestone {
+  _id: string;
+  title: string;
+  tasks: Task[];
+  description: string;
+  projectId: string;
+  siteId: string;
+  createdBy: string;
+  updatedBy: string;
+  startDate: Date;
+  endDate: Date;
+}
+
 export interface User {
   _id: string;
   nom?: string;
@@ -103,12 +116,10 @@ export interface AuthState {
     preferredLanguage?: string,
     certifications?: string[],
 
-  
     address?: string,
     role?: string,
     companyName?: string,
-   
- ) => Promise<void>;
+  ) => Promise<void>;
   getPendingUsers?: () => Promise<User[]>;
   approveUser?: (userId: string, password: string) => Promise<User>;
   rejectUser?: (userId: string) => Promise<void>;
@@ -159,26 +170,60 @@ export interface Site {
   updatedAt: string;
 }
 
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: "todo" | "in_progress" | "review" | "completed";
-  priority: "low" | "medium" | "high" | "critical";
-  startDate: string;
-  plannedEndDate: string;
-  actualEndDate?: string;
-  progress: number;
-  workedHours: number;
-  dependencies: string[];
-  projectId: string;
-  assignees: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+// export interface Task {
+//   id: string;
+//   title: string;
+//   description: string;
+//   status: "todo" | "in_progress" | "review" | "completed";
+//   priority: "low" | "medium" | "high" | "critical";
+//   startDate: string;
+//   plannedEndDate: string;
+//   actualEndDate?: string;
+//   progress: number;
+//   workedHours: number;
+//   dependencies: string[];
+//   projectId: string;
+//   assignees: string[];
+//   createdAt: string;
+//   updatedAt: string;
+// }
 
+export interface Task {
+  _id:string;
+  title: string;
+
+  description: string;
+
+  milestoneId: string;
+
+  assignedUsers: string;
+
+  priority: string;
+
+  projectId: string;
+
+  siteId: string;
+
+  createdBy: string;
+
+  updatedBy: string;
+
+  status: StatusEnum;
+  progress: number;
+
+  startDate: Date;
+
+  endDate: Date;
+}
+export enum StatusEnum {
+  BACKLOG = "BACKLOG",
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  IN_REVIEW = "IN_REVIEW",
+  DONE = "DONE",
+}
 export interface Client {
-  id: string;
+  _id: string;
   name: string;
   address: string;
   contact: string;
