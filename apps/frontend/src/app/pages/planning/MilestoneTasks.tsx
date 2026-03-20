@@ -40,6 +40,19 @@ import {
   KanbanColorCircle,
   useDndEvents,
 } from "@/components/kanban";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -58,13 +71,13 @@ import {
 } from "@/components/ui/tooltip";
 import { uuid } from "zod";
 import { useJsLoaded } from "@/hooks/use-js-loaded";
-import {  CardHeader, CardTitle, CardContent, Card } from "@/components/ui/card";
-import {  Task, TaskStatusEnum } from "@/app/types";
+import { CardHeader, CardTitle, CardContent, Card } from "@/components/ui/card";
+import { Task, TaskStatusEnum } from "@/app/types";
 import { useQuery } from "@tanstack/react-query";
-import { getTasksBYMilestoneId } from "@/app/action/planing.action";
+import { deleteTask, getTasksBYMilestoneId } from "@/app/action/planing.action";
 import { useParams } from "react-router";
 import useTaskModal from "@/app/hooks/use-task-modal";
-
+import { de } from "zod/v4/locales";
 
 type Column = {
   id: string;
@@ -75,7 +88,6 @@ type Column = {
 };
 
 export default function MilestoneTasks() {
-    
   return (
     <div className="space-y-6">
       <div className="flex tasks-center justify-between">
@@ -110,21 +122,19 @@ export default function MilestoneTasks() {
 }
 
 export function MyKanbanBoard() {
-  const [columns, setColumns] = useState<Column[]>([
-    
-  ]);
+  const [columns, setColumns] = useState<Column[]>([]);
 
-  const {milestoneId}=useParams();
-    
-    const {data,isLoading}=useQuery({
-        queryKey:["milestoneTasksData"],
-        queryFn: async () => {
-            const response = await getTasksBYMilestoneId("69bc78a30912805125e58f72");
-            console.log(response);
-            setColumns(response);
-        }
-    })
-    console.log(data)
+  const { milestoneId } = useParams();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["milestoneTasksData"],
+    queryFn: async () => {
+      const response = await getTasksBYMilestoneId("69bc78a30912805125e58f72");
+      console.log(response);
+      setColumns(response);
+    },
+  });
+  console.log(data);
 
   // Scroll to the right when a new column is added.
   const scrollContainerReference = useRef<HTMLDivElement>(null);
@@ -181,30 +191,44 @@ export function MyKanbanBoard() {
   Task logic
   */
 
-//   function handleAddCard(columnId: string, cardContent: string) {
-//     setColumns((previousColumns) =>
-//       previousColumns.map((column) =>
-//         column.id === columnId
-//           ? {
-//               ...column,
-//               tasks: [
-//                 ...column.tasks,
-//                 { id: uuid.toString(), title: cardContent },
-//               ],
-//             }
-//           : column,
-//       ),
-//     );
-//   }
+  //   function handleAddCard(columnId: string, cardContent: string) {
+  //     setColumns((previousColumns) =>
+  //       previousColumns.map((column) =>
+  //         column.id === columnId
+  //           ? {
+  //               ...column,
+  //               tasks: [
+  //                 ...column.tasks,
+  //                 { id: uuid.toString(), title: cardContent },
+  //               ],
+  //             }
+  //           : column,
+  //       ),
+  //     );
+  //   }
 
-  function handleDeleteCard(cardId: string) {
-    setColumns((previousColumns) =>
-      previousColumns.map((column) =>
-        column.tasks.some((card) => card._id === cardId)
-          ? { ...column, tasks: column.tasks.filter(({ _id }) => _id !== cardId) }
-          : column,
-      ),
-    );
+  async function handleDeleteCard(cardId: string) {
+    // setColumns((previousColumns) =>
+    //   previousColumns.map((column) =>
+    //     column.tasks.some((card) => card._id === cardId)
+    //       ? { ...column, tasks: column.tasks.filter(({ _id }) => _id !== cardId) }
+    //       : column,
+    //   ),
+    // );
+    const response = await deleteTask(cardId);
+    console.log(response);
+    if (response.status === 200) {
+      setColumns((previousColumns) =>
+        previousColumns.map((column) =>
+          column.tasks.some((card) => card._id === cardId)
+            ? {
+                ...column,
+                tasks: column.tasks.filter(({ _id }) => _id !== cardId),
+              }
+            : column,
+        ),
+      );
+    }
   }
 
   function handleMoveCardToColumn(columnId: string, index: number, card: Task) {
@@ -213,9 +237,11 @@ export function MyKanbanBoard() {
         if (column.id === columnId) {
           console.log(column.tasks);
           // Remove the card from the column (if it exists) before reinserting it.
-          const updatedItems = column.tasks.filter(({ _id }) => _id !== card._id);
+          const updatedItems = column.tasks.filter(
+            ({ _id }) => _id !== card._id,
+          );
           console.log(card);
-        card.status= column.title;
+          card.status = column.title;
           return {
             ...column,
             tasks: [
@@ -241,7 +267,7 @@ export function MyKanbanBoard() {
   function handleUpdateCardTitle(cardId: string, cardTitle: string) {
     setColumns((previousColumns) =>
       previousColumns.map((column) =>
-        column.tasks.some((card:Task) => card._id === cardId)
+        column.tasks.some((card: Task) => card._id === cardId)
           ? {
               ...column,
               tasks: column.tasks.map((card) =>
@@ -441,7 +467,6 @@ export function MyKanbanBoard() {
             activeCardId={activeCardId}
             column={column}
             key={column.id}
-            
             onCardBlur={handleCardBlur}
             onCardKeyDown={handleCardKeyDown}
             onDeleteCard={handleDeleteCard}
@@ -593,7 +618,6 @@ function MyKanbanBoardColumn({
             <KanbanBoardColumnTitle columnId={column.id}>
               <KanbanColorCircle color={column.color} />
               {column.title}
-              
             </KanbanBoardColumnTitle>
 
             <DropdownMenu>
@@ -719,8 +743,8 @@ function MyKanbanBoardCard({
     handleBlur();
   }
 
-  const {isOpen,onOpen,onClose,setType,setId,id}=useTaskModal();
-
+  const { isOpen, onOpen, onClose, setType, setId, id } = useTaskModal();
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
   return isEditingTitle ? (
     <form onBlur={handleBlur} onSubmit={handleSubmit}>
       <KanbanBoardCardTextarea
@@ -760,13 +784,7 @@ function MyKanbanBoardCard({
       isActive={isActive}
       onBlur={onCardBlur}
       //onClick={() => setIsEditingTitle(true)}
-      onClick={
-        ()=>{
-          setId(card._id);
-          setType("edit"),
-          onOpen()
-        }
-      }
+
       onKeyDown={(event) => {
         if (event.key === " ") {
           // Prevent the button "click" action on space because that should
@@ -783,15 +801,58 @@ function MyKanbanBoardCard({
       }}
       ref={kanbanBoardCardReference}
     >
-      <KanbanBoardCardDescription>{card.title}</KanbanBoardCardDescription>
+      <KanbanBoardCardDescription
+      className="cursor-pointer hover:underline  w-fit"
+        onClick={() => {
+          setId(card._id);
+          (setType("edit"), onOpen());
+        }}
+      >
+        {card.title}
+      </KanbanBoardCardDescription>
       {card.status}
+
+      {/* and start and end date */}
+      {card.startDate && card.endDate && (
+        <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+          <span>
+            {new Date(card.startDate).toLocaleDateString()} -{" "}
+            {new Date(card.endDate).toLocaleDateString()}
+          </span>
+        </div>
+      )}
       <KanbanBoardCardButtonGroup disabled={isActive}>
         <KanbanBoardCardButton
-          className="text-destructive"
-          onClick={() => onDeleteCard(card._id)}
+          className="text-destructive cursor-pointer w-full size-5"
+          // onClick={() => {
+          //   ( setOpenDeleteModal(true));
+          // }}
           tooltip="Delete card"
         >
-          <Trash2Icon />
+          
+
+          <AlertDialog open={openDeleteModal} onOpenChange={setOpenDeleteModal} >
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive"><Trash2Icon /></Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                  <Trash2Icon />
+                </AlertDialogMedia>
+                <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this task? This action cannot
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={()=>{setOpenDeleteModal(false)}} variant="outline">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDeleteCard(card._id)} variant="destructive">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <span className="sr-only">Delete card</span>
         </KanbanBoardCardButton>
@@ -846,7 +907,7 @@ function MyNewKanbanBoardCard({
     scrollList();
   }
 
-  const {isOpen,onOpen,onClose,setType}=useTaskModal();
+  const { isOpen, onOpen, onClose, setType } = useTaskModal();
 
   return showNewCardForm ? (
     <>
@@ -880,8 +941,6 @@ function MyNewKanbanBoardCard({
                 event.preventDefault();
                 submitButtonReference.current?.click();
               }
-              
-
 
               if (event.key === "Escape") {
                 handleCancelClick();
@@ -912,9 +971,8 @@ function MyNewKanbanBoardCard({
   ) : (
     <KanbanBoardColumnFooter>
       <KanbanBoardColumnButton
-        onClick={()=>{
-          onOpen()
-          ,setType("add")
+        onClick={() => {
+          (onOpen(), setType("add"));
         }}
         ref={newCardButtonReference}
       >

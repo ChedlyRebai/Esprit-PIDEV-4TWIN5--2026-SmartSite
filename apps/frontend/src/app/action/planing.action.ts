@@ -158,3 +158,15 @@ export const getMilestoneProgress = async (milestoneId:string) =>{
         return Promise.reject(error);
      }
 }
+
+export const deleteTask = async (taskId:string) =>{
+    try {
+        const response = await axios.delete(`${baseUrl}/task/${taskId}`);
+        return Promise.resolve({status:response.status,data:response.data})
+    }
+
+        catch (error) {
+        console.log('Error deleting task:', error);
+        return Promise.reject(error);
+     }
+}
