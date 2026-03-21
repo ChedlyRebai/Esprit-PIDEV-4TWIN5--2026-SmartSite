@@ -1,14 +1,12 @@
-import { User as UserIcon, Mail, Phone, Calendar, Shield, Check, X, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { useAuthStore } from '../../store/authStore';
-import { roleLabels } from '../../utils/roleConfig';
 import { toast } from 'sonner';
 import { Progress } from '../../components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
@@ -16,6 +14,7 @@ import { PasswordGenerator } from '../../utils/passwordGenerator';
 
 export default function Profile() {
   const user = useAuthStore((state) => state.user);
+  const changePassword = useAuthStore((state) => state.changePassword);
   const [editData, setEditData] = useState({
     firstname: user?.firstname || '',
     lastname: user?.lastname || '',
@@ -28,48 +27,28 @@ export default function Profile() {
   const [passwordStrength, setPasswordStrength] = useState({ 
     score: 0, 
     strength: 'Très faible' as const, 
-    color: 'bg-red-500',
-    checks: {
-      length: false,
-      uppercase: false,
-      lowercase: false,
-      number: false,
-      special: false,
-      noSpaces: false,
-    }
+    color: 'bg-red-500'
   });
-  const [showPasswordSuggestions, setShowPasswordSuggestions] = useState(false);
-  const [passwordSuggestions, setPasswordSuggestions] = useState<string[]>([]);
+  const [showPasswordStrength, setShowPasswordStrength] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Mettre à jour la force du mot de passe quand l'utilisateur tape
   useEffect(() => {
     if (passwords.new) {
       const strength = PasswordGenerator.evaluatePasswordStrength(passwords.new);
       setPasswordStrength(strength);
-      setShowPasswordSuggestions(true);
+      setShowPasswordStrength(true);
     } else {
-      setShowPasswordSuggestions(false);
+      setShowPasswordStrength(false);
     }
   }, [passwords.new]);
-
-  // Générer des suggestions de mots de passe forts
-  const generatePasswordSuggestions = () => {
-    const suggestions = PasswordGenerator.generateSuggestions(5);
-    setPasswordSuggestions(suggestions);
-  };
-
-  // Utiliser une suggestion spécifique
-  const useSuggestion = (suggestion: string) => {
-    setPasswords({ ...passwords, new: suggestion, confirm: '' });
-    toast.success('Mot de passe suggéré appliqué!');
-  };
 
   // Générer un nouveau mot de passe fort
   const generateNewPassword = () => {
     const newPassword = PasswordGenerator.generateStrongPassword(14);
     setPasswords({ ...passwords, new: newPassword, confirm: '' });
-    generatePasswordSuggestions(); // Générer aussi des suggestions alternatives
-    toast.success('Nouveau mot de passe fort généré!');
+    toast.success('Mot de passe fort généré!');
   };
 
   if (!user) return null;
@@ -86,11 +65,13 @@ export default function Profile() {
     toast.success('Profil mis à jour avec succès!');
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+    // Validation des champs
     if (!passwords.current || !passwords.new || !passwords.confirm) {
       toast.error('Tous les champs de mot de passe sont requis');
       return;
     }
+    
     if (passwords.new !== passwords.confirm) {
       toast.error('Les nouveaux mots de passe ne correspondent pas');
       return;
@@ -101,10 +82,37 @@ export default function Profile() {
       return;
     }
     
-    toast.success('Mot de passe changé avec succès!');
-    setPasswords({ current: '', new: '', confirm: '' });
-    setShowPasswordSuggestions(false);
-    setPasswordSuggestions([]);
+    setIsChangingPassword(true);
+    
+    try {
+      // Appel API pour changer le mot de passe
+      await changePassword(passwords.current, passwords.new);
+      
+      toast.success('Mot de passe changé avec succès!');
+      setPasswords({ current: '', new: '', confirm: '' });
+      setShowPasswordStrength(false);
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      if (error.response?.status === 401) {
+        toast.error('Mot de passe actuel incorrect');
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Erreur lors du changement de mot de passe');
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  // Réinitialiser les états quand le dialogue se ferme
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setPasswords({ current: '', new: '', confirm: '' });
+      setShowPasswordStrength(false);
+    }
   };
 
   return (
@@ -171,11 +179,11 @@ export default function Profile() {
                   </DialogContent>
                 </Dialog>
 
-                <Dialog>
+                <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
                   <DialogTrigger asChild>
                     <Button variant="outline">Changer le Mot de Passe</Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle>Changer le Mot de Passe</DialogTitle>
                       <DialogDescription>
@@ -183,152 +191,90 @@ export default function Profile() {
                       </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="space-y-6">
-                      {/* Formulaire principal */}
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="current">Mot de Passe Actuel</Label>
-                          <Input
-                            id="current"
-                            type="password"
-                            value={passwords.current}
-                            onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                            placeholder="Entrez votre mot de passe actuel"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <Label htmlFor="new">Nouveau Mot de Passe</Label>
-                            <div className="flex gap-2">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      type="button"
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={generateNewPassword}
-                                      className="text-xs"
-                                    >
-                                      <RefreshCw className="h-3 w-3 mr-1" />
-                                      Générer
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Génère un mot de passe fort</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </div>
-                          <Input
-                            id="new"
-                            type="text" // Changé en text pour voir le mot de passe généré
-                            value={passwords.new}
-                            onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                            placeholder="Entrez votre nouveau mot de passe"
-                            className="font-mono"
-                          />
-                          
-                          {showPasswordSuggestions && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium">Force du mot de passe:</span>
-                                <span className={`text-sm font-semibold ${passwordStrength.color.replace('bg-', 'text-')}`}>
-                                  {passwordStrength.strength}
-                                </span>
-                              </div>
-                              <Progress 
-                                value={(passwordStrength.score / 6) * 100} 
-                                className={passwordStrength.color}
-                              />
-                              
-                              <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                                <div className="flex items-center gap-1">
-                                  {passwordStrength.checks.length ? 
-                                    <Check className="h-3 w-3 text-green-500" /> : 
-                                    <X className="h-3 w-3 text-red-500" />}
-                                  <span>12+ caractères</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {passwordStrength.checks.uppercase ? 
-                                    <Check className="h-3 w-3 text-green-500" /> : 
-                                    <X className="h-3 w-3 text-red-500" />}
-                                  <span>Majuscule</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {passwordStrength.checks.lowercase ? 
-                                    <Check className="h-3 w-3 text-green-500" /> : 
-                                    <X className="h-3 w-3 text-red-500" />}
-                                  <span>Minuscule</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {passwordStrength.checks.number ? 
-                                    <Check className="h-3 w-3 text-green-500" /> : 
-                                    <X className="h-3 w-3 text-red-500" />}
-                                  <span>Chiffre</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {passwordStrength.checks.special ? 
-                                    <Check className="h-3 w-3 text-green-500" /> : 
-                                    <X className="h-3 w-3 text-red-500" />}
-                                  <span>Caractère spécial</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {passwordStrength.checks.noSpaces ? 
-                                    <Check className="h-3 w-3 text-green-500" /> : 
-                                    <X className="h-3 w-3 text-red-500" />}
-                                  <span>Pas d'espaces</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="confirm">Confirmer le Mot de Passe</Label>
-                          <Input
-                            id="confirm"
-                            type="password"
-                            value={passwords.confirm}
-                            onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                            placeholder="Confirmez votre nouveau mot de passe"
-                          />
-                          {passwords.confirm && passwords.new !== passwords.confirm && (
-                            <p className="text-xs text-red-500">Les mots de passe ne correspondent pas</p>
-                          )}
-                        </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="current">Mot de Passe Actuel</Label>
+                        <Input
+                          id="current"
+                          type="password"
+                          value={passwords.current}
+                          onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                          placeholder="Entrez votre mot de passe actuel"
+                          disabled={isChangingPassword}
+                        />
                       </div>
 
-                      {/* Suggestions de mots de passe */}
-                      {passwordSuggestions.length > 0 && (
-                        <div className="border-t pt-4">
-                          <h4 className="text-sm font-medium mb-3">Autres suggestions de mots de passe forts:</h4>
-                          <div className="space-y-2">
-                            {passwordSuggestions.map((suggestion, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
-                                <code className="font-mono text-sm">{suggestion}</code>
-                                <Button
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label htmlFor="new">Nouveau Mot de Passe</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
                                   type="button"
+                                  variant="outline" 
                                   size="sm"
-                                  variant="ghost"
-                                  onClick={() => useSuggestion(suggestion)}
-                                  className="text-xs text-blue-600"
+                                  onClick={generateNewPassword}
+                                  className="text-xs"
+                                  disabled={isChangingPassword}
                                 >
-                                  Utiliser
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Générer un mot de passe fort
                                 </Button>
-                              </div>
-                            ))}
-                          </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Génère un mot de passe fort aléatoirement</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
-                      )}
+                        <Input
+                          id="new"
+                          type="text"
+                          value={passwords.new}
+                          onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                          placeholder="Entrez votre nouveau mot de passe"
+                          className="font-mono"
+                          disabled={isChangingPassword}
+                        />
+                        
+                        {showPasswordStrength && (
+                          <div className="mt-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-gray-600">Force du mot de passe:</span>
+                              <span className={`text-xs font-semibold ${passwordStrength.color.replace('bg-', 'text-')}`}>
+                                {passwordStrength.strength}
+                              </span>
+                            </div>
+                            <Progress 
+                              value={(passwordStrength.score / 6) * 100} 
+                              className={passwordStrength.color}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm">Confirmer le Mot de Passe</Label>
+                        <Input
+                          id="confirm"
+                          type="password"
+                          value={passwords.confirm}
+                          onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                          placeholder="Confirmez votre nouveau mot de passe"
+                          disabled={isChangingPassword}
+                        />
+                        {passwords.confirm && passwords.new !== passwords.confirm && (
+                          <p className="text-xs text-red-500">Les mots de passe ne correspondent pas</p>
+                        )}
+                      </div>
 
                       <Button 
                         className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
                         onClick={handleChangePassword}
+                        disabled={isChangingPassword}
                       >
-                        Mettre à jour le mot de passe
+                        {isChangingPassword ? 'Changement en cours...' : 'Mettre à jour le mot de passe'}
                       </Button>
                     </div>
                   </DialogContent>

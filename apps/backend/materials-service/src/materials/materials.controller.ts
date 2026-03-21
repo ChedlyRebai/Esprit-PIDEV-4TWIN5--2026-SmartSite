@@ -23,12 +23,11 @@ import { MaterialForecast, StockAlert, QRScanResult } from './interfaces/materia
 import { QRScannerUtil } from '../common/utils/qr-scanner.util';
 import * as fs from 'fs';
 import { Material } from './entities/material.entity';
-
+import { Res } from '@nestjs/common';
+import type { Response } from 'express';
 @Controller('materials')
 export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) {}
-
-  // ========== CRUD DE BASE ==========
 
   @Post()
   async create(@Body() createMaterialDto: CreateMaterialDto) {
@@ -117,8 +116,6 @@ export class MaterialsController {
     return this.materialsService.bulkCreate(materials, null);
   }
 
-  // ========== FONCTIONNALITÉS QR CODE ==========
-
   @Post('scan-qr')
   @UseInterceptors(FileInterceptor('image'))
   async scanQRCode(@UploadedFile() file: Express.Multer.File): Promise<QRScanResult> {
@@ -128,19 +125,38 @@ export class MaterialsController {
 
     try {
       const qrData = await QRScannerUtil.scanFromImage(file.path);
+      console.log('📸 QR Data scanné:', qrData);
+      
       const parsedData = QRScannerUtil.parseQRData(qrData);
+      console.log('📦 Données parsées:', parsedData);
       
       let material: Material | null = null;
-      try {
-        if (parsedData.id) {
+      
+      if (parsedData.id) {
+        try {
           material = await this.materialsService.findOne(parsedData.id);
-        } else if (parsedData.code) {
-          material = await this.materialsService.findByCode(parsedData.code);
-        } else {
-          material = await this.materialsService.findByQRCode(qrData);
+          console.log('✅ Matériau trouvé par ID:', material?.code);
+        } catch (error) {
+          console.log('❌ Matériau non trouvé par ID:', parsedData.id);
         }
-      } catch (error) {
-        console.log('Matériau non trouvé:', error.message);
+      }
+      
+      if (!material && parsedData.code) {
+        try {
+          material = await this.materialsService.findByCode(parsedData.code);
+          console.log('✅ Matériau trouvé par code:', material?.code);
+        } catch (error) {
+          console.log('❌ Matériau non trouvé par code:', parsedData.code);
+        }
+      }
+      
+      if (!material) {
+        try {
+          material = await this.materialsService.findByQRCode(qrData);
+          console.log('✅ Matériau trouvé par QR code complet');
+        } catch (error) {
+          console.log('❌ Matériau non trouvé par QR code complet');
+        }
       }
 
       if (fs.existsSync(file.path)) {
@@ -156,6 +172,7 @@ export class MaterialsController {
       if (file && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
+      console.error('❌ Erreur scan QR:', error);
       throw new BadRequestException(`Erreur scan QR: ${error.message}`);
     }
   }
@@ -167,18 +184,32 @@ export class MaterialsController {
     }
 
     const parsedData = QRScannerUtil.parseQRData(scanDto.qrCode);
+    console.log('📦 Données parsées (texte):', parsedData);
     
     let material: Material | null = null;
-    try {
-      if (parsedData.id) {
+    
+    if (parsedData.id) {
+      try {
         material = await this.materialsService.findOne(parsedData.id);
-      } else if (parsedData.code) {
-        material = await this.materialsService.findByCode(parsedData.code);
-      } else {
-        material = await this.materialsService.findByQRCode(scanDto.qrCode);
+      } catch (error) {
+        console.log('Matériau non trouvé par ID:', error.message);
       }
-    } catch (error) {
-      console.log('Matériau non trouvé:', error.message);
+    }
+    
+    if (!material && parsedData.code) {
+      try {
+        material = await this.materialsService.findByCode(parsedData.code);
+      } catch (error) {
+        console.log('Matériau non trouvé par code:', error.message);
+      }
+    }
+    
+    if (!material) {
+      try {
+        material = await this.materialsService.findByQRCode(scanDto.qrCode);
+      } catch (error) {
+        console.log('Matériau non trouvé par QR code:', error.message);
+      }
     }
 
     return {
@@ -193,11 +224,6 @@ export class MaterialsController {
     return this.materialsService.generateQRCode(id);
   }
 
-  // SUPPRESSION: Endpoints de localisation (supprimés car pas utilisés)
-  // @Put(':id/location') ... (supprimé)
-  // @Get('nearby/location') ... (supprimé)
-  // @Get('stats/by-location') ... (supprimé)
-
   @Post(':id/images')
   @UseInterceptors(FileInterceptor('image'))
   async uploadImage(
@@ -211,4 +237,66 @@ export class MaterialsController {
     const imageUrl = `/uploads/materials/${file.filename}`;
     return this.materialsService.addImage(id, imageUrl);
   }
+
+  @Post('import/excel')
+  @UseInterceptors(FileInterceptor('file'))
+  async importFromExcel(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Fichier Excel requis');
+    }
+
+    try {
+      const result = await this.materialsService.importFromExcel(file.path);
+      
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      
+      return result;
+    } catch (error) {
+      if (file && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      throw new BadRequestException(`Erreur import Excel: ${error.message}`);
+    }
+  }
+
+   @Post('export/excel')
+   async exportToExcel(
+  @Res() res: Response,
+  @Body() materialIds?: string[]
+) {
+  const result = await this.materialsService.exportToExcel(materialIds);
+
+  if (!result || !result.filePath) {
+    throw new BadRequestException('Erreur export Excel');
+  }
+
+  return res.download(result.filePath, result.filename);
+}
+
+  /*@Post('export/pdf')
+  async exportToPDF(@Body() materialIds?: string[]) {
+    return this.materialsService.exportToPDF(materialIds);
+  }*/
+ @Post('export/pdf')
+async exportToPDF(
+  @Res() res: Response,
+  @Body() materialIds?: string[]
+) {
+  try {
+    const result = await this.materialsService.exportToPDF(materialIds);
+
+    if (!result || !result.filePath) {
+      throw new BadRequestException('Erreur génération PDF');
+    }
+
+    const { filePath, filename } = result;
+
+    return res.download(filePath, filename);
+  } catch (error) {
+    console.error('❌ Export PDF error:', error);
+    throw new BadRequestException(error.message);
+  }
+}
 }

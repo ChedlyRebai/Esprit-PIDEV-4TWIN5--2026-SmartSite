@@ -55,7 +55,6 @@ export class MaterialsGateway implements OnGatewayConnection, OnGatewayDisconnec
     return { event: 'unsubscribed', data: { materialId } };
   }
 
-  // Émetteurs publics
   emitStockUpdate(materialId: string, movement: any) {
     this.server.to(`material-${materialId}`).emit('stockUpdated', movement);
     this.server.to('materials-room').emit('globalStockUpdate', {

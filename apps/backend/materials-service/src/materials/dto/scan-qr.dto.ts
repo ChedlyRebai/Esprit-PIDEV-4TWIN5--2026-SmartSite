@@ -1,5 +1,4 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional } from 'class-validator';
 
 export class ScanQRDto {
   @IsOptional()
@@ -10,6 +9,3 @@ export class ScanQRDto {
   @IsString()
   qrCode?: string;
 }
-
-// SUPPRESSION: NearbyQueryDto (supprimé car pas utilisé)
-// export class NearbyQueryDto { ... } (supprimé)

@@ -9,7 +9,15 @@ export class LoginDto {
   @MinLength(6)
   password: string;
 
-  @IsString()
-  @IsOptional()
-  recaptchaToken?: string;
+  /**
+   * ====================================================
+   * reCAPTCHA TOKEN - DÉSACTIVÉ
+   * ====================================================
+   * Ce champ est optionnel et n'est plus validé
+   * Pour réactiver reCAPTCHA, décommenter @IsString()
+   * ====================================================
+   */
+   @IsString()
+   @IsOptional()
+   recaptchaToken?: string;
 }

@@ -28,18 +28,18 @@ import { Input } from '../../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { toast } from 'sonner';
-import materialService, { Material, CreateMaterialData } from '../../../services/materialService';
+import materialService, { Material, CreateMaterialData, BulkImportResponse } from '../../../services/materialService';
 import MaterialForm from './MaterialForm';
 import MaterialAlerts from './MaterialAlerts';
 import MaterialForecast from './MaterialForecast';
 import MaterialDetails from './MaterialDetails';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from "jspdf-autotable";
 
 export default function Materials() {
-  // Permissions (à adapter selon votre système d'auth)
-  const canManageMaterials = true; // À remplacer par votre logique d'authentification
+  const canManageMaterials = true;
   
-  // États
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
@@ -68,7 +68,6 @@ export default function Materials() {
     type: 'material' | 'text' | 'unknown';
   } | null>(null);
 
-  // Fermer le menu QR quand on clique ailleurs
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (qrMenuRef.current && !qrMenuRef.current.contains(event.target as Node)) {
@@ -81,7 +80,6 @@ export default function Materials() {
     };
   }, []);
 
-  // Charger les données
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -107,7 +105,6 @@ export default function Materials() {
       setDashboardStats(dashboardData);
       setAlerts(alertsData);
       
-      // Extraire les catégories uniques
       const uniqueCategories = [...new Set((materialsData.data || []).map((m: Material) => m.category))];
       setCategories(uniqueCategories);
     } catch (error: any) {
@@ -122,7 +119,6 @@ export default function Materials() {
     loadData();
   }, [loadData]);
 
-  // Filtrer les matériaux (côté client en complément)
   const filteredMaterials = materials.filter(material => {
     const matchesSearch = searchTerm === '' || 
       material.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,77 +138,79 @@ export default function Materials() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Exporter vers Excel
-  const exportToExcel = () => {
-    const exportData = materials.map(m => ({
-      Code: m.code,
-      Nom: m.name,
-      Catégorie: m.category,
-      Quantité: m.quantity,
-      Unité: m.unit,
-      'Stock Min': m.minimumStock,
-      'Stock Max': m.maximumStock,
-      'Point de commande': m.reorderPoint,
-      Emplacement: m.location || 'N/A',
-      Fabricant: m.manufacturer || 'N/A',
-      Statut: m.quantity === 0 ? 'Rupture' : 
-              m.quantity <= m.reorderPoint ? 'Stock bas' : 'En stock',
-      'Date expiration': m.expiryDate ? new Date(m.expiryDate).toLocaleDateString() : 'N/A'
-    }));
-    
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Matériaux');
-    XLSX.writeFile(workbook, `materiaux_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('Export réussi!');
-  };
-
-  // Export PDF
-  const exportToPDF = async () => {
+  // ========== FONCTIONS D'EXPORT ==========
+  
+  // Fonction d'export Excel serveur
+  const exportToExcelServer = async () => {
     try {
-      const result = await materialService.generatePDF(materials.map(m => m._id));
+      const blob = await materialService.exportToExcel();
       
-      // Télécharger le PDF
-      const link = document.createElement('a');
-      link.href = result.pdf;
-      link.download = `inventaire_${new Date().toISOString().split('T')[0]}.pdf`;
-      link.click();
-      
-      toast.success('PDF généré avec succès!');
+      materialService.downloadFile(
+        blob,
+        `materiaux_${Date.now()}.xlsx`
+      );
+
+      toast.success("Export Excel réussi !");
     } catch (error) {
-      toast.error('Erreur lors de la génération du PDF');
+      console.error(error);
+      toast.error("Erreur export Excel");
     }
   };
 
-  // Import en masse (bulk create)
-  const handleBulkImport = async () => {
+  // Fonction d'export PDF serveur
+  const exportToPDFServer = async () => {
+    try {
+      const blob = await materialService.exportToPDF();
+      
+      await materialService.downloadFile(
+        blob,
+        `materiaux_${Date.now()}.pdf`
+      );
+
+      toast.success("PDF exporté depuis le serveur !");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erreur export PDF serveur");
+    }
+  };
+
+  // ========== FONCTIONS D'IMPORT ==========
+
+  // Fonction d'import Excel
+  const handleImportExcel = async () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
+    input.accept = '.xlsx, .xls, .csv';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       
+      setScanLoading(true);
       try {
-        const text = await file.text();
-        const materials: CreateMaterialData[] = JSON.parse(text);
+        const result = await materialService.importFromExcel(file) as BulkImportResponse;
         
-        if (!Array.isArray(materials)) {
-          toast.error('Le fichier doit contenir un tableau de matériaux');
-          return;
+        if (result.success) {
+          toast.success(`Import réussi! ${result.imported} matériaux importés, ${result.failed} échecs`);
+          
+          if (result.errors && result.errors.length > 0) {
+            console.warn('Erreurs d\'import:', result.errors);
+            toast.warning(`${result.errors.length} erreurs détectées. Voir console pour détails.`);
+          }
+          
+          loadData();
+        } else {
+          toast.error('Échec de l\'import');
         }
-        
-        const result = await materialService.bulkCreate(materials);
-        toast.success(`${result.length} matériaux créés avec succès!`);
-        loadData();
-      } catch (error) {
-        toast.error('Erreur lors de l\'import');
+      } catch (error: any) {
+        console.error('Erreur import:', error);
+        toast.error('Erreur lors de l\'import: ' + (error.response?.data?.message || error.message));
+      } finally {
+        setScanLoading(false);
       }
     };
     input.click();
   };
 
-  // Scanner QR Code (image)
   const handleScanQR = async () => {
     setShowQRMenu(false);
     const input = document.createElement('input');
@@ -228,60 +226,125 @@ export default function Materials() {
       try {
         toast.info('Scan du QR code en cours...', { duration: 2000 });
         
-        // Simulation d'un délai de scan
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const result = await materialService.scanQRCode(file);
         
-        // Pour la démo, on simule différents résultats selon le fichier
-        // Dans la vraie application, vous appelleriez materialService.scanQRCode(file)
+        console.log('📸 Résultat scan QR:', result);
         
-        // Simuler un résultat aléatoire pour la démo
-        const randomResult = Math.random();
+        if (result.success) {
+          if (result.material) {
+            setQrResult({
+              material: result.material,
+              type: 'material'
+            });
+            
+            toast.success(`Matériau trouvé: ${result.material.name}`, { 
+              duration: 3000 
+            });
+            
+            setSelectedMaterial(result.material);
+            
+          } else {
+            let qrText = result.qrData;
+            let materialInfo = null;
+            
+            try {
+              const parsed = JSON.parse(result.qrData);
+              if (parsed.code || parsed.id) {
+                materialInfo = parsed;
+                qrText = parsed.code || parsed.id || result.qrData;
+              }
+            } catch {
+              // Pas du JSON
+            }
+            
+            setQrResult({
+              text: qrText,
+              type: 'text'
+            });
+            
+            toast.info(`QR code scanné: "${qrText.substring(0, 30)}..." - Aucun matériau associé`, {
+              duration: 8000,
+              action: {
+                label: 'Créer matériau',
+                onClick: () => {
+                  setMaterialToEdit({
+                    _id: '',
+                    name: materialInfo?.name || '',
+                    code: materialInfo?.code || qrText,
+                    category: materialInfo?.category || '',
+                    unit: '',
+                    quantity: 0,
+                    minimumStock: 10,
+                    maximumStock: 100,
+                    reorderPoint: 20,
+                    location: '',
+                    manufacturer: '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    createdBy: 'user-id',
+                    status: 'active'
+                  } as Material);
+                  setShowForm(true);
+                }
+              }
+            });
+          }
+        } else {
+          toast.error('QR code non reconnu');
+        }
         
-        if (randomResult < 0.3) {
-          // Matériau trouvé
-          const mockMaterial: Material = {
-            _id: 'mock-id',
-            name: 'Béton C25/30',
-            code: 'BET-001',
-            category: 'Béton',
-            unit: 'm³',
-            quantity: 150,
-            minimumStock: 50,
-            maximumStock: 200,
-            reorderPoint: 75,
-            location: 'Zone A',
-            manufacturer: 'Ciment Tunisie',
-            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            createdBy: 'user-id'
-          };
-          
+      } catch (error: any) {
+        console.error('❌ Erreur scan QR:', error);
+        
+        if (error.response?.status === 400) {
+          toast.error('Image invalide ou sans QR code', {
+            duration: 4000,
+            description: 'Veuillez réessayer avec une autre image'
+          });
+        } else {
+          toast.error('Erreur lors du scan QR', {
+            duration: 4000,
+            description: error.message || 'Veuillez réessayer'
+          });
+        }
+      } finally {
+        setScanLoading(false);
+      }
+    };
+    input.click();
+  };
+
+  const handleScanQRText = async () => {
+    setShowQRMenu(false);
+    const qrText = prompt('Entrez le texte du QR code:');
+    if (!qrText) return;
+    
+    setScanLoading(true);
+    setQrResult(null);
+    
+    try {
+      toast.info('Analyse du QR code...', { duration: 2000 });
+      
+      const result = await materialService.scanQRCodeText(qrText);
+      
+      if (result.success) {
+        if (result.material) {
           setQrResult({
-            material: mockMaterial,
+            material: result.material,
             type: 'material'
           });
-          
-          toast.success('QR code scanné avec succès!', { duration: 3000 });
-          
-          // Option 1: Afficher directement les détails du matériau
-          setSelectedMaterial(mockMaterial);
-          
-          // Option 2: Afficher un popup avec les informations du QR
-          // Nous utilisons l'option 1 ici
-          
-        } else if (randomResult < 0.6) {
-          // Texte QR simple
-          const qrText = `QR-${Math.random().toString(36).substring(7)}`;
+          setSelectedMaterial(result.material);
+          toast.success(`Matériau trouvé: ${result.material.name}`);
+        } else {
           setQrResult({
             text: qrText,
             type: 'text'
           });
           
-          toast.info(`QR code scanné: "${qrText}" - Aucun matériau associé`, {
+          toast.info(`QR code: "${qrText}" - Aucun matériau associé`, {
             duration: 5000,
             action: {
-              label: 'Créer',
+              label: 'Créer matériau',
               onClick: () => {
                 setMaterialToEdit({
                   _id: '',
@@ -297,95 +360,14 @@ export default function Materials() {
                   manufacturer: '',
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString(),
-                  createdBy: 'user-id'
-                });
+                  createdBy: 'user-id',
+                  status: 'active'
+                } as Material);
                 setShowForm(true);
               }
             }
           });
-        } else {
-          // QR inconnu
-          setQrResult({
-            type: 'unknown'
-          });
-          
-          toast.error('QR code non reconnu', {
-            duration: 4000,
-            description: 'Le QR code scanné ne correspond à aucun matériau'
-          });
         }
-        
-      } catch (error) {
-        console.error('❌ Erreur scan QR:', error);
-        toast.error('Erreur lors du scan QR', {
-          duration: 4000,
-          description: 'Veuillez réessayer avec une autre image'
-        });
-      } finally {
-        setScanLoading(false);
-      }
-    };
-    input.click();
-  };
-
-  // Scanner QR par texte
-  const handleScanQRText = async () => {
-    setShowQRMenu(false);
-    const qrText = prompt('Entrez le texte du QR code:');
-    if (!qrText) return;
-    
-    setScanLoading(true);
-    setQrResult(null);
-    
-    try {
-      toast.info('Analyse du QR code...', { duration: 2000 });
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Chercher si le texte correspond à un code de matériau
-      const foundMaterial = materials.find(m => 
-        m.code.toLowerCase() === qrText.toLowerCase() ||
-        m._id === qrText
-      );
-      
-      if (foundMaterial) {
-        setQrResult({
-          material: foundMaterial,
-          type: 'material'
-        });
-        setSelectedMaterial(foundMaterial);
-        toast.success(`Matériau trouvé: ${foundMaterial.name}`, { duration: 3000 });
-      } else {
-        setQrResult({
-          text: qrText,
-          type: 'text'
-        });
-        
-        toast.info(`QR code: "${qrText}" - Aucun matériau associé`, {
-          duration: 5000,
-          action: {
-            label: 'Créer matériau',
-            onClick: () => {
-              setMaterialToEdit({
-                _id: '',
-                name: '',
-                code: qrText,
-                category: '',
-                unit: '',
-                quantity: 0,
-                minimumStock: 10,
-                maximumStock: 100,
-                reorderPoint: 20,
-                location: '',
-                manufacturer: '',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                createdBy: 'user-id'
-              });
-              setShowForm(true);
-            }
-          }
-        });
       }
     } catch (error) {
       toast.error('Erreur lors de l\'analyse du QR code');
@@ -394,7 +376,6 @@ export default function Materials() {
     }
   };
 
-  // Recherche par code-barres
   const handleScanBarcode = async () => {
     setShowQRMenu(false);
     const barcode = prompt('Entrez le code-barres:');
@@ -404,18 +385,13 @@ export default function Materials() {
     setQrResult(null);
     
     try {
-      // Chercher le matériau par code-barres
-      const foundMaterial = materials.find(m => 
-        m.code?.toLowerCase() === barcode.toLowerCase() ||
-        m.barcode?.toLowerCase() === barcode.toLowerCase()
-      );
+      const material = await materialService.findByBarcode(barcode);
       
-      await new Promise(resolve => setTimeout(resolve, 800));
+      setSelectedMaterial(material);
+      toast.success(`Matériau trouvé: ${material.name}`);
       
-      if (foundMaterial) {
-        setSelectedMaterial(foundMaterial);
-        toast.success(`Matériau trouvé: ${foundMaterial.name}`);
-      } else {
+    } catch (error: any) {
+      if (error.response?.status === 404) {
         toast.error('Aucun matériau trouvé avec ce code-barres', {
           duration: 4000,
           action: {
@@ -435,21 +411,40 @@ export default function Materials() {
                 manufacturer: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                createdBy: 'user-id'
-              });
+                createdBy: 'user-id',
+                status: 'active'
+              } as Material);
               setShowForm(true);
             }
           }
         });
+      } else {
+        toast.error('Erreur lors de la recherche');
       }
-    } catch (error) {
-      toast.error('Erreur lors de la recherche');
     } finally {
       setScanLoading(false);
     }
   };
 
-  // Mise à jour du stock
+  const handleGenerateQR = async (material: Material) => {
+    try {
+      const result = await materialService.generateQRCode(material._id);
+      toast.success('QR code généré avec succès');
+      
+      const link = document.createElement('a');
+      link.href = result.qrCode;
+      link.download = `qr-${material.code}.png`;
+      link.click();
+      
+      setMaterials(prev => prev.map(m => 
+        m._id === material._id ? { ...m, qrCode: result.qrCode } : m
+      ));
+      
+    } catch (error) {
+      toast.error('Erreur lors de la génération du QR code');
+    }
+  };
+
   const handleUpdateStock = async (materialId: string, quantity: number, operation: 'add' | 'remove') => {
     try {
       await materialService.updateStock(materialId, {
@@ -464,7 +459,6 @@ export default function Materials() {
     }
   };
 
-  // Supprimer un matériau
   const handleDelete = async (id: string) => {
     try {
       await materialService.deleteMaterial(id);
@@ -476,23 +470,6 @@ export default function Materials() {
     }
   };
 
-  // Générer QR code
-  const handleGenerateQR = async (material: Material) => {
-    try {
-      const result = await materialService.generateQRCode(material._id);
-      toast.success('QR code généré avec succès');
-      
-      // Télécharger le QR code
-      const link = document.createElement('a');
-      link.href = result.qrCode;
-      link.download = `qr-${material.code}.png`;
-      link.click();
-    } catch (error) {
-      toast.error('Erreur lors de la génération du QR code');
-    }
-  };
-
-  // Commander un matériau
   const handleReorder = async (materialId: string) => {
     try {
       const result = await materialService.reorderMaterial(materialId);
@@ -507,7 +484,6 @@ export default function Materials() {
     }
   };
 
-  // Imprimer l'inventaire
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -533,7 +509,7 @@ export default function Materials() {
       <body>
         <h1>Inventaire des matériaux</h1>
         <p>Date: ${new Date().toLocaleDateString()}</p>
-        <table>
+         <table>
           <thead>
             <tr>
               <th>Code</th>
@@ -580,7 +556,6 @@ export default function Materials() {
     printWindow.print();
   };
 
-  // Badge de statut
   const getStatusBadge = (material: Material) => {
     if (material.quantity === 0) {
       return <Badge variant="destructive">Rupture</Badge>;
@@ -594,18 +569,15 @@ export default function Materials() {
     return <Badge variant="default" className="bg-green-100 text-green-800">En stock</Badge>;
   };
 
-  // Pagination
   const goToPage = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
   };
 
-  // Ouvrir le formulaire d'édition
   const handleEdit = (material: Material) => {
     setMaterialToEdit(material);
     setShowForm(true);
   };
 
-  // Afficher les résultats du QR scan
   const showQRResultDetails = () => {
     if (!qrResult) return;
     
@@ -631,8 +603,9 @@ export default function Materials() {
               manufacturer: '',
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-              createdBy: 'user-id'
-            });
+              createdBy: 'user-id',
+              status: 'active'
+            } as Material);
             setShowForm(true);
           }
         }
@@ -640,7 +613,6 @@ export default function Materials() {
     }
   };
 
-  // Effet pour afficher automatiquement les résultats du QR
   useEffect(() => {
     showQRResultDetails();
   }, [qrResult]);
@@ -654,24 +626,28 @@ export default function Materials() {
           <p className="text-gray-500 mt-1">Suivi et gestion en temps réel</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel} title="Exporter en Excel" disabled={scanLoading}>
+          {/* Export Excel Serveur */}
+          <Button variant="outline" onClick={exportToExcelServer} title="Exporter en Excel" disabled={scanLoading}>
             <Download className="h-4 w-4 mr-2" />
             Excel
           </Button>
           
-          <Button variant="outline" onClick={exportToPDF} title="Exporter en PDF" disabled={scanLoading}>
+          {/* Export PDF Serveur */}
+          <Button variant="outline" onClick={exportToPDFServer} title="Exporter en PDF" disabled={scanLoading}>
             <FileText className="h-4 w-4 mr-2" />
             PDF
           </Button>
           
+          {/* Imprimer */}
           <Button variant="outline" onClick={handlePrint} title="Imprimer" disabled={scanLoading}>
             <Printer className="h-4 w-4 mr-2" />
             Imprimer
           </Button>
           
-          <Button variant="outline" onClick={handleBulkImport} title="Import en masse" disabled={scanLoading}>
+          {/* Import Excel */}
+          <Button variant="outline" onClick={handleImportExcel} title="Import Excel" disabled={scanLoading}>
             <Upload className="h-4 w-4 mr-2" />
-            Import
+            Import Excel
           </Button>
           
           {/* Menu QR Code */}
@@ -713,11 +689,13 @@ export default function Materials() {
             )}
           </div>
 
+          {/* Actualiser */}
           <Button variant="outline" onClick={loadData} disabled={scanLoading}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>
           
+          {/* Ajouter */}
           {canManageMaterials && (
             <Button 
               className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
@@ -961,7 +939,6 @@ export default function Materials() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {/* Boutons de mise à jour rapide du stock */}
                           <div className="flex border rounded-md mr-2">
                             <Button
                               size="sm"
@@ -986,7 +963,6 @@ export default function Materials() {
                             </Button>
                           </div>
 
-                          {/* Bouton QR Code - Générer */}
                           <Button
                             size="sm"
                             variant="outline"
@@ -997,7 +973,6 @@ export default function Materials() {
                             <QrCode className="h-4 w-4" />
                           </Button>
 
-                          {/* Bouton Modifier */}
                           {canManageMaterials && (
                             <Button
                               size="sm"
@@ -1010,7 +985,6 @@ export default function Materials() {
                             </Button>
                           )}
 
-                          {/* Bouton Détails */}
                           <Button
                             size="sm"
                             variant="outline"
@@ -1021,7 +995,6 @@ export default function Materials() {
                             <Eye className="h-4 w-4" />
                           </Button>
 
-                          {/* Bouton Supprimer */}
                           {canManageMaterials && (
                             <>
                               {showDeleteConfirm === material._id ? (
@@ -1057,7 +1030,6 @@ export default function Materials() {
                             </>
                           )}
 
-                          {/* Bouton Commander (si stock bas) */}
                           {material.quantity <= material.reorderPoint && (
                             <Button
                               size="sm"
@@ -1073,7 +1045,6 @@ export default function Materials() {
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {pagination.totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-6">
                       <Button
@@ -1135,7 +1106,6 @@ export default function Materials() {
         </TabsContent>
       </Tabs>
 
-      {/* Modals */}
       {showForm && (
         <MaterialForm
           open={showForm}

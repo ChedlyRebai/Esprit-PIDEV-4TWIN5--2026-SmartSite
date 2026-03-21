@@ -19,6 +19,13 @@ import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 
+/**
+ * ====================================================
+ * SCHÉMA DE VALIDATION - AVEC reCAPTCHA
+ * ====================================================
+ * Le champ recaptchaToken est requis pour la validation
+ * ====================================================
+ */
 const formSchema = z.object({
   cin: z
     .string()
@@ -36,6 +43,8 @@ export default function Login() {
   const login = useAuthStore((state) => state.login);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  
+  // Référence pour le composant reCAPTCHA
   const recaptchaRef = React.useRef<ReCAPTCHA>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,9 +56,32 @@ export default function Login() {
     },
   });
 
+  /**
+   * ====================================================
+   * CALLBACK reCAPTCHA
+   * ====================================================
+   * Cette fonction est appelée lorsque le reCAPTCHA est validé
+   * ====================================================
+   */
+  const onRecaptchaChange = (token: string | null) => {
+    form.setValue("recaptchaToken", token || "");
+    // Effacer l'erreur si elle existe
+    if (token) {
+      form.clearErrors("recaptchaToken");
+    }
+  };
+
+  /**
+   * ====================================================
+   * SOUMISSION DU FORMULAIRE - AVEC reCAPTCHA
+   * ====================================================
+   * Le token reCAPTCHA est envoyé au backend pour validation
+   * ====================================================
+   */
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      // Appel login avec le token reCAPTCHA
       await login(data.cin, data.password, data.recaptchaToken);
       toast.success("Connexion réussie!");
       navigate("/dashboard");
@@ -60,16 +92,12 @@ export default function Login() {
         "Identifiants invalides. Veuillez réessayer.";
       toast.error(message);
       
-      // Reset reCAPTCHA
+      // Réinitialiser le reCAPTCHA en cas d'erreur
       recaptchaRef.current?.reset();
       form.setValue("recaptchaToken", "");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const onRecaptchaChange = (token: string | null) => {
-    form.setValue("recaptchaToken", token || "");
   };
 
   return (
@@ -150,6 +178,9 @@ export default function Login() {
                   )}
                 />
 
+                {/* ==================================================== */}
+                {/* COMPOSANT reCAPTCHA - ACTIVÉ */}
+                {/* ==================================================== */}
                 <div className="flex justify-center my-4">
                   <ReCAPTCHA
                     ref={recaptchaRef}

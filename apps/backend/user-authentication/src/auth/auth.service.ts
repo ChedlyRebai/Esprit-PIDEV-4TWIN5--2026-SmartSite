@@ -4,7 +4,7 @@ import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
-import { ConfigService } from '@nestjs/config'; // AJOUTER CET IMPORT
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -12,15 +12,20 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
-    private configService: ConfigService, // AJOUTER CETTE DÉPENDANCE
+    private configService: ConfigService,
   ) {}
 
+  /**
+   * ====================================================
+   * VALIDATION reCAPTCHA - ACTIVÉE
+   * ====================================================
+   */
   async validateRecaptcha(token: string): Promise<boolean> {
     try {
       const secretKey = this.configService.get('RECAPTCHA_SECRET_KEY');
       if (!secretKey) {
-        console.log('RECAPTCHA_SECRET_KEY not configured, skipping validation');
-        return true;
+        console.log('❌ RECAPTCHA_SECRET_KEY not configured');
+        return false;
       }
 
       const response = await axios.post(
@@ -34,9 +39,10 @@ export class AuthService {
         },
       );
 
+      console.log('🔐 reCAPTCHA validation result:', response.data.success);
       return response.data.success;
     } catch (error) {
-      console.error('reCAPTCHA validation error:', error);
+      console.error('❌ reCAPTCHA validation error:', error);
       return false;
     }
   }
@@ -45,44 +51,45 @@ export class AuthService {
     if (!cin || !password) {
       return null;
     }
-    console.log('validate1', cin, '  ', password);
+    console.log('🔍 validateUser:', cin);
     const user = await this.usersService.findByCin(cin);
-    console.log('before finding user', user);
+    
     if (!user) {
+      console.log('❌ Utilisateur non trouvé');
       return null;
     }
 
     if ((user as any).status && (user as any).status !== 'approved') {
-      console.log('User not approved, status =', (user as any).status);
+      console.log('❌ User not approved, status =', (user as any).status);
       return null;
     }
 
-    const storedHash = (user as any).motDePasse || (user as any).password;
+    const storedHash = (user as any).password;
     if (!storedHash) {
-      console.log('No stored password hash for user', cin);
+      console.log('❌ No stored password hash for user', cin);
       return null;
     }
 
-    console.log('finding user', user);
-    console.log('find by cin');
-    if (await bcrypt.compare(password, storedHash)) {
+    const isMatch = await bcrypt.compare(password, storedHash);
+    console.log('📊 Password match:', isMatch ? '✅' : '❌');
+    
+    if (isMatch) {
       const userObj = user.toObject ? user.toObject() : user;
-      const { password: _p, motDePasse: _m, ...result } = userObj as any;
+      const { password: _p, ...result } = userObj as any;
       return result;
     }
     return null;
   }
 
   async login(user: any) {
-    console.log('Login user:', user);
+    console.log('🔐 Login user:', user.cin);
     
-    // CORRECTION: Utiliser 'role' au lieu de 'roles'
     const payload = {
       cin: user.cin,
       sub: user._id,
-      role: user.role, // ← CHANGER 'roles' en 'role'
+      role: user.role,
     };
-    console.log('JWT Payload:', payload);
+    console.log('📦 JWT Payload:', payload);
 
     const userData = user.toObject ? user.toObject() : user;
 
@@ -158,7 +165,7 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const updatedUser = await this.usersService.update(userId, {
-      motDePasse: hashedPassword,
+      password: hashedPassword,
       status: 'approved',
       approvedBy: adminId,
       approvedAt: new Date(),

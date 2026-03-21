@@ -71,4 +71,3 @@ export class UsersController {
     return this.usersService.handleBan(id);
   }
 }
-

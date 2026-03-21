@@ -9,31 +9,36 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    console.log('Login attempt:', loginDto.cin);
+    console.log('🔐 Login attempt:', loginDto.cin);
     
-    // Valider le token reCAPTCHA
+    // Vérifier la présence du token reCAPTCHA
     if (!loginDto.recaptchaToken) {
+      console.log('❌ reCAPTCHA token missing');
       throw new UnauthorizedException('reCAPTCHA token is required');
     }
 
-    // Valider reCAPTCHA
+    // Valider le token reCAPTCHA auprès de Google
     const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
     if (!isValidRecaptcha) {
+      console.log('❌ reCAPTCHA validation failed');
       throw new UnauthorizedException('reCAPTCHA validation failed');
     }
+    
+    console.log('✅ reCAPTCHA validation passed');
 
+    // Validation des identifiants utilisateur (CIN + mot de passe)
     const user = await this.authService.validateUser(
       loginDto.cin,
       loginDto.password,
     );
     
-    console.log('User validated:', user ? 'Yes' : 'No');
+    console.log('👤 User validated:', user ? 'Yes' : 'No');
     
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // CORRECTION: Appeler login avec 1 seul argument
+    // Génération du token JWT
     return this.authService.login(user);
   }
 

@@ -35,5 +35,3 @@ export class UpdateStockDto {
   @IsString()
   projectId?: string;
 }
-
-// SUPPRESSION: UpdateLocationDto (supprimé car pas utilisé)

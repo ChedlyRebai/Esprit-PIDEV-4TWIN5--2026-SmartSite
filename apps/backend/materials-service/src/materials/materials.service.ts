@@ -17,7 +17,10 @@ import type { Cache } from 'cache-manager';
 import { Cron } from '@nestjs/schedule';
 import { MaterialsGateway } from './materials.gateway';
 import { StockMovement, StockAlert, MaterialForecast } from './interfaces/material.interface';
-import * as QRCode from 'qrcode';
+import { QRGeneratorUtil } from '../common/utils/qr-generator.util';
+import * as path from 'path';
+import * as fs from 'fs';
+import { ImportExportService } from './services/import-export.service';
 
 @Injectable()
 export class MaterialsService {
@@ -26,51 +29,48 @@ export class MaterialsService {
 
   constructor(
     @InjectModel(Material.name) private materialModel: Model<Material>,
+    private importExportService: ImportExportService,
     private readonly httpService: HttpService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly materialsGateway: MaterialsGateway,
   ) {}
 
-  // ========== CRUD PRINCIPAL ==========
-
   async create(createMaterialDto: CreateMaterialDto, userId: string | null): Promise<Material> {
     try {
       this.logger.log(`Création matériau avec code: ${createMaterialDto.code}`);
 
-      // Vérifier si le code existe
       const existing = await this.materialModel.findOne({ code: createMaterialDto.code });
       if (existing) {
         throw new BadRequestException(`Le code ${createMaterialDto.code} existe déjà`);
       }
 
-      // Valider les seuils
       this.validateStockLevels(createMaterialDto);
 
-      // Générer QR Code
-      const qrCodeData = JSON.stringify({
-        id: new Types.ObjectId(),
-        code: createMaterialDto.code,
-        name: createMaterialDto.name,
-      });
-      const qrCode = await QRCode.toDataURL(qrCodeData);
+      const tempId = new Types.ObjectId();
+      
+      const qrResult = await QRGeneratorUtil.generateAndSaveQRCode(
+        {
+          id: tempId,
+          code: createMaterialDto.code,
+          name: createMaterialDto.name,
+        },
+        createMaterialDto.code
+      );
 
-      // Générer code-barres
       const barcode = `MAT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      // CORRECTION: Utiliser un objet simple au lieu d'un Map
-      // Remplacer les points dans la date car MongoDB n'accepte pas les points dans les clés
       const dateKey = new Date().toISOString().replace(/\./g, '-');
       
       const materialData: any = {
         ...createMaterialDto,
-        qrCode,
+        _id: tempId,
+        qrCode: qrResult.dataURL,
+        qrCodeImage: qrResult.url,
         barcode,
-        priceHistory: { [dateKey]: 0 }, // ← Objet simple avec clé formatée
+        priceHistory: { [dateKey]: 0 },
         status: 'active',
-        // SUPPRESSION: geoLocation (supprimé car pas utilisé)
       };
 
-      // Ajouter createdBy seulement si userId valide
       if (userId && Types.ObjectId.isValid(userId)) {
         materialData.createdBy = new Types.ObjectId(userId);
       } else {
@@ -80,11 +80,10 @@ export class MaterialsService {
       const material = new this.materialModel(materialData);
       const savedMaterial = await material.save();
       this.logger.log(`✅ Matériau créé avec ID: ${savedMaterial._id}`);
+      this.logger.log(`✅ QR code sauvegardé: ${qrResult.url}`);
 
-      // Émettre via WebSocket
       this.materialsGateway.emitMaterialUpdate('materialCreated', savedMaterial);
 
-      // Invalider cache
       await this.cacheManager.del('materials_dashboard');
       await this.cacheManager.del('materials_alerts');
 
@@ -198,6 +197,17 @@ export class MaterialsService {
 
   async remove(id: string): Promise<void> {
     try {
+      const material = await this.findOne(id);
+      
+      if (material.qrCodeImage) {
+        const filename = path.basename(material.qrCodeImage);
+        const imagePath = path.join(process.env.UPLOAD_PATH || './uploads/qrcodes', filename);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+          this.logger.log(`✅ Image QR code supprimée: ${imagePath}`);
+        }
+      }
+
       const result = await this.materialModel.deleteOne({ _id: id }).exec();
       if (result.deletedCount === 0) {
         throw new NotFoundException(`Matériau #${id} non trouvé`);
@@ -210,8 +220,6 @@ export class MaterialsService {
       throw error;
     }
   }
-
-  // ========== GESTION STOCK ==========
 
   async updateStock(id: string, updateStockDto: UpdateStockDto, userId: string | null) {
     try {
@@ -323,8 +331,6 @@ export class MaterialsService {
       .exec();
   }
 
-  // ========== QR CODE ==========
-
   async findByQRCode(qrCode: string): Promise<Material> {
     const material = await this.materialModel.findOne({ qrCode }).exec();
     if (!material) {
@@ -341,33 +347,61 @@ export class MaterialsService {
     return material;
   }
 
-  async generateQRCode(id: string): Promise<{ qrCode: string; material: Material }> {
+  async generateQRCode(id: string): Promise<{ qrCode: string; qrCodeImage: string; material: Material }> {
     try {
       const material = await this.findOne(id);
       
-      const qrData = JSON.stringify({
-        id: material._id,
-        code: material.code,
-        name: material.name,
-      });
+      if (material.qrCodeImage) {
+        const oldFilename = path.basename(material.qrCodeImage);
+        const oldPath = path.join(process.env.UPLOAD_PATH || './uploads/qrcodes', oldFilename);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+          this.logger.log(`✅ Ancienne image QR supprimée: ${oldPath}`);
+        }
+      }
       
-      const qrCode = await QRCode.toDataURL(qrData);
+      const qrResult = await QRGeneratorUtil.generateAndSaveQRCode(
+        {
+          id: material._id,
+          code: material.code,
+          name: material.name,
+        },
+        material.code
+      );
       
-      material.qrCode = qrCode;
+      material.qrCode = qrResult.dataURL;
+      material.qrCodeImage = qrResult.url;
       await material.save();
       
-      return { qrCode, material };
+      this.logger.log(`✅ QR code généré et sauvegardé pour ${material.code}: ${qrResult.url}`);
+      
+      return { 
+        qrCode: qrResult.dataURL, 
+        qrCodeImage: qrResult.url, 
+        material 
+      };
     } catch (error) {
       this.logger.error(`❌ Erreur génération QR: ${error.message}`);
       throw error;
     }
   }
 
-  // SUPPRESSION: Méthodes de localisation (supprimées car pas utilisées)
-  // async updateLocation(...) (supprimé)
-  // async findNearby(...) (supprimé)
-  // async getAddressFromCoordinates(...) (supprimé)
-  // async getStatsByLocation(...) (supprimé)
+  async getQRCodeImage(id: string): Promise<{ imagePath: string; filename: string }> {
+    const material = await this.findOne(id);
+    
+    if (!material.qrCodeImage) {
+      throw new NotFoundException('Aucune image QR code trouvée pour ce matériau');
+    }
+    
+    const filename = path.basename(material.qrCodeImage);
+    const imagePath = path.join(process.env.UPLOAD_PATH || './uploads/qrcodes', filename);
+    
+    if (!fs.existsSync(imagePath)) {
+      throw new NotFoundException('Fichier image QR code non trouvé sur le serveur');
+    }
+    
+    return { imagePath, filename };
+  }
 
   async addImage(id: string, imageUrl: string): Promise<Material> {
     try {
@@ -386,8 +420,6 @@ export class MaterialsService {
       throw error;
     }
   }
-
-  // ========== ALERTES ET DASHBOARD ==========
 
   async getDashboardStats() {
     try {
@@ -540,25 +572,36 @@ export class MaterialsService {
     }
   }
 
-  // ========== BULK OPERATIONS ==========
-
   async bulkCreate(createMaterialDtos: CreateMaterialDto[], userId: string | null): Promise<Material[]> {
     try {
       const materials: any[] = [];
       
       for (const dto of createMaterialDtos) {
-        const qrCode = await QRCode.toDataURL(JSON.stringify({ 
-          code: dto.code, 
-          name: dto.name 
-        }));
+        const existing = await this.materialModel.findOne({ code: dto.code });
+        if (existing) {
+          throw new BadRequestException(`Le code ${dto.code} existe déjà`);
+        }
+        
+        const tempId = new Types.ObjectId();
+        const qrResult = await QRGeneratorUtil.generateAndSaveQRCode(
+          {
+            id: tempId,
+            code: dto.code,
+            name: dto.name,
+          },
+          dto.code
+        );
         
         const dateKey = new Date().toISOString().replace(/\./g, '-');
         
         const materialData: any = {
           ...dto,
-          qrCode,
+          _id: tempId,
+          qrCode: qrResult.dataURL,
+          qrCodeImage: qrResult.url,
           barcode: `MAT-${Date.now()}-${Math.random()}`,
           priceHistory: { [dateKey]: 0 },
+          status: 'active',
         };
         
         if (userId && Types.ObjectId.isValid(userId)) {
@@ -570,6 +613,7 @@ export class MaterialsService {
 
       const created = await this.materialModel.insertMany(materials);
       
+      this.logger.log(`✅ ${created.length} matériaux créés avec QR codes`);
       this.materialsGateway.emitMaterialUpdate('bulkCreated', { count: created.length });
       await this.cacheManager.del('materials_dashboard');
 
@@ -580,9 +624,7 @@ export class MaterialsService {
     }
   }
 
-  // ========== TÂCHES PLANIFIÉES ==========
-
-  @Cron('0 * * * *') // Toutes les heures
+  @Cron('0 * * * *')
   async checkLowStock() {
     this.logger.log('🔍 Vérification des stocks bas...');
     
@@ -610,8 +652,6 @@ export class MaterialsService {
     }
   }
 
-  // ========== MÉTHODES UTILITAIRES ==========
-
   getStockMovements(materialId: string): StockMovement[] {
     return this.stockMovements.filter(m => m.materialId === materialId);
   }
@@ -630,6 +670,39 @@ export class MaterialsService {
     }
     if (data.reorderPoint < data.minimumStock || data.reorderPoint > data.maximumStock) {
       throw new BadRequestException('Le point de commande doit être entre le stock minimum et maximum');
+    }
+  }
+
+  async importFromExcel(filePath: string): Promise<any> {
+    try {
+      const { ImportExportService } = require('./services/import-export.service');
+      const importExportService = new ImportExportService(this.materialModel);
+      return await importExportService.importFromExcel(filePath);
+    } catch (error) {
+      this.logger.error(`❌ Erreur import Excel: ${error.message}`);
+      throw new BadRequestException(`Erreur lors de l'import: ${error.message}`);
+    }
+  }
+
+  async exportToExcel(materialIds?: string[]): Promise<{ filePath: string; filename: string }> {
+    try {
+      const { ImportExportService } = require('./services/import-export.service');
+      const importExportService = new ImportExportService(this.materialModel);
+      return await importExportService.exportToExcel(materialIds);
+    } catch (error) {
+      this.logger.error(`❌ Erreur export Excel: ${error.message}`);
+      throw new BadRequestException(`Erreur lors de l'export Excel: ${error.message}`);
+    }
+  }
+
+  async exportToPDF(materialIds?: string[]): Promise<{ filePath: string; filename: string }> {
+    try {
+      const { ImportExportService } = require('./services/import-export.service');
+      const importExportService = new ImportExportService(this.materialModel);
+      return await importExportService.exportToPDF(materialIds);
+    } catch (error) {
+      this.logger.error(`❌ Erreur export PDF: ${error.message}`);
+      throw new BadRequestException(`Erreur lors de l'export PDF: ${error.message}`);
     }
   }
 }

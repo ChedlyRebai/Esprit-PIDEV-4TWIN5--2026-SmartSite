@@ -39,10 +39,12 @@ export class Material extends Document {
   @Prop({ type: String })
   qrCode: string;
 
+  @Prop({ type: String })
+  qrCodeImage: string;
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Supplier' }] })
   preferredSuppliers: Types.ObjectId[];
 
-  // CORRECTION: Utiliser Object au lieu de Map
   @Prop({ type: Object })
   priceHistory?: Record<string, number>;
 
@@ -79,26 +81,14 @@ export class Material extends Document {
   @Prop({ type: Date })
   lastCountDate: Date;
 
-  // CORRECTION: Rendu optionnel
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   createdBy?: Types.ObjectId;
 
-  // SUPPRESSION: Localisation géographique (supprimé car pas utilisé)
-  // @Prop({ ... }) geoLocation: ... (supprimé)
-
-  // Images du matériau (optionnel)
   @Prop({ type: [String] })
   images?: string[];
 }
 
 export const MaterialSchema = SchemaFactory.createForClass(Material);
-
-// Index pour recherche textuelle
 MaterialSchema.index({ name: 'text', code: 'text' });
-
-// Index pour les filtres
 MaterialSchema.index({ category: 1 });
 MaterialSchema.index({ status: 1 });
-
-// SUPPRESSION: Index géospatial (supprimé car pas utilisé)
-// MaterialSchema.index({ geoLocation: '2dsphere' });

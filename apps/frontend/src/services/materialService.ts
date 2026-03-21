@@ -336,6 +336,63 @@ const materialService = {
       console.error('Erreur bulkCreate:', error);
       throw error;
     }
+  }, // <-- VIRGULE AJOUTÉE ICI
+
+  // ========== IMPORT/EXPORT ==========
+
+  // Importer depuis Excel
+  async importFromExcel(file: File): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post('/materials/import/excel', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur importFromExcel:', error);
+      throw error;
+    }
+  },
+
+  // Exporter vers Excel
+  async exportToExcel(materialIds?: string[]): Promise<Blob> {
+    try {
+      const response = await apiClient.post('/materials/export/excel', 
+        materialIds || [], 
+        { responseType: 'blob' }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Erreur exportToExcel:', error);
+      throw error;
+    }
+  },
+
+  // Exporter vers PDF
+  async exportToPDF(materialIds?: string[]): Promise<Blob> {
+    try {
+      const response = await apiClient.post('/materials/export/pdf', 
+        materialIds || [], 
+        { responseType: 'blob' }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Erreur exportToPDF:', error);
+      throw error;
+    }
+  },
+
+  // Télécharger un fichier
+  async downloadFile(blob: Blob, filename: string): Promise<void> {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 };
 
