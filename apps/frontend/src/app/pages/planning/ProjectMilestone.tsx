@@ -16,23 +16,20 @@ import type { Milestone, Site } from "../../types";
 import "leaflet/dist/leaflet.css";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { getMilestonesByProjectId } from "@/app/action/planing.action";
+import { getMilestonesByProjectId } from "@/app/action/milestone.action";
 import useMilestoneModal from "@/app/hooks/use-milestone-modal";
 
 const ProjectMilestone = () => {
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  //const [milestones, setMilestones] = useState<Milestone[]>([]);
   const { isOpen, setProjectId, onOpen } = useMilestoneModal();
   const { projectId } = useParams();
   console.log("project id from milestone page", projectId);
-  const { data, isPending, isLoading, isError } = useQuery({
-    queryKey: ["siteMilestoneData"],
-    queryFn: async () => {
-      const response = await getMilestonesByProjectId(projectId);
-      setMilestones(response.data);
-      console.log(response.data);
-    },
+  const { data:milestones , isPending, isLoading, isError } = useQuery({
+    queryKey: ["milestoneData",projectId],
+    queryFn: () => getMilestonesByProjectId(projectId || ""),
   });
 
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -67,7 +64,7 @@ const ProjectMilestone = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {milestones.map((milestone) => (
+            {milestones?.map((milestone) => (
               <div key={milestone._id} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

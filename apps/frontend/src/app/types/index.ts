@@ -33,6 +33,33 @@ export interface Milestone {
   endDate?: Date;
 }
 
+
+export interface CreateTaskPayload {
+    title: string;
+    description?: string;
+    milestoneId: string;
+    status?: string;
+    priority?: string;
+    projectId?: string;
+    siteId?: string;
+    assignedUsers?: string[];
+    startDate?: Date;
+    endDate?: Date;
+}
+
+export interface UpdateTaskPayload {
+    title?: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    projectId?: string;
+    siteId?: string;
+    assignedUsers?: string[];
+    progress?: number;
+    startDate?: Date;
+    endDate?: Date;
+}
+
 export interface User {
   _id: string;
   nom?: string;

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Milestone } from "../types";
+import { CreateTaskPayload, Milestone, UpdateTaskPayload } from "../types";
 
 
 const baseUrl = process.env.PLANNING_URL || 'http://localhost:3002';
@@ -26,31 +26,6 @@ export const getTasksBYMilestoneId= async (milestoneId:string) =>{
     }
 }
 
-export interface CreateTaskPayload {
-    title: string;
-    description?: string;
-    milestoneId: string;
-    status?: string;
-    priority?: string;
-    projectId?: string;
-    siteId?: string;
-    assignedUsers?: string[];
-    startDate?: Date;
-    endDate?: Date;
-}
-
-export interface UpdateTaskPayload {
-    title?: string;
-    description?: string;
-    status?: string;
-    priority?: string;
-    projectId?: string;
-    siteId?: string;
-    assignedUsers?: string[];
-    progress?: number;
-    startDate?: Date;
-    endDate?: Date;
-}
 
 export const createTask = async (task: CreateTaskPayload) => {
     try {
