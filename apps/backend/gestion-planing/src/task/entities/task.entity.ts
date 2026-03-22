@@ -31,8 +31,8 @@ export class Task extends Document {
   @Prop()
   updatedBy: string;
 
-  @Prop({ type:String,enum:StatusEnum,default:StatusEnum.BACKLOG })
-  status: StatusEnum;
+  @Prop({ type:Types.ObjectId, ref :'TaskStage' })
+  status: Types.ObjectId;
 
   @Prop({ default: 0 })
   progress: number;
@@ -42,6 +42,11 @@ export class Task extends Document {
 
   @Prop()
   endDate: Date;
+
+  @Prop({ type: Types.ObjectId, ref : 'Task' ,required:false})
+  parent: Types.ObjectId;
  
+  @Prop({ type: [Types.ObjectId], ref : 'Task' ,required:false})
+  subtasks: Types.ObjectId[];
 }
 export const TaskSchema = SchemaFactory.createForClass(Task);
