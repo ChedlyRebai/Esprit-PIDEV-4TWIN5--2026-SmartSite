@@ -21,13 +21,17 @@ export class TaskStageService {
     return await this.taskStageModel.find().exec();
   }
 
-  async create(taskStage: TaskStage) {
-    return await this.taskStageModel.create(taskStage);
+  async create(projectId: string, taskStage: TaskStage) {
+    return await this.taskStageModel.create({ ...taskStage, projectId });
   }
 
   async update(id: string, taskStage: TaskStage) {
     return await this.taskStageModel
       .findByIdAndUpdate(id, taskStage, { new: true })
       .exec();
+  }
+
+  async remove(id: string) {
+    return await this.taskStageModel.findByIdAndDelete(id).exec();
   }
 }
