@@ -25,3 +25,5 @@ export class TaskStage extends Document {
   @Prop()
   updatedBy: string;
 }
+
+export const TaskStageSchema =SchemaFactory.createForClass(TaskStage);
