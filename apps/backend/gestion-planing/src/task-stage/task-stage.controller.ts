@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { TaskStageService } from './task-stage.service';
 import { TaskStage } from './entities/TaskStage.entities';
 
@@ -16,9 +24,19 @@ export class TaskStageController {
     const taskStages = await this.taskStageService.findByProjectId(projectId);
     return taskStages;
   }
-  @Post("project/:projectId")
-  async create(@Param("projectId") projectId:string , @Body() taskStage:TaskStage){
-    return this.taskStageService.create(projectId,taskStage)
+  @Post('milestone/:milestoneId')
+  async create(
+    @Param('milestoneId') milestoneId: string,
+    @Body() taskStage: TaskStage,
+  ) {
+    return this.taskStageService.create(milestoneId, taskStage);
+  }
+
+  @Get('milestone/:milestoneId')
+  async findByMilestoneId(@Param('milestoneId') milestoneId: string) {
+    const taskStages =
+      await this.taskStageService.findByMilestoneId(milestoneId);
+    return taskStages;
   }
 
   @Get(':id')

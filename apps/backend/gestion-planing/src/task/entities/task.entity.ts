@@ -11,19 +11,17 @@ export class Task extends Document {
   @Prop()
   description: string;
 
-  @Prop({ type: Types.ObjectId , ref: 'Milestone',required:true })
+  @Prop({ type: Types.ObjectId, ref: 'Milestone', required: true })
   milestoneId: Types.ObjectId;
 
-  
   @Prop({ type: [String], default: [] })
   assignedUsers: string;
 
   @Prop()
   priority: string;
 
-
-  @Prop({ type:String,enum:TaskTypeEnum,default:TaskTypeEnum.TASK })
-  type:string;
+  @Prop({ type: String, enum: TaskTypeEnum, default: TaskTypeEnum.TASK })
+  type: string;
 
   @Prop()
   projectId: string;
@@ -36,7 +34,7 @@ export class Task extends Document {
   @Prop()
   updatedBy: string;
 
-  @Prop({ type:String,enum:StatusEnum,default:StatusEnum.BACKLOG })
+  @Prop({ type: String, enum: StatusEnum, default: StatusEnum.BACKLOG })
   status: StatusEnum;
 
   @Prop({ type: Types.ObjectId, ref: 'TaskStage' })
@@ -51,10 +49,10 @@ export class Task extends Document {
   @Prop()
   endDate: Date;
 
-  @Prop({ type: Types.ObjectId, ref : 'Task' ,required:false})
+  @Prop({ type: Types.ObjectId, ref: 'Task', required: false })
   parent: Types.ObjectId;
- 
-  @Prop({ type: [Types.ObjectId], ref : 'Task' ,required:false})
+
+  @Prop({ type: [Types.ObjectId], ref: 'Task', required: false })
   subtasks: Types.ObjectId[];
 }
 export const TaskSchema = SchemaFactory.createForClass(Task);

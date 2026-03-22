@@ -21,12 +21,16 @@ export class TaskStageService {
     return await this.taskStageModel.find({projectId}).exec();
   }
 
+  async findByMilestoneId(milestoneId:string){
+    return await this.taskStageModel.find({milestoneId}).exec();
+  }
+
   async findAll() {
     return await this.taskStageModel.find().exec();
   }
 
-  async create(projectId: string, taskStage: TaskStage) {
-    return await this.taskStageModel.create({ ...taskStage, projectId });
+  async create(milestoneId: string, taskStage: TaskStage) {
+    return await this.taskStageModel.create({ ...taskStage, milestoneId });
   }
 
   async update(id: string, taskStage: TaskStage) {

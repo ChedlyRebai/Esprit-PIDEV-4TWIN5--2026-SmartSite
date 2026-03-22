@@ -16,6 +16,8 @@ export class TaskStage extends Document {
   @Prop()
   order: number;
 
+  @Prop({ type: Types.ObjectId, ref: 'Milestone', required: true })
+  milestoneId: Types.ObjectId;
   @Prop()
   projectId: string;
 
@@ -26,4 +28,4 @@ export class TaskStage extends Document {
   updatedBy: string;
 }
 
-export const TaskStageSchema =SchemaFactory.createForClass(TaskStage);
+export const TaskStageSchema = SchemaFactory.createForClass(TaskStage);
