@@ -1,6 +1,6 @@
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { Body, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -12,20 +12,19 @@ export class TaskService {
     @InjectModel(Milestone.name) private milestoneModel: Model<Milestone>,
     @InjectModel(Task.name) private taskModel: Model<Task>,
   ) {}
-  async create(createTaskDto: CreateTaskDto,milestoneId:string) {
-    const response = await this.milestoneModel
-      .findById(milestoneId)
-      .exec();
+  async create(createTaskDto: CreateTaskDto, milestoneId: string) {
+    const response = await this.milestoneModel.findById(milestoneId).exec();
     if (!response) {
-      throw new Error(
-        `Milestone with id ${milestoneId} not found`,
-      );
+      throw new Error(`Milestone with id ${milestoneId} not found`);
     }
-    const newTask = await this.taskModel.create({...createTaskDto,milestoneId});
+    const newTask = await this.taskModel.create({
+      ...createTaskDto,
+      milestoneId,
+    });
     response.tasks.push(newTask._id);
     await response.save();
     return newTask;
-  } 
+  }
 
   async findAll() {
     try {
@@ -68,6 +67,62 @@ export class TaskService {
       return response;
     } catch (error) {
       throw new Error(`Error removing task: ${error.message}`);
+    }
+  }
+
+  async getMyTask(userId: string) {
+    if (!userId) {
+      return [];
+    }
+
+    return await this.taskModel
+      .find({
+        $or: [
+          { assignedUsers: userId },
+          { assignedUsers: { $in: [userId] } },
+        ],
+      })
+      .exec();
+  }
+  
+  async getMyTasks(userId: string) {
+    try {
+      const response = await this.taskModel
+        .aggregate([
+          { $match: { 
+            $or: [
+              { assignedUsers: userId },
+              { assignedUsers: { $in: [userId] } },
+            ]
+           } },
+          {
+            $group: {
+              _id: '$status',
+              tasks: { $push: '$$ROOT' },
+            },
+          },
+
+          {
+            $project: {
+              title: '$_id',
+              tasks: 1,
+              _id: 0,
+            },
+          },
+          //where: { userId: { $in: [userId] } },
+
+        ])
+        .exec();
+      const columns = response.map((group, i) => ({
+        id: `${group.title}`, // or use uuid/v4 for random unique id
+        title: group.title,
+        color: getColorForStatus(group.status),
+        tasks: group.tasks,
+      }));
+
+      return columns;
+    } catch (error: any) {
+      throw new Error(`Error fetching tasks by milestone id: ${error.message}`);
     }
   }
 

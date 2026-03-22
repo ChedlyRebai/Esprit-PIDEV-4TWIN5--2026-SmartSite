@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { TaskModule } from './task/task.module';
 import { MilestoneModule } from './milestone/milestone.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     ),
     TaskModule,
     MilestoneModule,
+    AuthModule,
   ],
 
   controllers: [AppController],
