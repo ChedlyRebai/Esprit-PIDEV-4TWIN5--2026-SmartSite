@@ -33,6 +33,7 @@ import ProjectMilestone from "./pages/planning/ProjectMilestone";
 import MilestoneTasks from "./pages/planning/MilestoneTasks";
 import MyTask from "./pages/planning/MyTask";
 import GanttChart from "./pages/planning/GanttManage";
+import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -116,6 +117,10 @@ export const router = createBrowserRouter([
       {
         path: "milestone-tasks/:milestoneId",
         element: <MilestoneTasks />,
+      },
+      {
+        path: "milestone-tasksC/:milestoneId",
+        element: <MilestoneTaskss />,
       },
       {
         path: "project-milestone/:projectId",

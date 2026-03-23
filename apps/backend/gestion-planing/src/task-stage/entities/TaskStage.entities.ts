@@ -21,6 +21,9 @@ export class TaskStage extends Document {
   @Prop()
   projectId: string;
 
+  @Prop({ type: [Types.ObjectId], ref: 'Task' })
+  tasks: Types.ObjectId[];
+
   @Prop()
   createdBy: string;
 

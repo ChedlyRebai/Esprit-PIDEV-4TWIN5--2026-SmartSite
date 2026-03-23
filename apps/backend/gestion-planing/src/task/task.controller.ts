@@ -19,12 +19,13 @@ import { GetUser } from '@/auth/get-user.decorator';
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
   // localhost:3002/task/milestone/69bc78a30912805125e58f72
-  @Post('/milestone/:milestoneId')
+  @Post('/milestone/:milestoneId/task-stage/:taskStageId')
   create(
     @Body() createTaskDto: CreateTaskDto,
     @Param('milestoneId') milestoneId: string,
+    @Param('taskStageId') taskStageId: string,
   ) {
-    return this.taskService.create(createTaskDto, milestoneId);
+    return this.taskService.create(createTaskDto, milestoneId,taskStageId);
   }
 
   @Get()

@@ -6,21 +6,51 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Task } from '@/task/entities/task.entity';
 import { Milestone } from '@/milestone/entities/milestone.entity';
+import { TaskStage } from '@/task-stage/entities/TaskStage.entities';
 @Injectable()
 export class TaskService {
   constructor(
     @InjectModel(Milestone.name) private milestoneModel: Model<Milestone>,
     @InjectModel(Task.name) private taskModel: Model<Task>,
+     @InjectModel(TaskStage.name) private taskSTageModel: Model<TaskStage>,
   ) {}
-  async create(createTaskDto: CreateTaskDto, milestoneId: string) {
+  async create(createTaskDto: CreateTaskDto, milestoneId: string,taskStageId :string) {
     const response = await this.milestoneModel.findById(milestoneId).exec();
     if (!response) {
       throw new Error(`Milestone with id ${milestoneId} not found`);
     }
+    
     const newTask = await this.taskModel.create({
       ...createTaskDto,
       milestoneId,
     });
+
+    await this.taskSTageModel.findByIdAndUpdate(taskStageId, {
+      $push: { tasks: newTask._id },
+    }).exec();
+
+    
+    response.tasks.push(newTask._id);
+    await response.save();
+    return newTask;
+  }
+
+  async prevcreate(createTaskDto: CreateTaskDto, milestoneId: string) {
+    const response = await this.milestoneModel.findById(milestoneId).exec();
+    if (!response) {
+      throw new Error(`Milestone with id ${milestoneId} not found`);
+    }
+    
+    const newTask = await this.taskModel.create({
+      ...createTaskDto,
+      milestoneId,
+    });
+
+    await this.taskSTageModel.findByIdAndUpdate("69c0561d9fc8a9ce45f45bee", {
+      $push: { tasks: newTask._id },
+    }).exec();
+
+    
     response.tasks.push(newTask._id);
     await response.save();
     return newTask;

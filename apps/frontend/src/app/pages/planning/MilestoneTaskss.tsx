@@ -82,20 +82,29 @@ import {
 import { useParams } from "react-router";
 import useTaskModal from "@/app/hooks/use-task-modal";
 import { de } from "zod/v4/locales";
+import { getTaskSTagesByMilestoneId } from "@/app/action/task.actions";
 
 type Column = {
-  id: string;
-  title: TaskStatusEnum;
+  _id: string;
+  name: TaskStatusEnum;
   description?: string;
+  order: number;
   color: KanbanBoardCircleColor;
   tasks: Task[];
 };
 
-export default function MilestoneTasks() {
+export default function MilestoneTaskss() {
   const { milestoneId } = useParams();
+
   console.log("milestone idhhhhhhhhhhhhhhhhhhhhhhhh");
   console.log(milestoneId);
   const { isOpen, setType, onOpen, setMilestoneid } = useTaskModal();
+
+  const { data: cols } = useQuery({
+    queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
+    queryFn: () => getTaskSTagesByMilestoneId(milestoneId || ""),
+  });
+  console.log("cols", cols);
   return (
     <div className="space-y-6">
       <div className="flex taskssetType-center justify-between">
@@ -148,17 +157,24 @@ export function MyKanbanBoard() {
   const [columns, setColumns] = useState<Column[]>([]);
 
   const { milestoneId } = useParams();
-  console.log("miles id 2", milestoneId);
-  const { data, isLoading } = useQuery({
-    queryKey: ["milestoneTasksData", milestoneId],
-    queryFn: async () => {
-      const response = await getTasksBYMilestoneId(milestoneId);
-      console.log(response);
-      setColumns(response);
-    },
-  });
-  console.log(data);
+  console.log("miles _id 2", milestoneId);
+  // const { data, isLoading } = useQuery({
+  //   queryKey: ["milestoneTasksData", milestoneId],
+  //   queryFn: async () => {
+  //     const response = await getTasksBYMilestoneId(milestoneId);
+  //     console.log(response);
+  //     setColumns(response);
+  //   },
+  // });
+  //console.log(data);
 
+  const { data } = useQuery({
+    queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
+    queryFn: () => getTaskSTagesByMilestoneId(milestoneId || "").then((data) => {
+      console.log("Fetched columns data:", data);
+      setColumns(data);
+    }),
+  });
   // Scroll to the right when a new column is added.
   const scrollContainerReference = useRef<HTMLDivElement>(null);
 
@@ -173,39 +189,42 @@ export function MyKanbanBoard() {
   Column logic
   */
 
-  const handleAddColumn = (title?: TaskStatusEnum) => {
-    if (title) {
-      flushSync(() => {
-        setColumns((previousColumns) => [
-          ...previousColumns,
-          {
-            id: uuid.toString(),
-            title,
-            color:
-              KANBAN_BOARD_CIRCLE_COLORS[previousColumns.length] ?? "primary",
-            tasks: [],
-          },
-        ]);
-      });
-    }
+  // const handleAddColumn = (name?: TaskStatusEnum) => {
+  //   if (name) {
+  //     flushSync(() => {
+  //       setColumns((previousColumns:Column) => [
+  //         ...previousColumns,
+  //         {
+  //           _id: uuid.toString(),
+  //           name,
+  //           description: "",
+            
+  //           order: previousColumns,
+  //           color:
+  //             KANBAN_BOARD_CIRCLE_COLORS[previousColumns.length] ?? "primary",
+  //           tasks: [],
+  //         },
+  //       ]);
+  //     });
+  //   }
 
-    scrollRight();
-  };
+  //   scrollRight();
+  // };
 
   function handleDeleteColumn(columnId: string) {
     flushSync(() => {
       setColumns((previousColumns) =>
-        previousColumns.filter((column) => column.id !== columnId),
+        previousColumns.filter((column) => column._id !== columnId),
       );
     });
 
     scrollRight();
   }
 
-  function handleUpdateColumnTitle(columnId: string, title: TaskStatusEnum) {
+  function handleUpdateColumnTitle(columnId: string, name: TaskStatusEnum) {
     setColumns((previousColumns) =>
       previousColumns.map((column) =>
-        column.id === columnId ? { ...column, title } : column,
+        column._id === columnId ? { ...column, name } : column,
       ),
     );
   }
@@ -217,12 +236,12 @@ export function MyKanbanBoard() {
   //   function handleAddCard(columnId: string, cardContent: string) {
   //     setColumns((previousColumns) =>
   //       previousColumns.map((column) =>
-  //         column.id === columnId
+  //         column._id === columnId
   //           ? {
   //               ...column,
   //               tasks: [
   //                 ...column.tasks,
-  //                 { id: uuid.toString(), title: cardContent },
+  //                 { _id: uuid.toString(), name: cardContent },
   //               ],
   //             }
   //           : column,
@@ -275,7 +294,7 @@ export function MyKanbanBoard() {
     if (response.status === 200) {
       setColumns((previousColumns) =>
         previousColumns.map((column) => {
-          if (column.id === columnId) {
+          if (column._id === columnId) {
             console.log(column.tasks);
             // Remove the card from the column (if it exists) before reinserting it.
             const updatedItems = column.tasks.filter(
@@ -283,7 +302,7 @@ export function MyKanbanBoard() {
             );
 
             console.log(card);
-            card.status = column.title;
+            card.status = column.name;
 
             return {
               ...column,
@@ -315,7 +334,7 @@ export function MyKanbanBoard() {
           ? {
               ...column,
               tasks: column.tasks.map((card) =>
-                card._id === cardId ? { ...card, title: cardTitle } : card,
+                card._id === cardId ? { ...card, name: cardTitle } : card,
               ),
             }
           : column,
@@ -334,13 +353,13 @@ export function MyKanbanBoard() {
   const { onDragStart, onDragEnd, onDragCancel, onDragOver } = useDndEvents();
 
   // This helper returns the appropriate overId after a card is placed.
-  // If there's another card below, return that card's id, otherwise return the column's id.
+  // If there's another card below, return that card's _id, otherwise return the column's _id.
   function getOverId(column: Column, cardIndex: number): string {
     if (cardIndex < column.tasks.length - 1) {
       return column.tasks[cardIndex + 1]._id;
     }
 
-    return column.id;
+    return column._id;
   }
 
   // Find column and index for a given card.
@@ -408,7 +427,7 @@ export function MyKanbanBoard() {
 
     // Perform state update in flushSync to ensure immediate state update.
     flushSync(() => {
-      handleMoveCardToColumn(columns[newColumnIndex].id, newCardIndex, card);
+      handleMoveCardToColumn(columns[newColumnIndex]._id, newCardIndex, card);
     });
 
     // Find the card's new position and announce it.
@@ -434,7 +453,7 @@ export function MyKanbanBoard() {
       const { columnIndex, cardIndex } = findCardPosition(cardId);
       originalCardPositionReference.current =
         columnIndex !== -1 && cardIndex !== -1
-          ? { columnId: columns[columnIndex].id, cardIndex }
+          ? { columnId: columns[columnIndex]._id, cardIndex }
           : null;
     } else if (activeCardId === cardId) {
       // Task is already active.
@@ -470,7 +489,7 @@ export function MyKanbanBoard() {
           // Revert card only if it moved.
           if (
             currentColumnIndex !== -1 &&
-            (columnId !== columns[currentColumnIndex].id ||
+            (columnId !== columns[currentColumnIndex]._id ||
               cardIndex !== currentCardIndex)
           ) {
             const card = columns[currentColumnIndex].tasks[currentCardIndex];
@@ -510,7 +529,7 @@ export function MyKanbanBoard() {
           <MyKanbanBoardColumn
             activeCardId={activeCardId}
             column={column}
-            key={column.id}
+            key={column._id}
             onCardBlur={handleCardBlur}
             onCardKeyDown={handleCardKeyDown}
             onDeleteCard={handleDeleteCard}
@@ -520,7 +539,7 @@ export function MyKanbanBoard() {
             onUpdateColumnTitle={handleUpdateColumnTitle}
           />
         ) : (
-          <KanbanBoardColumnSkeleton key={column.id} />
+          <KanbanBoardColumnSkeleton key={column._id} />
         ),
       )}
 
@@ -585,13 +604,13 @@ function MyKanbanBoardColumn({
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const columnTitle = formData.get("columnTitle") as string;
-    onUpdateColumnTitle(column.id, columnTitle);
+    onUpdateColumnTitle(column._id, columnTitle);
     closeDropdownMenu();
   }
 
   function handleDropOverColumn(dataTransferData: string) {
     const card = JSON.parse(dataTransferData) as Task;
-    onMoveCardToColumn(column.id, 0, card);
+    onMoveCardToColumn(column._id, 0, card);
   }
 
   function handleDropOverListItem(cardId: string) {
@@ -621,16 +640,16 @@ function MyKanbanBoardColumn({
       if (card._id === overCard?._id) {
         onDragCancel(card._id);
       } else {
-        onMoveCardToColumn(column.id, safeTargetIndex, card);
-        onDragEnd(card._id, overCard?._id || column.id);
+        onMoveCardToColumn(column._id, safeTargetIndex, card);
+        onDragEnd(card._id, overCard?._id || column._id);
       }
     };
   }
 
   return (
     <KanbanBoardColumn
-      columnId={column.id}
-      key={column.id}
+      columnId={column._id}
+      key={column._id}
       onDropOverColumn={handleDropOverColumn}
     >
       <KanbanBoardColumnHeader>
@@ -645,9 +664,9 @@ function MyKanbanBoardColumn({
             }}
           >
             <Input
-              aria-label="Column title"
+              aria-label="Column name"
               autoFocus
-              defaultValue={column.title}
+              defaultValue={column.name}
               name="columnTitle"
               onKeyDown={(event) => {
                 if (event.key === "Escape") {
@@ -659,9 +678,9 @@ function MyKanbanBoardColumn({
           </form>
         ) : (
           <>
-            <KanbanBoardColumnTitle columnId={column.id}>
+            <KanbanBoardColumnTitle columnId={column._id}>
               <KanbanColorCircle color={column.color} />
-              {column.title}
+              {column.name}
             </KanbanBoardColumnTitle>
 
             <DropdownMenu>
@@ -669,7 +688,7 @@ function MyKanbanBoardColumn({
                 <KanbanBoardColumnIconButton ref={moreOptionsButtonReference}>
                   {/* <MoreHorizontalIcon /> */}
                   <span className="sr-only">
-                    More options for {column.title}
+                    More options for {column.name}
                   </span>
                 </KanbanBoardColumnIconButton>
               </DropdownMenuTrigger>
@@ -685,7 +704,7 @@ function MyKanbanBoardColumn({
 
                   <DropdownMenuItem
                     className="text-destructive"
-                    onClick={() => onDeleteColumn(column.id)}
+                    onClick={() => onDeleteColumn(column._id)}
                   >
                     <Trash2Icon />
                     Delete
@@ -791,7 +810,7 @@ function MyKanbanBoardCard({
   return isEditingTitle ? (
     <form onBlur={handleBlur} onSubmit={handleSubmit}>
       <KanbanBoardCardTextarea
-        aria-label="Edit card title"
+        aria-label="Edit card name"
         autoFocus
         defaultValue={card.title}
         name="cardTitle"
@@ -817,7 +836,7 @@ function MyKanbanBoardCard({
             handleBlur();
           }
         }}
-        placeholder="Edit card title ..."
+        placeholder="Edit card name ..."
         required
       />
     </form>
@@ -953,7 +972,7 @@ function MyNewKanbanBoardCard({
     event.preventDefault();
 
     flushSync(() => {
-      onAddCard(column.id, cardContent.trim());
+      onAddCard(column._id, cardContent.trim());
       setCardContent("");
     });
 
@@ -1073,7 +1092,7 @@ function MyNewKanbanBoardColumn({
     >
       <KanbanBoardColumnHeader>
         <Input
-          aria-label="Column title"
+          aria-label="Column name"
           autoFocus
           name="columnTitle"
           onKeyDown={(event) => {
@@ -1081,7 +1100,7 @@ function MyNewKanbanBoardColumn({
               handleCancelClick();
             }
           }}
-          placeholder="New column title ..."
+          placeholder="New column name ..."
           ref={inputReference}
           required
         />

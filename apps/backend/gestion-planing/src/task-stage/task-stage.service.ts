@@ -17,13 +17,19 @@ export class TaskStageService {
     return await this.taskStageModel.findById(id).exec();
   }
 
-  async findByProjectId(projectId:string){
-    return await this.taskStageModel.find({projectId}).exec();
+  async findByProjectId(projectId: string) {
+    return await this.taskStageModel.find({ projectId }).exec();
   }
 
-  async findByMilestoneId(milestoneId:string){
-    return await this.taskStageModel.find({milestoneId}).exec();
+  async findByMilestoneId(milestoneId: string) {
+    return await this.taskStageModel
+      .find({ milestoneId }).sort({order:1})
+      .populate('tasks')
+      .exec();
   }
+
+
+  
 
   async findAll() {
     return await this.taskStageModel.find().exec();

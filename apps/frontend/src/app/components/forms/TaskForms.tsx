@@ -48,7 +48,8 @@ import {
 } from "@/app/action/planing.action";
 import { getAllUsers } from "@/app/action/user.action";
 import { data, useParams } from "react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAllTaskStages } from "@/app/action/taskStage.action";
 
 const todayAtMidnight = () => {
   const today = new Date();
@@ -100,13 +101,13 @@ const formSchema = z
 const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   const queryClient = useQueryClient();
   // const milestoneId = "69bc78a30912805125e58f72";
-  
+
   const { id: taskId, onClose, onTaskChange, milestoneId } = useTaskModal();
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   console.log("milestone from task form", milestoneId);
   const [openStartDate, setOpenStartDate] = React.useState(false);
   const [openEndDate, setOpenEndDate] = React.useState(false);
-  console.log("milestone id from TAskForm",milestoneId)
+  console.log("milestone id from TAskForm", milestoneId);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -123,7 +124,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   const mutation = useMutation({
     mutationFn: (task: CreateTaskPayload | UpdateTaskPayload) => {
       if (type === "add") {
-        return createTask(task,milestoneId);
+        return createTask(task, milestoneId, "69c0561d9fc8a9ce45f45bee");
       }
 
       if (type === "edit" && taskId) {
@@ -189,6 +190,10 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
     loadTaskData();
   }, [type, taskId]);
 
+  const { data: taskStages } = useQuery({
+    queryKey: ["getAllTaskStages"],
+    queryFn: () => getAllTaskStages(),
+  });
   // const onSubmi = async (data: z.infer<typeof formSchema>) => {
   //   if (type === "add" && !milestoneId) {
   //     toast.error("Milestone id is missing in route.");
@@ -376,11 +381,19 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.values(TaskStatusEnum).map((status) => (
+                    {/* {Object.values(TaskStatusEnum).map((status) => (
                       <SelectItem key={status} value={status}>
                         {status}
                       </SelectItem>
-                    ))}
+                    ))} */}
+
+                    {taskStages &&
+                      taskStages.length > 0 &&
+                      taskStages.map((taskStage) => (
+                        <SelectItem key={taskStage._id} value={taskStage._id}>
+                          {taskStage.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {fieldState.invalid && (
