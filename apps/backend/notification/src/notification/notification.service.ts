@@ -25,7 +25,7 @@ export class NotificationService {
     });
     return await newNotification.save();
   }
-
+  
   async markAsRead(notificationId: string) {
     return await this.notifModel.findByIdAndUpdate(notificationId, {
       isRead: true,
@@ -35,5 +35,5 @@ export class NotificationService {
   async deleteNotificationById(notificationId: string) {
     return await this.notifModel.findByIdAndDelete(notificationId);
   }
-  
+
 }

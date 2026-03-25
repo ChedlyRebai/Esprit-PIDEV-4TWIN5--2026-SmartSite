@@ -1,5 +1,3 @@
-import { MESSAGE } from './../../node_modules/mongodb/src/constants';
-
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
@@ -27,8 +25,8 @@ export class Notification extends Document {
   @Prop({ type: String, enum: NotificationTypeEnum })
   type: string;
 
-  @Prop()
-  data: any;
+//   @Prop()
+//   data: Record<string, any>;
 
   @Prop({ default: false })
   trash: boolean;
