@@ -22,7 +22,6 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Badge } from "../components/ui/badge";
 import { mockNotifications } from "../utils/mockData";
-import { navigationItems } from "../utils/roleConfig";
 import { useQuery } from "@tanstack/react-query";
 import { getMynavigationAccess } from "../action/permission.action";
 import { Permission } from "../types";
