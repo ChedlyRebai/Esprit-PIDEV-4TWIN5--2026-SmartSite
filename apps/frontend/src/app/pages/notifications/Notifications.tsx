@@ -4,7 +4,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";  
+} from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -16,10 +16,12 @@ import {
 
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { getMyNotifications } from "@/app/action/notification.action";
+import {
+  getMyNotifications,
+  getUnreadNotifications,
+} from "@/app/action/notification.action";
 
 export default function Notifications() {
-
   const getIcon = (type: string) => {
     switch (type) {
       case "critical":
@@ -66,6 +68,15 @@ export default function Notifications() {
     queryFn: () => getMyNotifications(),
   });
 
+  const { data: UnreadNotifCount } = useQuery({
+    queryKey: ["unreadNotificationsLength"],
+    queryFn: () => UnreadNotifCount(),
+  });
+
+  const { data: unreadNotifs } = useQuery({
+    queryKey: ["unreadNotifications"],
+    queryFn: () => getUnreadNotifications(),
+  });
   console.log(myNotifcations);
   return (
     <div className="space-y-6">
@@ -80,7 +91,7 @@ export default function Notifications() {
           <Button
             variant="outline"
             onClick={handleMarkAllAsRead}
-            disabled={myNotifcations.length === 0}
+            disabled={UnreadNotifCount === 0}
           >
             Mark All as Read
           </Button>
@@ -102,19 +113,19 @@ export default function Notifications() {
           <Tabs defaultValue="unread" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="unread">
-                Unread ({myNotifcations.length})
+                Unread ({UnreadNotifCount})
               </TabsTrigger>
               <TabsTrigger value="all">All Notifications</TabsTrigger>
             </TabsList>
 
             <TabsContent value="unread" className="space-y-3 mt-4">
-              {myNotifcations.length === 0 ? (
+              {unreadNotifs.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>No unread notifications</p>
                 </div>
               ) : (
-                myNotifcations.map((notification) => (
+                unreadNotifs.map((notification) => (
                   <div
                     key={notification.id}
                     className={`flex items-start gap-4 p-4 border rounded-lg ${getBackgroundColor(notification.type)}`}
