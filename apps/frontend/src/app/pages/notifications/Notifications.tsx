@@ -49,7 +49,8 @@ export default function Notifications() {
   };
 
   const handleMarkAllAsRead = () => {
-    // setNotifications(notifications.map(n => ({ ...n, read: true })));
+    
+    console.log(res, "ressssssssssssssssssssssss");
     toast.success("All notifications marked as read");
   };
 
