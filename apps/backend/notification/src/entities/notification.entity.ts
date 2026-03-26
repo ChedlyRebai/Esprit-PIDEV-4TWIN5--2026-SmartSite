@@ -8,6 +8,12 @@ export enum NotificationTypeEnum {
   OTHER = 'OTHER',
 }
 
+export enum NotificationPriorityEnum {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+
 @Schema({ timestamps: true })
 export class Notification extends Document {
   @Prop({ required: true, trim: true })
@@ -22,8 +28,11 @@ export class Notification extends Document {
   @Prop()
   isRead: boolean;
 
+  @Prop({type: String, enum: NotificationPriorityEnum})
+  priority: NotificationPriorityEnum;
+
   @Prop({ type: String, enum: NotificationTypeEnum })
-  type: string;
+  type: NotificationTypeEnum;
 
 //   @Prop()
 //   data: Record<string, any>;
