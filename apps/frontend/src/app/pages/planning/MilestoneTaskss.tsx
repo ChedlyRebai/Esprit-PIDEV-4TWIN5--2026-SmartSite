@@ -1,12 +1,3 @@
-/* eslint-disable unicorn/no-null */
-import {
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   CircleIcon,
   Edit2Icon,
@@ -92,6 +83,8 @@ import { useParams } from "react-router";
 import useTaskModal from "@/app/hooks/use-task-modal";
 import { getTaskSTagesByMilestoneId } from "@/app/action/task.actions";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
+import { removeTaskStage } from "@/app/action/taskStage.action";
+import toast from "react-hot-toast";
 
 type Column = {
   _id: string;
@@ -477,8 +470,6 @@ export function MyKanbanBoard() {
           ? { columnId: columns[columnIndex]._id, cardIndex }
           : null;
     } else if (activeCardId === cardId) {
-      // Task is already active.
-      // eslint-disable-next-line unicorn/prefer-switch
       if (key === " " || key === "Enter") {
         event.preventDefault();
         // Drop the card.
@@ -689,7 +680,18 @@ function MyKanbanBoardColumn({
     setType("edit");
     onOpen();
   };
-  const deleteColumn = (column_id: string) => {};
+  const deleteColumn = async (column_id: string) => {
+    console.log("delete column===================", column_id);
+    const response = await removeTaskStage(column_id);
+    console.log(response);
+    if (response.status === 200) {
+      onDeleteColumn(column_id);
+      toast.success("Column deleted successfully");
+    }
+  };
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
 
   return (
     <KanbanBoardColumn
@@ -718,9 +720,9 @@ function MyKanbanBoardColumn({
             className="w-40 z-50"
           >
             <DropdownMenuItem
-              onClick={() => {
+              onClick={(e) => {
                 console.log("update column===================", column._id);
-    
+                e.preventDefault();
                 setMilestoneid(column._id);
                 setType("edit");
                 onOpen();
@@ -729,13 +731,44 @@ function MyKanbanBoardColumn({
               <Edit2Icon /> update
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => deleteColumn(column._id)}
               className="text-red-600"
+              onSelect={(e) => {
+                e.preventDefault(); // prevent menu closing
+                setSelectedColumnId(column._id);
+                setIsDeleteOpen(true);
+              }}
             >
-              <TrashIcon className="text-red-600" /> delete
+              <TrashIcon className="text-red-600" />
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <AlertDialogContent size="sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete column?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+                onClick={() => {
+                  if (selectedColumnId) {
+                    deleteColumn(selectedColumnId);
+                  }
+                }}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </KanbanBoardColumnHeader>
 
       <KanbanBoardColumnList ref={listReference}>
