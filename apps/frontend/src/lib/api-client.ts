@@ -21,6 +21,18 @@ export const NotificationApi = axios.create({
   },
 });
 
+
+userApi.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().user.access_token;
+  console.log(token);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+
 NotificationApi.interceptors.request.use((config) => {
   const token = useAuthStore.getState().user.access_token;
   console.log(token);

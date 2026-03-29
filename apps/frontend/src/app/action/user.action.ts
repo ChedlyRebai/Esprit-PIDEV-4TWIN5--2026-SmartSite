@@ -135,6 +135,11 @@ export const banUser = async (userId: string, data: boolean) => {
   }
 };
 
+export const getCuureentUser = async () => {
+  const {data} = await axios.get(`${API_URL}/me`);
+  return data;
+}
+
 
 export const getAllClients = async (token?: string) =>{
   try {
