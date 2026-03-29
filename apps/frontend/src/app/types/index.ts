@@ -41,7 +41,7 @@ export interface CreateTaskPayload {
   priority?: string;
   projectId?: string;
   siteId?: string;
-  assignedUsers?: string[];
+  assignedTeams?: string[];
   startDate?: Date;
   endDate?: Date;
 }
@@ -53,7 +53,7 @@ export interface UpdateTaskPayload {
   priority?: string;
   projectId?: string;
   siteId?: string;
-  assignedUsers?: string[];
+  assignedTeams?: string[];
   progress?: number;
   startDate?: Date;
   endDate?: Date;
@@ -260,7 +260,7 @@ export interface Task {
 
   milestoneId?: string;
 
-  assignedUsers?: string[];
+  assignedTeams?: string[];
 
   priority?: string;
 

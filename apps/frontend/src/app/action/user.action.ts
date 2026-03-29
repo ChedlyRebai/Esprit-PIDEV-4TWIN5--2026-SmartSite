@@ -276,7 +276,7 @@ export const setUserResponsibilities = async (userId: string, responsibilities: 
 // Get users by site
 export const getUsersBySite = async (siteId: string) => {
   try {
-    const res = await axios.get(`http://localhost:3010/users/site/${siteId}`);
+    const res = await axios.get(`http://localhost:3010/teams/site/${siteId}`);
     if (res.status === 200) {
       return Promise.resolve({ status: res.status, data: res.data });
     }

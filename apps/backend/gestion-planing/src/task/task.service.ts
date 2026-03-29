@@ -151,50 +151,77 @@ export class TaskService {
 
     return await this.taskModel
       .find({
-        $or: [{ assignedUsers: userId }, { assignedUsers: { $in: [userId] } }],
+        $or: [{ assignedTeams: userId }, { assignedTeams: { $in: [userId] } }],
       })
       .exec();
   }
 
   async getMyTasks(userId: string) {
     try {
-      const response = await this.taskModel
-        .aggregate([
-          {
-            $match: {
-              $or: [
-                { assignedUsers: userId },
-                { assignedUsers: { $in: [userId] } },
-              ],
-            },
-          },
-          {
-            $group: {
-              _id: '$status',
-              tasks: { $push: '$$ROOT' },
-            },
-          },
+      if (!userId) {
+        return [];
+      }
 
-          {
-            $project: {
-              title: '$_id',
-              tasks: 1,
-              _id: 0,
-            },
-          },
-          //where: { userId: { $in: [userId] } },
-        ])
+      // 1) Fetch all tasks assigned to the current user
+      const tasks = await this.taskModel
+        .find({
+          $or: [
+            { assignedTeams: userId },
+            { assignedTeams: { $in: [userId] } },
+          ],
+        })
+        .lean()
         .exec();
-      const columns = response.map((group, i) => ({
-        id: `${group.title}`, // or use uuid/v4 for random unique id
-        title: group.title,
-        color: getColorForStatus(group.status),
-        tasks: group.tasks,
-      }));
 
-      return columns;
+      if (!tasks.length) {
+        return [];
+      }
+
+      // 2) Collect distinct status (TaskStage) ids from these tasks
+      const statusIds = Array.from(
+        new Set(
+          tasks
+            .map((task: any) => task.status)
+            .filter((id) => !!id)
+            .map((id) => id.toString()),
+        ),
+      );
+
+      // 3) Load the corresponding TaskStages to get their name & color
+      const stages = await this.taskSTageModel
+        .find({ _id: { $in: statusIds } })
+        .lean()
+        .exec();
+
+      const stageMap = new Map(
+        stages.map((stage: any) => [stage._id.toString(), stage]),
+      );
+
+      // 4) Group tasks by status into columns
+      const columnsMap = new Map<
+        string,
+        { id: string; title: string; color: string; tasks: any[] }
+      >();
+
+      tasks.forEach((task: any) => {
+        const statusId = task.status ? task.status.toString() : 'no-status';
+
+        if (!columnsMap.has(statusId)) {
+          const stage = stageMap.get(statusId);
+          columnsMap.set(statusId, {
+            id: statusId,
+            title: stage?.name || 'No status',
+            color: stage?.color || getColorForStatus(statusId),
+            tasks: [],
+          });
+        }
+
+        columnsMap.get(statusId)!.tasks.push(task);
+      });
+
+      return Array.from(columnsMap.values());
     } catch (error: any) {
-      throw new Error(`Error fetching tasks by milestone id: ${error.message}`);
+      throw new Error(`Error fetching tasks for user: ${error.message}`);
     }
   }
 

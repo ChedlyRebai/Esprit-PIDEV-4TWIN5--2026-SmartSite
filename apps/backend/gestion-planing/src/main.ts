@@ -32,7 +32,7 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
-  
+
   await app.listen(process.env.PORT ?? 3002);
 }
 bootstrap();

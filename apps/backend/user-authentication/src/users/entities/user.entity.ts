@@ -13,12 +13,12 @@ export class User extends Document {
   @Prop({ required: true, unique: true, trim: true })
   cin: string;
 
-  @Prop({ required: false }) 
+  @Prop({ required: false })
   password: string;
 
   @Prop()
   profilePicture?: string;
-  
+
   @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
   role: Types.ObjectId;
 
@@ -55,8 +55,6 @@ export class User extends Document {
   @Prop()
   approvedAt?: Date;
 
-  
-
   @Prop([String])
   certifications?: string[];
 
@@ -72,13 +70,11 @@ export class User extends Document {
   @Prop()
   otpExpiresAt?: Date;
 
-
   @Prop({ default: false })
   passwordChnage: boolean;
 
   @Prop({ default: true })
   firstLogin: boolean;
-
 
   @Prop()
   passwordResetCode?: string;
@@ -86,17 +82,18 @@ export class User extends Document {
   @Prop()
   passwordResetCodeExpiresAt?: Date;
 
-
   // Team assignment fields
   @Prop()
   assignedSite?: string;
+
+  @Prop({ type: [{type: Types.ObjectId, ref: 'Team'}], default: [] })
+  assignedTeam?: Types.ObjectId[];
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null })
   manager?: Types.ObjectId;
 
   @Prop({ type: String, default: 'worker' })
   responsibilities?: string;
-
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -107,12 +104,12 @@ export const UserSchema = SchemaFactory.createForClass(User);
 //   if (!this.isModified('password')) {
 //     return;
 //   }
-  
+
 //   // Skip if password is already hashed (bcrypt hash starts with $2a$, $2b$, or $2y$)
 //   if (this.password && this.password.startsWith('$2')) {
 //     return;
 //   }
-  
+
 //   // Hash the password
 //   const salt = await bcrypt.genSalt(10);
 //   this.password = await bcrypt.hash(this.password, salt);

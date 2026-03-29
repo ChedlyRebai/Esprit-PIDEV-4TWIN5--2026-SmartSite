@@ -41,7 +41,7 @@ export class AuthController {
       email,
 
       telephone,
-    adresse,
+      adresse,
       companyName,
     } = registerDto;
     const user = await this.authService.register(
@@ -53,7 +53,7 @@ export class AuthController {
       email,
 
       telephone,
-    adresse,
+      adresse,
       companyName,
     );
 
@@ -67,7 +67,6 @@ export class AuthController {
         email: user.email,
 
         telephone: user.telephone,
-
 
         address: user.address,
         role: user.role,

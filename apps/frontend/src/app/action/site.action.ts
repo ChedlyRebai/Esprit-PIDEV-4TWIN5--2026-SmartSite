@@ -22,6 +22,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+
+
+export const fetchMyAffectedSites= () =>{
+  
+}
 // Map backend site data to frontend site format
 const mapBackendSiteToFrontend = (backendSite: any): Site => {
   return {

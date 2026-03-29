@@ -7,7 +7,7 @@ export class CreateTaskDto {
     title: string;
     description?: string
     milestoneId: string;
-    assignedUsers?: string
+    assignedTeams?: string
     priority?: string;
     projectId?: string
     siteId?: string;

@@ -55,6 +55,7 @@ import { getAllTaskStagesByMilestoneId } from "@/app/action/task.actions";
 import { PlusIcon } from "lucide-react";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
 import { getMilestoneById } from "@/app/action/milestone.action";
+import { Team } from "@/app/action/team.action";
 
 const todayAtMidnight = () => {
   const today = new Date();
@@ -74,7 +75,7 @@ const formSchema = z
       .max(500, "Description must be at most 500 characters.")
       .optional(),
     status: z.string().optional(),
-    assignedUsers: z.array(z.string()).optional(),
+    assignedTeams: z.array(z.string()).optional(),
     startDate: z.date(),
     endDate: z.date(),
   })
@@ -102,6 +103,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   // const milestoneId = "69bc78a30912805125e58f72";
 
   const { id: taskId, onClose, onTaskChange, milestoneId } = useTaskModal();
+  console.log("Milestone ID in TaskForms component:bbbbbbbbbbbbbbbbbbbbbbb", milestoneId);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   console.log("milestone from task form", milestoneId);
   const [openStartDate, setOpenStartDate] = React.useState(false);
@@ -114,7 +116,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
       title: "",
       description: "",
       status: undefined,
-      assignedUsers: [],
+      assignedTeams: [],
       startDate: new Date(),
       endDate: new Date(),
     },
@@ -124,7 +126,6 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
     mutationFn: (task: CreateTaskPayload | UpdateTaskPayload) => {
       if (type === "add") {
         console.log("Creating task with data:", task);
-        //  console.log();
         return createTask(task, milestoneId, task.status as string);
       }
 
@@ -161,25 +162,26 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           title: res.data.title ?? "",
           description: res.data.description ?? "",
           status: res.data.status ?? TaskStatusEnum.BACKLOG,
-          assignedUsers: Array.isArray(res.data.assignedUsers)
-            ? res.data.assignedUsers
+          assignedTeams: Array.isArray(res.data.assignedTeams)
+            ? res.data.assignedTeams
             : [],
           startDate: res.data.startDate
             ? new Date(res.data.startDate)
             : new Date(),
           endDate: res.data.endDate ? new Date(res.data.endDate) : new Date(),
         });
+        console.log("Loaded task data for editing:", res.data);
       }
     } catch {
       toast.error("Failed to load task data. Please try again.");
     }
   };
 
-  // useEffect(() => {
-  //   loadUsers();
-  //   console.log("Task ID from params:sssssssssssssssssssssssssss", taskId);
-  //  // loadTaskData();
-  // }, [type, taskId]);
+   useEffect(() => {
+     //loadUsers();
+     console.log("Task ID from params:sssssssssssssssssssssssssss", taskId);
+     loadTaskData();
+  }, [type, taskId]);
   // useEffect(() => {
   //   console.log("Milestone ID in TaskForms:", milestoneId);
   //   loadUsers();
@@ -194,7 +196,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
     setMilestoneid: setTaskstageMilestoneId,
   } = useTaskStageModal();
 
-  const { data: users, isLoading: LODINGuSER } = useQuery({
+  const { data: teams, isLoading: LODINGuSER } = useQuery({
     queryKey: ["projectUsers", milestoneId],
     enabled: !!milestoneId,
     queryFn: async () => {
@@ -202,7 +204,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
         if (!milestoneId) return [];
 
         const milestone = await getMilestoneById(milestoneId);
-        const siteId = milestone?.siteId;
+         const siteId = milestone?.projectId;
 
         if (!siteId) {
           console.warn("No siteId on milestone; falling back to all users");
@@ -211,7 +213,10 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
         }
 
         const response = await getUsersBySite(siteId);
+         console.log("Milestone data in TaskForms:::::::::::::::::::::::::::::", response);
+      
         if (response?.status === 200 && Array.isArray(response.data)) {
+          
           return response.data;
         }
         return [];
@@ -222,11 +227,12 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
       }
     },
   });
-  
+  console.log("Teams loaded for TaskForms:................;", teams);
+  console.log("Task stages loaded for TaskForms:.................", taskStages);
 
   return (
     <>
-    
+      {taskId}
       <form id="form-rhf-TaskForms" onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
           <Controller
@@ -282,50 +288,49 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           />
 
           <Controller
-            name="assignedUsers"
+            name="assignedTeams"
             control={form.control}
             render={({ field }) => (
               <Field>
-                <FieldLabel>Assigned Users</FieldLabel>
+                <FieldLabel>Assigned team</FieldLabel>
                 <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-3">
-                  {users && !LODINGuSER &&  users.length === 0 ? (
+                  {teams && !LODINGuSER &&  teams.length === 0 ? (
                     
                     <p className="text-sm text-muted-foreground">
-                      No users available.
+                      No teams available.
                     </p>
                   ) : (
-                   users && !LODINGuSER && users.map((user) => {
-                      const userId = user._id;
-                      const label =
-                        user.firstName && user.lastName
-                          ? `${user.firstName} ${user.lastName}`
-                          : user.email || user.nom || user.prenom || userId;
-                      const isChecked = (field.value ?? []).includes(userId);
-
+                   teams && !LODINGuSER && teams.map((team:Team) => {
+                      const teamId = team._id;
+                      const label = team.name;
+                      const isChecked = (field.value ?? []).includes(teamId);
+                      // team.members && team.members.length > 0 && teams.members.map((member) => {
+                      //   console.log("Team member in TaskForms:", member);
+                      // });
                       return (
-                        <div className="flex items-center gap-2" key={userId}>
+                        <div className="flex items-center gap-2" key={teamId}>
                           <Checkbox
                             checked={isChecked}
-                            id={`task-user-${userId}`}
+                            id={`task-team-${teamId}`}
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 field.onChange([
                                   ...(field.value ?? []),
-                                  userId,
-                                ]);
+                                  teamId,
+                                ]); 
                                 return;
                               }
 
                               field.onChange(
                                 (field.value ?? []).filter(
-                                  (id) => id !== userId,
+                                  (id) => id !== teamId,
                                 ),
                               );
                             }}
                           />
                           <label
                             className="cursor-pointer text-sm"
-                            htmlFor={`task-user-${userId}`}
+                            htmlFor={`task-team-${teamId}`}
                           >
                             {label}
                           </label>

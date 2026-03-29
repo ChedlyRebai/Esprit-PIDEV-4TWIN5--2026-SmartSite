@@ -36,6 +36,7 @@ import GanttChart from "./pages/planning/GanttManage";
 import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
+import MyAffectedSite from "./pages/planning/MyAffectedSite";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -94,6 +95,10 @@ export const router = createBrowserRouter([
       {
         path: "sites",
         element: <Sites />,
+      },
+      {
+        path: "my-affected-sites",
+        element: <MyAffectedSite />,
       },
       {
         path: "my-task",

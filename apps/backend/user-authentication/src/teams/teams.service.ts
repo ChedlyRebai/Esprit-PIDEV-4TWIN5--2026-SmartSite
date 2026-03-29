@@ -6,9 +6,10 @@ import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class TeamsService {
-  constructor(@InjectModel(Team.name) private teamModel: Model<Team>,
-  @InjectModel(User.name) private userModel: Model<User>
-) {}
+  constructor(
+    @InjectModel(Team.name) private teamModel: Model<Team>,
+    @InjectModel(User.name) private userModel: Model<User>,
+  ) {}
 
   async create(createTeamDto: any) {
     const createdTeam = new this.teamModel(createTeamDto);
@@ -90,7 +91,12 @@ export class TeamsService {
   }
 
   async addMemberToTeam(teamId: string, memberId: string) {
-    return this.teamModel
+    const users = await this.userModel.findByIdAndUpdate(
+      memberId,
+      { $push: { assignedTeam: teamId } },
+      { new: true },
+    );
+    const team = await this.teamModel
       .findByIdAndUpdate(
         teamId,
         { $addToSet: { members: memberId } },
@@ -106,6 +112,7 @@ export class TeamsService {
         '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       )
       .exec();
+    return team;
   }
 
   async getUsersBySiteWithTeams(siteId: string) {
@@ -166,11 +173,10 @@ export class TeamsService {
       { new: true },
     );
 
-    const updateTeamMembers= await this.userModel.updateMany(
-      {_id: { $in: team.members } },
+    const updateTeamMembers = await this.userModel.updateMany(
+      { _id: { $in: team.members } },
       { assignedSite: siteId },
-     
-    )
+    );
 
     return updateTeam;
   }

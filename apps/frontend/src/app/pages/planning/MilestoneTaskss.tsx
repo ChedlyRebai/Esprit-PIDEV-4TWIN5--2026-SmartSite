@@ -744,7 +744,6 @@ function MyKanbanBoardColumn({
           </DropdownMenuContent>
         </DropdownMenu>
 
-
         <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <AlertDialogContent size="sm">
             <AlertDialogHeader>
@@ -865,7 +864,8 @@ function MyKanbanBoardCard({
     handleBlur();
   }
 
-  const { isOpen, onOpen, onClose, setType, setId, id } = useTaskModal();
+  const { setId:setTaskId,isOpen,setMilestoneid, onOpen, onClose, setType,  id } = useTaskModal();
+  const { milestoneId } = useParams();
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   return isEditingTitle ? (
     <form onBlur={handleBlur} onSubmit={handleSubmit}>
@@ -927,13 +927,15 @@ function MyKanbanBoardCard({
       <KanbanBoardCardDescription
         className="cursor-pointer hover:underline  w-fit"
         onClick={() => {
-          setId(card._id);
+          setMilestoneid(milestoneId);
+          setTaskId(card._id);
+          console.log("card id===================", card._id);
           (setType("edit"), onOpen());
         }}
       >
         {card.title}
       </KanbanBoardCardDescription>
-      {card.status}
+      {card.description}
 
       {/* and start and end date */}
       {card.startDate && card.endDate && (
