@@ -53,7 +53,7 @@ import useRolePermissionsModal from "@/app/hooks/use-role-permissions-modal";
 export default function UserManagement() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
-  const canManageRoles = user && canEdit(user.role.name, "users");
+  const canManageRoles = user && canEdit(user.role?.name || user.role || 'client', "users");
   const [roles, setRoles] = useState<Role[]>([]);
   const { setOnUserChange } = useAddUserModal();
   const { setOnPermissionChange } = useAddPermissionModal();
@@ -67,7 +67,7 @@ export default function UserManagement() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
-  const canManagePermissions = user && canEdit(user.role.name, "users");
+  const canManagePermissions = user && canEdit(user.role?.name || user.role || 'client', "users");
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
   useEffect(() => {
@@ -188,12 +188,12 @@ export default function UserManagement() {
       setIsLoading(false);
     }
   };
-  const handleBanUser = async (userId: string, estActif: boolean) => {
+  const handleBanUser = async (userId: string, isActif: boolean) => {
     try {
-      const response = await banUser(userId, estActif);
+      const response = await banUser(userId, isActif);
       if (response.status === 200) {
         toast.success(
-          estActif ? "User unbanned successfully" : "User banned successfully"
+          isActif ? "User unbanned successfully" : "User banned successfully"
         );
         loadUsers();
       } else {

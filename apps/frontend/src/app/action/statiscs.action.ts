@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/stats";
+const API_URL = "/api/stats";
 
 export const getAllStatics = async () => {
   try {

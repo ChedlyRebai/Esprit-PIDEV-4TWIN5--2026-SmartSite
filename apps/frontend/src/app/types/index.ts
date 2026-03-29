@@ -29,10 +29,31 @@ export interface User {
   email?: string;
   phone?: string;
   role: UserRole;
+  phoneNumber: string;
+  cin: string;
+  profilePicture?: string;
   isActive: boolean;
+  preferredLanguage?: string;
+  projectsCount?: number;
+  companyName?: string;
   createdDate: string;
   lastLoginDate?: string;
   avatar?: string;
+  address?: string;
+  departement?: string;
+  status?: string;
+  certifications?: string[];
+}
+
+export interface Permisssion {
+  _id: string;
+  name: string;
+  href: string;
+  access: boolean;
+  create: boolean;
+  delete: boolean;
+  update: boolean;
+  description?: string;
 }
 
 export interface Role {
@@ -62,16 +83,31 @@ export interface AuthState {
     access_token: string;
     id: string;
     cin: string;
-    firstname: string;
-    lastname: string;
+    firstName: string;
+    lastName: string;
     role: UserRole;
   };
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (cin: string, password: string, firstname: string, lastname: string, email: string, telephone: string, departement: string, adresse: string, role: string) => Promise<void>;
+  register: (
+    cin: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    email: string,
+    phoneNumber?: string,
+    departement?: string,
+    address?: string,
+    role?: string,
+    companyName?: string,
+    preferredLanguage?: string,
+    certifications?: string[],
+  ) => Promise<void>;
   getPendingUsers?: () => Promise<User[]>;
   approveUser?: (userId: string, password: string) => Promise<User>;
   rejectUser?: (userId: string) => Promise<void>;
+  getCurrentUser?: () => Promise<any>;
+  updateProfile?: (data: any) => Promise<any>;
   logout: () => void;
 }
 
@@ -115,6 +151,33 @@ export interface Site {
   progress: number;
   createdAt: string;
   updatedAt: string;
+  teams?: SiteTeam[];
+  priority?: "low" | "medium" | "high" | "critical";
+  comments?: SiteComment[];
+  issues?: SiteIssue[];
+}
+
+export interface SiteComment {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: string;
+}
+
+export interface SiteIssue {
+  id: string;
+  type: "delay" | "budget" | "safety" | "quality" | "resource" | "other";
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
+  createdAt: string;
+  resolved: boolean;
+}
+
+export interface SiteTeam {
+  _id: string;
+  name: string;
+  description?: string;
+  teamCode?: string;
 }
 
 export interface Task {
