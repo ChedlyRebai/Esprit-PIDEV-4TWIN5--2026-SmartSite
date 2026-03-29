@@ -15,7 +15,7 @@ export class Task extends Document {
   milestoneId: Types.ObjectId;
 
   @Prop({ type: [String], default: [] })
-  assignedTeams: string;
+  assignedTeams: string[];
 
   @Prop()
   priority: string;

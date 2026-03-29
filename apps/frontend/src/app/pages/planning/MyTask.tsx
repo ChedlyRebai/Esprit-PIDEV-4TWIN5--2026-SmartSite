@@ -18,7 +18,6 @@ import type {
   KanbanBoardDropDirection,
 } from "@/components/kanban";
 import {
-  KANBAN_BOARD_CIRCLE_COLORS,
   KanbanBoard,
   KanbanBoardCard,
   KanbanBoardCardButton,
@@ -26,11 +25,9 @@ import {
   KanbanBoardCardDescription,
   KanbanBoardCardTextarea,
   KanbanBoardColumn,
-  KanbanBoardColumnButton,
   kanbanBoardColumnClassNames,
   KanbanBoardColumnFooter,
   KanbanBoardColumnHeader,
-  KanbanBoardColumnIconButton,
   KanbanBoardColumnList,
   KanbanBoardColumnListItem,
   kanbanBoardColumnListItemClassNames,
@@ -76,7 +73,6 @@ import { Task, TaskStatusEnum } from "@/app/types";
 import { useQuery } from "@tanstack/react-query";
 import {
   deleteTask,
-  updateTask,
   updateTAskNew,
 } from "@/app/action/planing.action";
 import { useParams } from "react-router";
