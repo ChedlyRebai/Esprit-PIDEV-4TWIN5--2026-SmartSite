@@ -23,6 +23,9 @@ api.interceptors.request.use((config) => {
 });
 
 
+export const getSiteWIthTEAmId = async (teamId: string) => {
+    const {data} = await api.get(`http://localhost:3001/api/gestion-sites/${teamId}/teams`);
+return data;}
 
 export const fetchMyAffectedSites= () =>{
   

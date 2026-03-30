@@ -10,7 +10,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import type {
@@ -18,6 +18,7 @@ import type {
   KanbanBoardDropDirection,
 } from "@/components/kanban";
 import {
+  KANBAN_BOARD_CIRCLE_COLORS,
   KanbanBoard,
   KanbanBoardCard,
   KanbanBoardCardButton,
@@ -25,9 +26,11 @@ import {
   KanbanBoardCardDescription,
   KanbanBoardCardTextarea,
   KanbanBoardColumn,
+  KanbanBoardColumnButton,
   kanbanBoardColumnClassNames,
   KanbanBoardColumnFooter,
   KanbanBoardColumnHeader,
+  KanbanBoardColumnIconButton,
   KanbanBoardColumnList,
   KanbanBoardColumnListItem,
   kanbanBoardColumnListItemClassNames,
@@ -71,17 +74,17 @@ import { useJsLoaded } from "@/hooks/use-js-loaded";
 import { CardHeader, CardTitle, CardContent, Card } from "@/components/ui/card";
 import { Task, TaskStatusEnum } from "@/app/types";
 import { useQuery } from "@tanstack/react-query";
-import { deleteTask, updateTAskNew } from "@/app/action/planing.action";
+import {
+  deleteTask,
+  updateTask,
+  updateTAskNew,
+} from "@/app/action/planing.action";
 import { useParams } from "react-router";
 import useTaskModal from "@/app/hooks/use-task-modal";
-import {
-  getTaskByTeamid,
-  getTaskSTagesByMilestoneId,
-} from "@/app/action/task.actions";
+import { getTaskSTagesByMilestoneId } from "@/app/action/task.actions";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
 import { removeTaskStage } from "@/app/action/taskStage.action";
 import toast from "react-hot-toast";
-import { getCuureentUser } from "@/app/action/user.action";
 
 type Column = {
   _id: string;
@@ -92,25 +95,19 @@ type Column = {
   tasks: Task[];
 };
 
-export default function MyTask() {
+export default function MyMilestones() {
   const { milestoneId } = useParams();
 
   console.log("milestone idhhhhhhhhhhhhhhhhhhhhhhhh");
   console.log(milestoneId);
   const { isOpen, setType, onOpen, setMilestoneid } = useTaskModal();
 
-  const { data: user } = useQuery({
-    queryKey: ["currentUser"],
-    queryFn: getCuureentUser,
+  const { data: cols } = useQuery({
+    queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
+    queryFn: () => getTaskSTagesByMilestoneId(milestoneId || ""),
   });
-
-  const { data: tasks } = useQuery({
-    queryKey: ["tasks", user?.teamId],
-    enabled: !!user?.teamId,
-    queryFn: () => getTaskByTeamid(user.teamId[0]),
-  });
-
   
+  console.log("cols", cols);
   return (
     <div className="space-y-6">
       <div className="flex taskssetType-center justify-between">
@@ -129,7 +126,7 @@ export default function MyTask() {
               Milestone Tasks
             </CardTitle>
 
-            {/* <Button
+            <Button
               variant="default"
               size="sm"
               onClick={() => {
@@ -140,7 +137,7 @@ export default function MyTask() {
             >
               <PlusIcon className="h-4 w-4" />
               <span className="ml-2">Add Task</span>
-            </Button> */}
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -566,7 +563,7 @@ export function MyKanbanBoard() {
       ) : (
         <Skeleton className="h-9 w-10.5 flex-shrink-0" />
       )}  */}
-{/* 
+
       <div className="w-64 flex-shrink-0 rounded-lg border-2   flex justify-center items-center border-dashed bg-sidebar py-2 h-2/3 max-h-full">
         <Button
           onClick={() => {
@@ -580,7 +577,7 @@ export function MyKanbanBoard() {
         >
           <PlusIcon className="  w-full h-full text-[200px] text-gray-500" />
         </Button>
-      </div> */}
+      </div>
       <KanbanBoardExtraMargin />
     </KanbanBoard>
   );
@@ -711,7 +708,7 @@ function MyKanbanBoardColumn({
               /> */}
           {column.name}
         </KanbanBoardColumnTitle>
-        {/* <DropdownMenu>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <MoreHorizontalIcon className="text-gray-400 size-7 cursor-pointer hover:bg-gray-300 hover:rounded-sm" />
           </DropdownMenuTrigger>
@@ -746,7 +743,7 @@ function MyKanbanBoardColumn({
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu> */}
+        </DropdownMenu>
 
         <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <AlertDialogContent size="sm">
@@ -868,15 +865,7 @@ function MyKanbanBoardCard({
     handleBlur();
   }
 
-  const {
-    setId: setTaskId,
-    isOpen,
-    setMilestoneid,
-    onOpen,
-    onClose,
-    setType,
-    id,
-  } = useTaskModal();
+  const { setId:setTaskId,isOpen,setMilestoneid, onOpen, onClose, setType,  id } = useTaskModal();
   const { milestoneId } = useParams();
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   return isEditingTitle ? (
@@ -959,7 +948,7 @@ function MyKanbanBoardCard({
         </div>
       )}
       <KanbanBoardCardButtonGroup disabled={isActive}>
-        {/* <KanbanBoardCardButton
+        <KanbanBoardCardButton
           className="text-destructive cursor-pointer w-full size-5"
           // onClick={() => {
           //   ( setOpenDeleteModal(true));
@@ -1002,7 +991,7 @@ function MyKanbanBoardCard({
           </AlertDialog>
 
           <span className="sr-only">Delete card</span>
-        </KanbanBoardCardButton> */}
+        </KanbanBoardCardButton>
       </KanbanBoardCardButtonGroup>
     </KanbanBoardCard>
   );

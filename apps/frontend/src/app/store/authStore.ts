@@ -3,10 +3,9 @@ import { persist } from "zustand/middleware";
 import type { AuthState, User, RegisterData } from "../types";
 import axios from "axios";
 
-
-
 const api = axios.create({
-  baseURL: "https://smartsite-platform-auth.vercel.app",
+  // baseURL: "https://smartsite-platform-auth.vercel.app",
+  baseURL: "http://localhost:3010",
 });
 
 export const useAuthStore = create<AuthState>()(
@@ -25,7 +24,7 @@ export const useAuthStore = create<AuthState>()(
           const token = res.data.access_token;
           // attach token globally
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-          console.log('Login successful, token:', token);
+          console.log("Login successful, token:", token);
 
           set({
             user: {
@@ -39,10 +38,13 @@ export const useAuthStore = create<AuthState>()(
             },
             isAuthenticated: true,
           });
-          
+
           return res.data;
         } catch (error: any) {
-          console.error('Login failed:', error.response?.data?.message || error.message);
+          console.error(
+            "Login failed:",
+            error.response?.data?.message || error.message,
+          );
           set({
             user: null,
             isAuthenticated: false,

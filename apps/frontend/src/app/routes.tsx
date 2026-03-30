@@ -37,6 +37,8 @@ import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
 import MyAffectedSite from "./pages/planning/MyAffectedSite";
+import MySItes from "./pages/planning/Mysites";
+import MyMilestones from "./pages/planning/MyMilstone";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -75,9 +77,9 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <PermissionLoader>
+      
         <DashboardLayout />
-      </PermissionLoader>
+      
     ),
     children: [
       {
@@ -89,8 +91,17 @@ export const router = createBrowserRouter([
         element: <ChangePasswordFirstLogin />,
       },
       {
+        path:'my-mil/:milestoneId',
+        element: <MyMilestones />
+      },
+      {
         path: "profile",
         element: <Profile />,
+        
+      },
+      {
+        path:'my-sites',
+        element: <MySItes />
       },
       {
         path: "sites",
@@ -101,7 +112,7 @@ export const router = createBrowserRouter([
         element: <MyAffectedSite />,
       },
       {
-        path: "my-task",
+        path: "my-task/:milestoneId",
         element: <MyTask />,
       },
 

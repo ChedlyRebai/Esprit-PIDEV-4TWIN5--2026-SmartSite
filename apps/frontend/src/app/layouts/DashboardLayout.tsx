@@ -32,7 +32,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
-  console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -43,7 +43,6 @@ export default function DashboardLayout() {
     queryFn:() => getMynavigationAccess()
   })
 
-  console.log(navigationItems, "dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   if (!user) {
     navigate("/login");
     return null;

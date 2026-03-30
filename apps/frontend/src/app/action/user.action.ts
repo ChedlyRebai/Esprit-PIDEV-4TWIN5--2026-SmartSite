@@ -1,9 +1,9 @@
+import { userApi } from "@/lib/api-client";
 import axios from "axios";
 
 const API_URL = "http://localhost:3010/users";
 
 export const getAllUsers = async () => {
-  
     const {data} = await axios.get(`${API_URL}`);
     console.log("Fetched users in getAllUsers function:==================================================================================================", data);
     return data;
@@ -136,10 +136,9 @@ export const banUser = async (userId: string, data: boolean) => {
 };
 
 export const getCuureentUser = async () => {
-  const {data} = await axios.get(`${API_URL}/me`);
+  const {data} = await userApi.get(`${API_URL}/me`);
   return data;
 }
-
 
 export const getAllClients = async (token?: string) =>{
   try {
@@ -156,7 +155,6 @@ export const getAllClients = async (token?: string) =>{
     })
   }
 }
-
 
 export const createClient = async (clientData: {
   cin: string;

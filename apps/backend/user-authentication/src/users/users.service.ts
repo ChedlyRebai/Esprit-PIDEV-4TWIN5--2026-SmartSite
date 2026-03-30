@@ -349,6 +349,7 @@ export class UsersService {
       throw new NotFoundException('Gestionnaire non trouvé');
     }
 
+
     // Update user's manager
     user.manager = new Types.ObjectId(managerId);
     await user.save();

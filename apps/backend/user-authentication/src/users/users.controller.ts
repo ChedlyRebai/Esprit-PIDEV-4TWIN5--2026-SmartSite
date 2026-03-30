@@ -8,11 +8,18 @@ import {
   Delete,
   UseGuards,
   Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
+import { GetUser } from 'src/auth/strategies/get-user.decorator';
 
+interface JwtPayload {
+  sub: string;
+  email?: string;
+  role?: string;
+}
 @Controller('users')
 //@UseGuards(JwtAuthGuard)
 export class UsersController {
@@ -65,26 +72,31 @@ export class UsersController {
     }
   }
 
-  @Get('me')
-  async getCurrentUser(@Headers('Authorization') authHeader: string) {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { error: 'No token provided' };
-    }
-    const token = authHeader.split(' ')[1];
-    try {
-      const decoded: any = this.jwtService.verify(token);
-      const userId = decoded.sub;
-      const user = await this.usersService.findById(userId);
-      if (!user) {
-        return { error: 'User not found' };
-      }
+  // @UseGuards(JwtGuard)
+  // @Get('/my-tasks')
+  // getMytasks(@GetUser() user: any) {
+  //   const userId = user?.sub || user?.userId || user?.id || user?._id;
+  //   console.log('Extracted user ID from token payload:', user);
+  //   if (!userId) {
+  //     throw new UnauthorizedException('User ID missing in token payload');
+  //   }
 
-      // Return user without password
-      const { password, ...userWithoutPassword } = user.toObject();
-      return userWithoutPassword;
-    } catch (error) {
-      return { error: 'Invalid token' };
+  //   return this.taskService.getMyTask("69bb3f601fa09b37911c44b2");
+  // }
+  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getCurrentUser(@GetUser() user: any) {
+    console.log('User from tokensss:', user);
+
+    const userId = user.sub || user?.userId || user.id || user._id;
+
+    if (!userId) {
+      throw new UnauthorizedException('Invalid token payload');
     }
+    const findeduser = await this.usersService.findById(userId);
+    console.log('Found user:', findeduser);
+    return findeduser;
   }
 
   @Put('me')

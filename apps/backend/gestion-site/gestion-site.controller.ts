@@ -140,6 +140,11 @@ export class GestionSiteController {
     return result;
   }
 
+
+  @Get(':id/teams')
+  async getSitesByTeam(@Param('id') siteId: string) {
+    return this.gestionSiteService.getSiteByteamId(siteId);
+  }
   /**
    * Soft delete a site (set isActif to false)
    */

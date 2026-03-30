@@ -305,6 +305,16 @@ export class GestionSiteService {
     }
   }
 
+  async getSiteByteamId(teamId: string): Promise<Site[]> {
+    try {
+      const sites = await this.siteModel.find({ teamIds: {$in: [teamId]} }).exec();
+      return sites;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération des sites par équipe: ${error.message}`);
+      throw new InternalServerErrorException('Erreur lors de la récupération des sites par équipe');
+    }
+  }
+
   /**
    * Hard delete a site (permanent)
    */

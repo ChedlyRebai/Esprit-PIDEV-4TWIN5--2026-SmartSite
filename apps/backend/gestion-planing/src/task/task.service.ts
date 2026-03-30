@@ -1,3 +1,4 @@
+
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Injectable } from '@nestjs/common';
@@ -29,7 +30,9 @@ export class TaskService {
     const newTask = await this.taskModel.create({
       ...createTaskDto,
       milestoneId,
-      assignedTeams: createTaskDto.assignedTeams ? [createTaskDto.assignedTeams] : [],
+      assignedTeams: createTaskDto.assignedTeams
+        ? [createTaskDto.assignedTeams]
+        : [],
     });
 
     await this.taskSTageModel
@@ -42,6 +45,29 @@ export class TaskService {
     await response.save();
     return newTask;
   }
+
+
+//   async getMyTasksGrouped(teamId: string) {
+ 
+
+//   const tasks = await this.taskModel.find({
+//     assignedTeams: { $in: teamId }
+//   }).populate("status");
+
+//   const grouped = {};
+
+//   tasks.forEach(task => {
+//     const stageName = task.status.; // backlog | in progress | done
+
+//     if (!grouped[stageName]) {
+//       grouped[stageName] = [];
+//     }
+
+//     grouped[stageName].push(task);
+//   });
+
+//   return grouped;
+// }
 
   // async prevcreate(createTaskDto: CreateTaskDto, milestoneId: string) {
   //   const response = await this.milestoneModel.findById(milestoneId).exec();
@@ -122,6 +148,15 @@ export class TaskService {
     }
   }
 
+  async getTaskByTeamid(teamId: string) {
+    try {
+      const response = await this.taskModel.find({ assignedTeams: { $in: [teamId] } }).exec();
+      return response;
+    } catch (error) {
+      throw new Error(`Error fetching tasks for team ${teamId}: ${error.message}`);
+    }
+  }
+
   async remove(id: number) {
     try {
       //const taskSTage= await this.taskSTageModel.findByIdAndUpdate()
@@ -143,9 +178,11 @@ export class TaskService {
       throw new Error(`Error removing task: ${error.message}`);
     }
   }
-   getTAsksByTeamId= async (teamId:string)=>{
-  return await this.taskModel.find({assignedTeams: { $in: [teamId] }}).exec();
-}
+  getTAsksByTeamId = async (teamId: string) => {
+    return await this.taskModel
+      .find({ assignedTeams: { $in: [teamId] } })
+      .exec();
+  };
   async getMyTask(userId: string) {
     if (!userId) {
       return [];
@@ -154,8 +191,7 @@ export class TaskService {
 
     return await this.taskModel
       .find({
-        $or: [{ assignedTeams: userId }, 
-          { assignedTeams: { $in: [userId] } }],
+        $or: [{ assignedTeams: userId }, { assignedTeams: { $in: [userId] } }],
       })
       .exec();
   }
@@ -263,10 +299,6 @@ export class TaskService {
     }
   }
 }
-
-
-
-
 
 function getColorForStatus(status: string) {
   return 'primary';

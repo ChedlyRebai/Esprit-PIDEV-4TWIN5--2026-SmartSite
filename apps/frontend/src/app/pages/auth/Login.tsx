@@ -1,6 +1,5 @@
 "use client";
-
-import * as React from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 
@@ -32,11 +31,12 @@ const formSchema = z.object({
     .min(5, "Password is required and must be at least 5 characters.")
     .max(100, "Password must be at most 100 characters."),
 });
+
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [logoAvailable, setLogoAvailable] = React.useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [logoAvailable, setLogoAvailable] = useState(true);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,8 +51,6 @@ export default function Login() {
       await login(data.cin, data.password).then((data: any) => {
         console.log("Login successful!", data);
         toast.success("Login successful!");
-        
-        // Check if this is the first login
         if (data.firstLogin) {
           navigate("/change-password-first-login");
         } else {
@@ -69,17 +67,9 @@ export default function Login() {
       setIsLoading(false);
     }
   };
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <>
-      {/*
-        This example requires updating your template:
-
-        ```
-        <html class="h-full bg-white">
-        <body class="h-full">
-        ```
-      */}
       <div className="h-screen flex min-h-full flex-1">
         <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
           <div className="mx-auto w-full  lg:w-96">
@@ -180,77 +170,10 @@ export default function Login() {
                   <a
                     href="/forgot-password"
                     className="font-semibold text-indigo-600 hover:text-indigo-500"
-
                   >
                     Mot de passe oublié?
                   </a>
                 </p>
-
-                {/* <form
-                  onSubmit={form.handleSubmit(onSubmit)}>
-                  <FieldGroup>
-                    <Controller
-                      name="cin"
-                      control={form.control}
-                      render={({ field, fieldState }) => {
-                        return (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="cin">CIN</FieldLabel>
-                            <Input
-                              id="cin"
-                              placeholder="Enter your CIN"
-                              autoComplete="off"
-                              {...field}
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
-                            )}
-                          </Field>
-                        );
-                      }}
-                    />
-                    <Controller
-                      name="password"
-                      control={form.control}
-                      render={({ field, fieldState: { error } }) => {
-                        const isInvalid = !!error;
-                        return (
-                          <Field data-invalid={isInvalid}>
-                            <FieldLabel htmlFor="password">Password</FieldLabel>
-                            <Input
-                              id="password"
-                              type="password"
-                              placeholder="Enter your password"
-                              className=" resize-none"
-                              {...field}
-                              aria-invalid={isInvalid}
-                            />
-
-                            {isInvalid && (
-                              <FieldError
-                                errors={
-                                  error?.message
-                                    ? [{ message: error.message }]
-                                    : []
-                                }
-                              />
-                            )}
-                          </Field>
-                        );
-                      }}
-                    />
-                  </FieldGroup>
-                  <Button
-                  
-                    className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    type="submit"
-                    form="bug-report-form"
-                  >
-                    Mot de passe oublié?
-                  </a>
-                </p>
-                */}
               </div>
             </div>
           </div>
