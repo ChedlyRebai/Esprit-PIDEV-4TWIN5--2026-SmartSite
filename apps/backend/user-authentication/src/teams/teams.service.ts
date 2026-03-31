@@ -115,7 +115,7 @@ export class TeamsService {
     return team;
   }
 
-  async getUsersBySiteWithTeams(siteId: string) {
+  async getTeamsBySite(siteId: string) {
     return this.teamModel
       .find({ site: siteId })
       .populate({
@@ -125,6 +125,13 @@ export class TeamsService {
       .populate('manager', 'firstName lastName')
       .lean();
   }
+
+  // Backward compatible alias.
+  async getUsersBySiteWithTeams(siteId: string) {
+    return this.getTeamsBySite(siteId);
+  }
+
+  
   async removeMemberFromTeam(teamId: string, memberId: string) {
     return this.teamModel
       .findByIdAndUpdate(

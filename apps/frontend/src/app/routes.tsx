@@ -91,7 +91,7 @@ export const router = createBrowserRouter([
         element: <ChangePasswordFirstLogin />,
       },
       {
-        path:'my-mil/:milestoneId',
+        path:'my-mil/:projectId',
         element: <MyMilestones />
       },
       {

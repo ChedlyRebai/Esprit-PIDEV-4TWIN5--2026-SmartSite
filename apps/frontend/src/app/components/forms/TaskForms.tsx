@@ -19,7 +19,7 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import * as z from "zod";
@@ -51,11 +51,15 @@ import { getAllUsers, getUsersBySite } from "@/app/action/user.action";
 import { data, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllTaskStages } from "@/app/action/taskStage.action";
-import { getAllTaskStagesByMilestoneId } from "@/app/action/task.actions";
+import {
+  getAllTaskStagesByMilestoneId,
+  getTaskByTeamid,
+} from "@/app/action/task.actions";
 import { PlusIcon } from "lucide-react";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
 import { getMilestoneById } from "@/app/action/milestone.action";
 import { Team } from "@/app/action/team.action";
+import axios from "axios";
 
 const todayAtMidnight = () => {
   const today = new Date();
@@ -101,13 +105,15 @@ const formSchema = z
 const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   const queryClient = useQueryClient();
   // const milestoneId = "69bc78a30912805125e58f72";
-
   const { id: taskId, onClose, onTaskChange, milestoneId } = useTaskModal();
-  console.log("Milestone ID in TaskForms component:bbbbbbbbbbbbbbbbbbbbbbb", milestoneId);
+  console.log(
+    "Milestone ID in TaskForms component:bbbbbbbbbbbbbbbbbbbbbbb",
+    milestoneId,
+  );
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   console.log("milestone from task form", milestoneId);
-  const [openStartDate, setOpenStartDate] = React.useState(false);
-  const [openEndDate, setOpenEndDate] = React.useState(false);
+  const [openStartDate, setOpenStartDate] = useState(false);
+  const [openEndDate, setOpenEndDate] = useState(false);
   console.log("milestone id from TAskForm", milestoneId);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -177,10 +183,10 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
     }
   };
 
-   useEffect(() => {
-     //loadUsers();
-     console.log("Task ID from params:sssssssssssssssssssssssssss", taskId);
-     loadTaskData();
+  useEffect(() => {
+    //loadUsers();
+    console.log("Task ID from params:sssssssssssssssssssssssssss", taskId);
+    loadTaskData();
   }, [type, taskId]);
   // useEffect(() => {
   //   console.log("Milestone ID in TaskForms:", milestoneId);
@@ -195,28 +201,34 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
     onOpen: onOpenTaskStageModal,
     setMilestoneid: setTaskstageMilestoneId,
   } = useTaskStageModal();
-
+  // console.log("milestoneeeeeeeeeeeeeeeeeeeeeeeeeeeeee",milestoneId)
   const { data: teams, isLoading: LODINGuSER } = useQuery({
     queryKey: ["projectUsers", milestoneId],
     enabled: !!milestoneId,
     queryFn: async () => {
       try {
         if (!milestoneId) return [];
-
         const milestone = await getMilestoneById(milestoneId);
-         const siteId = milestone?.projectId;
-
+        const siteId = milestone?.projectId;
+        const site=milestone?.projectId;
+        const {data:siteData}= await axios.get(`http://localhost:3001/api/gestion-sites/${site}/teams`)
+        
+        console.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", milestone);
+        console.log("Site ID derived from milestone:", siteId,siteData);
         if (!siteId) {
           console.warn("No siteId on milestone; falling back to all users");
           const all = await getAllUsers();
           return Array.isArray(all?.data) ? all.data : [];
         }
 
-        const response = await getUsersBySite(siteId);
-         console.log("Milestone data in TaskForms:::::::::::::::::::::::::::::", response);
-      
+        const response = await getTaskByTeamid(siteId);
+        console.log("Response from getUsersBySite in TaskForms:", response);
+        console.log(
+          "Milestone data in TaskForms:::::::::::::::::::::::::::::",
+          response,
+        );
+
         if (response?.status === 200 && Array.isArray(response.data)) {
-          
           return response.data;
         }
         return [];
@@ -294,13 +306,14 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
               <Field>
                 <FieldLabel>Assigned team</FieldLabel>
                 <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-3">
-                  {teams && !LODINGuSER &&  teams.length === 0 ? (
-                    
+                  {teams && !LODINGuSER && teams.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       No teams available.
                     </p>
                   ) : (
-                   teams && !LODINGuSER && teams.map((team:Team) => {
+                    teams &&
+                    !LODINGuSER &&
+                    teams.map((team: Team) => {
                       const teamId = team._id;
                       const label = team.name;
                       const isChecked = (field.value ?? []).includes(teamId);
@@ -317,7 +330,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                                 field.onChange([
                                   ...(field.value ?? []),
                                   teamId,
-                                ]); 
+                                ]);
                                 return;
                               }
 
@@ -348,9 +361,14 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="form-rhf-TaskForms-status">Status</FieldLabel>
+                <FieldLabel htmlFor="form-rhf-TaskForms-status">
+                  Status
+                </FieldLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className="w-full" id="form-rhf-TaskForms-status">
+                  <SelectTrigger
+                    className="w-full"
+                    id="form-rhf-TaskForms-status"
+                  >
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -429,8 +447,6 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor="task-end-date">End date</FieldLabel>
-
-                
 
                 <Popover
                   open={openEndDate}

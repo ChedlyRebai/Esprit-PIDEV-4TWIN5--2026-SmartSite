@@ -97,12 +97,13 @@ export default function MyTask() {
   });
 
 
-  
   const { data: tasks } = useQuery({
     queryKey: ["tasks", user?.teamId],
     enabled: !!user?.teamId,
-    queryFn: () => getTaskByTeamid(user.teamId[0],),
+    queryFn: () => getTaskByTeamid(user.teamId[0]),
   });
+
+  console.log("tasks by team id", tasks, user);
 
   
   return (
@@ -174,7 +175,7 @@ export function MyKanbanBoard() {
   const { data } = useQuery({
     queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
     queryFn: () =>
-      getMyTAsks(milestoneId || "", "69c92c7f799120ff49399621" ).then((data) => {
+      getMyTAsks(milestoneId || "", user.assignedTeam[0]).then((data) => {
         console.log("fetching tasks by milestone id:", milestoneId);
         console.log("Fetched columns data:", data);
         setColumns(data);

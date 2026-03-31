@@ -28,11 +28,12 @@ const MySItes = () => {
     queryKey: ["currentUser"],
     queryFn: getCuureentUser,
   });
-  console.log(user);
+  console.log("***********************************************user)", user);
 
   const { data: sites } = useQuery({
-    queryKey: ["fetchSitesByUserId", user?.id],
-    queryFn: () => getSiteWIthTEAmId("69c7d80f58a14affa39d727e"),
+    queryKey: ["fetchSitesByUserId", user?.assignedTeam],
+    queryFn: () => getSiteWIthTEAmId(user?.assignedTeam[0]),
+    enabled: Boolean(user?.assignedTeam?.[0]),
   });
 
 
