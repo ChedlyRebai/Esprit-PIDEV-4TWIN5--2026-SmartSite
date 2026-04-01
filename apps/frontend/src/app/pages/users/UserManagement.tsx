@@ -15,13 +15,9 @@ import { useAuthStore } from "../../store/authStore";
 import { canEdit } from "../../utils/permissions";
 import { data, useNavigate } from "react-router";
 import { toast } from "react-hot-toast";
-
 import { Permission, Role, User } from "@/app/types";
-
 import {
   getAllRoles,
-  createRole,
-  updateRole,
   deleteRole,
 } from "@/app/action/role.action";
 
@@ -29,19 +25,19 @@ import { RolesDataTable } from "./_components/roles-data-table";
 import { UserDataTable } from "./_components/user-data-table";
 import { banUser, deleteUser, getAllUsers } from "@/app/action/user.action";
 import {
-  accessPermissionByurl,
   deletePermission,
   getAllPermissions,
 } from "@/app/action/permission.action";
 import { PermissionsDataTable } from "./_components/permissions-data-table";
 import { getAllStatics } from "@/app/action/statiscs.action";
-import useAddUserModal from "@/app/hooks/use-user-Modal";
 import useAddPermissionModal from "@/app/hooks/use-permission-Modal";
 import useRoleModal from "@/app/hooks/use-role-Modal";
-import useRolePermissionsModal from "@/app/hooks/use-role-permissions-modal";
 import { useQuery } from "@tanstack/react-query";
 import Forbidden from "../Error/Forbidden";
 import { usePermissionStore } from "@/app/hooks/permission.store";
+
+
+
 
 export default function UserManagement() {
   const user = useAuthStore((state) => state.user);
@@ -69,6 +65,7 @@ export default function UserManagement() {
       setStatics(data.data);
     }
   }, [data]);
+
 
   useEffect(() => {
     if (isError) {
@@ -215,10 +212,10 @@ export default function UserManagement() {
   // }
 
   const access = usePermissionStore((s) => s.permissions);
-  console.log("Access permissions for /dashboard/users:", access["users"]);
-  if (!access["users"]?.access) {
-    return <Forbidden />;
-  }
+  // console.log("Access permissions for /dashboard/users:", access["users"]);
+  // if (!access["users"]?.access) {
+  //   return <Forbidden />;
+  // }
   if (!canManageRoles) {
     return (
       <div className="space-y-6">

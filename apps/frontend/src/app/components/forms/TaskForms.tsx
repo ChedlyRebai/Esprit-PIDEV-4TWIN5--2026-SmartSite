@@ -58,7 +58,7 @@ import {
 import { PlusIcon } from "lucide-react";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
 import { getMilestoneById } from "@/app/action/milestone.action";
-import { Team } from "@/app/action/team.action";
+import { getAllTeams, Team } from "@/app/action/team.action";
 import axios from "axios";
 
 const todayAtMidnight = () => {
@@ -221,7 +221,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           return Array.isArray(all?.data) ? all.data : [];
         }
 
-        const response = await getTaskByTeamid(siteId);
+        const response = await getAllTeams();
         console.log("Response from getUsersBySite in TaskForms:", response);
         console.log(
           "Milestone data in TaskForms:::::::::::::::::::::::::::::",

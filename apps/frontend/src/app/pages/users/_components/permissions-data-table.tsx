@@ -140,7 +140,6 @@ export function PermissionsDataTable({
           </span>
           // <Select
           //   // disabled={access.modification === "N"}
-
           //   defaultValue={row.getValue("access")}
           // >
           //   <SelectTrigger

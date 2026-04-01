@@ -53,6 +53,7 @@ export default function DashboardLayout() {
     queryKey:["unreadNotificationsLength"],
     queryFn:() => getUnreadNotificationCount()
   })
+  
   const getInitials = (nom: string, lastName: string) => {
     return `${nom.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };

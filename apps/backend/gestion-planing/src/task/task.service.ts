@@ -8,7 +8,7 @@ import { Model } from 'mongoose';
 import { Task } from '@/task/entities/task.entity';
 import { Milestone } from '@/milestone/entities/milestone.entity';
 import { TaskStage } from '@/task-stage/entities/TaskStage.entities';
-import { Console, log } from 'console';
+
 @Injectable()
 export class TaskService {
   constructor(
@@ -16,6 +16,37 @@ export class TaskService {
     @InjectModel(Task.name) private taskModel: Model<Task>,
     @InjectModel(TaskStage.name) private taskSTageModel: Model<TaskStage>,
   ) {}
+
+  private normalizeAssignedTeams(assignedTeams: unknown): string[] {
+    if (!assignedTeams) {
+      return [];
+    }
+
+    if (Array.isArray(assignedTeams)) {
+      return assignedTeams
+        .flat(Infinity)
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+
+    if (typeof assignedTeams === 'string') {
+      const raw = assignedTeams.trim();
+      if (!raw) {
+        return [];
+      }
+
+      if (raw.startsWith('[') && raw.endsWith(']')) {
+        // Handles loosely serialized payloads like "[ [ 'id' ] ]".
+        const matches = raw.match(/[a-fA-F0-9]{24}/g);
+        return matches ? [...new Set(matches)] : [];
+      }
+
+      return [raw];
+    }
+
+    return [];
+  }
 
   async create(
     createTaskDto: CreateTaskDto,
@@ -30,9 +61,7 @@ export class TaskService {
     const newTask = await this.taskModel.create({
       ...createTaskDto,
       milestoneId,
-      assignedTeams: createTaskDto.assignedTeams
-        ? [createTaskDto.assignedTeams]
-        : [],
+      assignedTeams: this.normalizeAssignedTeams(createTaskDto.assignedTeams),
     });
 
     await this.taskSTageModel
@@ -136,8 +165,14 @@ export class TaskService {
   }
   async update(id: number, updateTaskDto: UpdateTaskDto) {
     try {
+      const payload: UpdateTaskDto = { ...updateTaskDto };
+
+      if (payload.assignedTeams !== undefined) {
+        payload.assignedTeams = this.normalizeAssignedTeams(payload.assignedTeams);
+      }
+
       const response = await this.taskModel
-        .findByIdAndUpdate(id, updateTaskDto, { new: true })
+        .findByIdAndUpdate(id, payload, { new: true })
         .exec();
       if (!response) {
         throw new Error(`Task with id ${id} not found`);
