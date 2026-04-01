@@ -1,21 +1,32 @@
 
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Task } from '@/task/entities/task.entity';
 import { Milestone } from '@/milestone/entities/milestone.entity';
 import { TaskStage } from '@/task-stage/entities/TaskStage.entities';
+import { ClientKafka } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
+import { AffectedNotificationEventDto } from './dto/affected-notification-event.dto';
 
 @Injectable()
-export class TaskService {
+export class TaskService implements OnModuleInit {
+  private readonly logger = new Logger(TaskService.name);
+
   constructor(
     @InjectModel(Milestone.name) private milestoneModel: Model<Milestone>,
     @InjectModel(Task.name) private taskModel: Model<Task>,
     @InjectModel(TaskStage.name) private taskSTageModel: Model<TaskStage>,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientKafka,
   ) {}
+
+  async onModuleInit() {
+    await this.notificationClient.connect();
+  }
 
   private normalizeAssignedTeams(assignedTeams: unknown): string[] {
     if (!assignedTeams) {
@@ -58,10 +69,14 @@ export class TaskService {
       throw new Error(`Milestone with id ${milestoneId} not found`);
     }
 
+    const normalizedRecipients = this.normalizeAssignedTeams(
+      createTaskDto.assignedTeams,
+    );
+
     const newTask = await this.taskModel.create({
       ...createTaskDto,
       milestoneId,
-      assignedTeams: this.normalizeAssignedTeams(createTaskDto.assignedTeams),
+      assignedTeams: normalizedRecipients,
     });
 
     await this.taskSTageModel
@@ -72,6 +87,35 @@ export class TaskService {
 
     response.tasks.push(newTask._id);
     await response.save();
+
+    const eventPayload: AffectedNotificationEventDto = {
+      title: `Task assigned: ${newTask.title}`,
+      message: newTask.description
+        ? `Task "${newTask.title}" has been created. ${newTask.description}`
+        : `Task "${newTask.title}" has been created and assigned to your team.`,
+      recipients: normalizedRecipients,
+      priority:
+        newTask.priority === 'HIGH' ||
+        newTask.priority === 'MEDIUM' ||
+        newTask.priority === 'LOW'
+          ? newTask.priority
+          : 'MEDIUM',
+      type: 'INFO',
+      source: 'gestion-planing',
+      taskId: newTask._id.toString(),
+    };
+
+    try {
+      await firstValueFrom(
+        this.notificationClient.emit('task.created', eventPayload),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Task ${newTask._id.toString()} created but event publish failed`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+
     return newTask;
   }
 

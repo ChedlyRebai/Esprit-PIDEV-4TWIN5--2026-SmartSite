@@ -17,7 +17,7 @@ export class NotificationService {
     return await this.notifModel.find({ recipentId: userId }).exec();
   }
 
-  async createNotification(notification: Notification) {
+  async createNotification(notification: Partial<Notification>) {
     const newNotification = new this.notifModel(notification);
     return await newNotification.save();
   }
