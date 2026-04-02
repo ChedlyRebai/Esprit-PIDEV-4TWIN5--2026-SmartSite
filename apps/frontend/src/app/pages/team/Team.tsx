@@ -77,9 +77,9 @@ export default function Team() {
   const [useMockData, setUseMockData] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Track which teams are assigned to sites: teamId -> { siteId, siteName }
+  // Track which teams are assigned to sites: teamId -> { siteId, siteName, status }
   const [teamSiteAssignments, setTeamSiteAssignments] = useState<
-    Record<string, { siteId: string; siteName: string }>
+    Record<string, { siteId: string; siteName: string; status: string }>
   >({});
 
   // Dialog states
@@ -104,6 +104,7 @@ export default function Team() {
   const [availableUsers, setAvailableUsers] = useState<UserData[]>([]);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [userLoadingError, setUserLoadingError] = useState(false);
 
   // Statistics
   const totalTeams = teams.length;
@@ -183,38 +184,31 @@ export default function Team() {
           email: user.email || "",
         }));
         setAvailableUsers(normalizedUsers);
+        setUserLoadingError(false);
         return;
       }
-      if (useMockData) {
-        setAvailableUsers(
-          mockTeamMembers.map((u) => ({
-            _id: u._id,
-            firstName: u.firstName,
-            lastName: u.lastName,
-            email: u.email,
-          })),
-        );
-      } else {
-        toast.error(
-          "Impossible de charger la liste des utilisateurs (vérifiez l’API auth sur le port 3000).",
-        );
-        setAvailableUsers([]);
-      }
+      // API response not valid, use mock data
+      setAvailableUsers(
+        mockTeamMembers.map((u) => ({
+          _id: u._id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+        })),
+      );
+      setUserLoadingError(true);
     } catch (err) {
       console.error("Error loading users:", err);
-      if (useMockData) {
-        setAvailableUsers(
-          mockTeamMembers.map((u) => ({
-            _id: u._id,
-            firstName: u.firstName,
-            lastName: u.lastName,
-            email: u.email,
-          })),
-        );
-      } else {
-        toast.error("Erreur lors du chargement des utilisateurs.");
-        setAvailableUsers([]);
-      }
+      // Use mock data when API fails
+      setAvailableUsers(
+        mockTeamMembers.map((u) => ({
+          _id: u._id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+        })),
+      );
+      setUserLoadingError(true);
     }
   };
 
@@ -228,6 +222,17 @@ export default function Team() {
   // Helper function to check if a team is assigned to a site
   const isTeamAssignedToSite = (teamId: string) => {
     return !!teamSiteAssignments[teamId];
+  };
+
+  // Get all member IDs from all teams (for filtering available users in new team creation)
+  const getAllTeamMemberIds = () => {
+    const memberIds = new Set<string>();
+    teams.forEach((team) => {
+      team.members?.forEach((m: any) => {
+        if (m._id) memberIds.add(m._id);
+      });
+    });
+    return memberIds;
   };
 
   const getInitials = (name: string) => {
@@ -440,12 +445,28 @@ export default function Team() {
       return;
     }
 
-    // Check if user is already a member
+    // Check if user is already a member of this team
     const isAlreadyMember = selectedTeamView.members?.some(
       (m: any) => m._id === selectedUserId,
     );
     if (isAlreadyMember) {
       toast.error("This user is already a member of the team");
+      return;
+    }
+
+    // Check if user is already in a team assigned to an active site (not completed)
+    const userTeamAssignment = Object.entries(teamSiteAssignments).find(
+      ([teamId, assignment]) => {
+        const team = teams.find(t => t._id === teamId);
+        const isMemberOfTeam = team?.members?.some((m: any) => m._id === selectedUserId);
+        const isSiteCompleted = assignment.status === 'completed';
+        return isMemberOfTeam && !isSiteCompleted;
+      }
+    );
+    if (userTeamAssignment) {
+      const [teamId, assignment] = userTeamAssignment;
+      const team = teams.find(t => t._id === teamId);
+      toast.error(`Ce membre est déjà dans l'équipe "${team?.name}" assignée au site "${assignment.siteName}". Vous ne pouvez pas l'ajouter à une autre équipe.`);
       return;
     }
 
@@ -809,19 +830,39 @@ export default function Team() {
                             <SelectValue placeholder="Select a member" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableUsers
-                              .filter(
-                                (u) =>
-                                  !selectedTeamView?.members?.some(
-                                    (m: any) => m._id === u._id,
-                                  ),
-                              )
-                              .map((user) => (
+                            {(() => {
+                              // Filter users: not in current team, not in team assigned to active site (not completed)
+                              const availableForSelection = availableUsers
+                                .filter((u) => {
+                                  // Not already in this team
+                                  if (selectedTeamView?.members?.some((m: any) => m._id === u._id)) {
+                                    return false;
+                                  }
+                                  // Check if user is in a team assigned to a site that's NOT completed
+                                  const userInActiveAssignedTeam = Object.entries(teamSiteAssignments).find(
+                                    ([teamId, assignment]) => {
+                                      const team = teams.find(t => t._id === teamId);
+                                      const isMemberOfTeam = team?.members?.some((m: any) => m._id === u._id);
+                                      const isSiteCompleted = assignment.status === 'completed';
+                                      return isMemberOfTeam && !isSiteCompleted;
+                                    }
+                                  );
+                                  // Allow if not in any active assigned team (site not completed)
+                                  return !userInActiveAssignedTeam;
+                                });
+                              if (availableForSelection.length === 0) {
+                                return (
+                                  <div className="py-4 px-2 text-sm text-gray-500 text-center">
+                                    Aucun utilisateur disponible
+                                  </div>
+                                );
+                              }
+                              return availableForSelection.map((user) => (
                                 <SelectItem key={user._id} value={user._id}>
-                                  {user.firstName} {user.lastName} ({user.email}
-                                  )
+                                  {user.firstName} {user.lastName} ({user.email})
                                 </SelectItem>
-                              ))}
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                         <Button

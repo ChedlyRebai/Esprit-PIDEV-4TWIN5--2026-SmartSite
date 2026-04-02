@@ -208,14 +208,15 @@ export class GestionSiteController {
   async getAssignedTeamIds() {
     const sites = await this.gestionSiteService.getAllSitesWithTeams();
     
-    // Create a map of teamId -> site info
-    const teamToSiteMap: Record<string, { siteId: string; siteName: string }> = {};
+    // Create a map of teamId -> site info with status
+    const teamToSiteMap: Record<string, { siteId: string; siteName: string; status: string }> = {};
     sites.forEach((site: any) => {
       if (site.teamIds) {
         site.teamIds.forEach((teamId: string) => {
           teamToSiteMap[teamId] = {
             siteId: site._id.toString(),
-            siteName: site.nom
+            siteName: site.nom,
+            status: site.status || 'planning'
           };
         });
       }
