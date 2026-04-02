@@ -142,7 +142,10 @@ export class UsersService {
       return result;
     } catch (error) {
       console.error('❌ Erreur dans findAll:', error);
-      throw error;
+      // Fallback: find without populate if populate causes error
+      const fallbackResult = await this.userModel.find().exec();
+      console.log('🔍 DEBUG: findAll fallback:', fallbackResult.length, 'utilisateurs');
+      return fallbackResult;
     }
   }
 
