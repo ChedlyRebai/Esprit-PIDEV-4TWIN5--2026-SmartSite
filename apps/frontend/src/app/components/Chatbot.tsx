@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, Minimize2, Maximize2, MessageCircle, ThumbsUp, ThumbsDown, Paperclip, Mic, Volume2, Globe, User, Loader2, Upload, Image as ImageIcon, Trash2, History } from 'lucide-react';
+import { Send, X, Minimize2, Maximize2, MessageCircle, ThumbsUp, ThumbsDown, Paperclip, Mic, MicOff, Volume2, Globe, User, Loader2, Upload, Image as ImageIcon, Trash2, History } from 'lucide-react';
 import {
   sendChatbotMessage,
   processQuickCommand,
@@ -106,8 +106,12 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [transcribedText, setTranscribedText] = useState('');
+  const transcribedTextRef = useRef('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   
   // Image upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -190,16 +194,16 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
       }
 
       if (result.data.responses && result.data.responses.length > 0) {
-        result.data.responses.forEach((responseText: string, index: number) => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: 'assistant',
-              content: responseText,
-              timestamp: new Date(),
-            },
-          ]);
-        });
+        // Combine all responses into a single message
+        const combinedContent = result.data.responses.join('\n');
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: combinedContent,
+            timestamp: new Date(),
+          },
+        ]);
       }
 
       if (result.data.suggestions) {
@@ -266,7 +270,83 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
     return labels[lang];
   };
 
-  // Voice recording functions
+  // Real-time speech recognition (voice to text)
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setTranscribedText('');
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        transcribedTextRef.current += finalTranscript + ' ';
+        setTranscribedText(transcribedTextRef.current);
+      } else {
+        setTranscribedText(transcribedTextRef.current + interimTranscript);
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error !== 'no-speech') {
+        toast.error('Voice recognition error');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      const finalText = transcribedTextRef.current.trim();
+      if (finalText) {
+        setInputValue((prev) => prev + finalText + ' ');
+        // Clear the ref for next session
+        transcribedTextRef.current = '';
+      }
+      setTranscribedText('');
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopVoiceInput = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      // Transfer the captured text to input
+      const finalText = transcribedTextRef.current.trim();
+      if (finalText) {
+        setInputValue((prev) => prev + finalText + ' ');
+      }
+      transcribedTextRef.current = '';
+      setTranscribedText('');
+    }
+  };
+
+  // Voice recording functions (for sending voice to backend)
   const startVoiceRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -341,10 +421,7 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
     setIsLoading(true);
 
     try {
-      const result = await sendImageForAnalysis(selectedImage, language);
-      handleResponse(result, false);
-      
-      // Add the image as a user message
+      // Add the image as a user message FIRST
       setMessages((prev) => [
         ...prev,
         {
@@ -353,6 +430,10 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
           timestamp: new Date(),
         },
       ]);
+      
+      // Then get the analysis response
+      const result = await sendImageForAnalysis(selectedImage, language);
+      handleResponse(result, false);
       
       setSelectedImage(null);
       setImagePreview(null);
@@ -611,18 +692,25 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
 
           {/* Input Area */}
           <div className="p-3 bg-white border-t border-gray-100">
+            {/* Live transcription display */}
+            {isListening && (
+              <div className="mb-2 px-3 py-2 bg-blue-50 rounded-lg flex items-center gap-2">
+                <Mic className="w-4 h-4 text-blue-600 animate-pulse" />
+                <span className="text-sm text-blue-600 flex-1">{transcribedText || 'Listening...'}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              {/* Voice Recording Button */}
+              {/* Voice Input Button (real-time speech to text) */}
               <button
-                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                onClick={isListening ? stopVoiceInput : startVoiceInput}
                 className={`p-2.5 rounded-xl transition-colors ${
-                  isRecording
-                    ? 'bg-red-500 text-white animate-pulse'
+                  isListening
+                    ? 'bg-blue-600 text-white animate-pulse'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                 }`}
-                title={isRecording ? t.voiceRecordingStop : t.voiceRecording}
+                title={isListening ? 'Stop listening' : 'Click to speak'}
               >
-                <Mic className="w-5 h-5" />
+                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
 
               {/* Image Upload Button */}

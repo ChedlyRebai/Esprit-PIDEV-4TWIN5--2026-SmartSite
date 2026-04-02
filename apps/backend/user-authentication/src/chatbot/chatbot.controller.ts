@@ -1,14 +1,51 @@
-import { Controller, Post, Get, Delete, Body, Query, UseGuards, Req, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Query, UseGuards, Req, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Put } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ChatbotService } from './chatbot.service';
 import { SendMessageDto, GetConversationDto, FeedbackDto } from './dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('chatbot')
 export class ChatbotController {
-  constructor(private readonly chatbotService: ChatbotService) {}
+  constructor(
+    private readonly chatbotService: ChatbotService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Get('api-status')
+  async getApiStatus() {
+    const googleKey = this.configService.get<string>('GOOGLE_CLOUD_VISION_API_KEY') || '';
+    const imaggaKey = this.configService.get<string>('IMAGGA_API_KEY') || '';
+    const imaggaSecret = this.configService.get<string>('IMAGGA_API_SECRET') || '';
+    
+    return {
+      success: true,
+      data: {
+        googleCloudConfigured: !!(googleKey && googleKey.length > 0),
+        imaggaConfigured: !!(imaggaKey && imaggaSecret && imaggaKey.length > 0 && imaggaSecret.length > 0),
+      }
+    };
+  }
+
+  @Put('api-keys')
+  @UseGuards(JwtAuthGuard)
+  async updateApiKeys(@Body() body: { googleKey?: string; imaggaKey?: string; imaggaSecret?: string }) {
+    // Note: This would require persisting to a database in production
+    // For now, return instructions
+    return {
+      success: false,
+      message: 'API keys must be configured in the .env file. Please update the following variables:\n\n- GOOGLE_CLOUD_VISION_API_KEY\n- IMAGGA_API_KEY\n- IMAGGA_API_SECRET\n\nThen restart the backend.',
+      data: {
+        instructions: [
+          '1. Edit .env file in apps/backend/user-authentication/',
+          '2. Add your API keys',
+          '3. Restart the backend server',
+        ]
+      }
+    };
+  }
 
   @Post('message')
   @HttpCode(HttpStatus.OK)

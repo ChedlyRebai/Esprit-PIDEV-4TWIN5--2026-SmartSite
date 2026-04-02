@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ChatbotController } from './chatbot.controller';
 import { ChatbotService } from './chatbot.service';
@@ -9,6 +10,7 @@ import { RolesModule } from 'src/roles/roles.module';
 
 @Module({
   imports: [
+    ConfigModule,
     MongooseModule.forFeature([
       { name: ChatbotConversation.name, schema: ChatbotConversationSchema },
     ]),

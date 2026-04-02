@@ -1,11 +1,26 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ConfigService } from '@nestjs/config';
 import { Model, Types } from 'mongoose';
+import axios from 'axios';
+import * as fs from 'fs';
+import FormData from 'form-data';
+import sharp from 'sharp';
+import { basename, extname } from 'path';
 import { ChatbotConversation } from './entities';
 import { SendMessageDto, FeedbackDto } from './dto';
 import { UsersService } from 'src/users/users.service';
 import { TeamsService } from 'src/teams/teams.service';
 import { RolesService } from 'src/roles/roles.service';
+
+// Google Cloud Vision - optional dependency
+let ImageAnnotatorClient: any = null;
+try {
+  const vision = require('@google-cloud/vision');
+  ImageAnnotatorClient = vision.ImageAnnotatorClient;
+} catch (error) {
+  console.log('Google Cloud Vision not available - using fallback analysis');
+}
 
 interface Intent {
   name: string;
@@ -25,11 +40,31 @@ interface FAQCategory {
   questions: FAQItem[];
 }
 
+interface ImaggaTagsResponse {
+  result?: {
+    tags?: Array<{
+      confidence?: number;
+      tag?: {
+        en?: string;
+      };
+    }>;
+  };
+}
+
+interface ImaggaTagItem {
+  confidence?: number;
+  tag?: {
+    en?: string;
+  };
+}
+
 @Injectable()
 export class ChatbotService implements OnModuleInit {
   private intents: Intent[] = [];
   private faqCategories: FAQCategory[] = [];
   private readonly defaultLanguage = 'en';
+  private visionClient: any = null;
+  private googleApiKey: string = '';
 
   constructor(
     @InjectModel(ChatbotConversation.name)
@@ -37,9 +72,59 @@ export class ChatbotService implements OnModuleInit {
     private usersService: UsersService,
     private teamsService: TeamsService,
     private rolesService: RolesService,
+    private configService: ConfigService,
   ) {
     this.initializeIntents();
     this.initializeFAQs();
+    this.validateImageAnalysisConfig();
+    this.initializeVisionClient();
+  }
+
+  private validateImageAnalysisConfig() {
+    const googleKey = this.configService.get<string>('GOOGLE_CLOUD_VISION_API_KEY') || '';
+    const imaggaKey = this.configService.get<string>('IMAGGA_API_KEY') || '';
+    const imaggaSecret = this.configService.get<string>('IMAGGA_API_SECRET') || '';
+
+    if (googleKey === 'your_google_vision_api_key_here') {
+      throw new Error(
+        'Invalid GOOGLE_CLOUD_VISION_API_KEY: placeholder value detected. Update .env before starting the backend.',
+      );
+    }
+
+    if (
+      imaggaKey === 'your_imagga_api_key_here' ||
+      imaggaSecret === 'your_imagga_api_secret_here'
+    ) {
+      throw new Error(
+        'Invalid Imagga credentials: placeholder values detected. Update IMAGGA_API_KEY and IMAGGA_API_SECRET in .env before starting the backend.',
+      );
+    }
+
+    const imaggaConfigured = imaggaKey.length > 0 || imaggaSecret.length > 0;
+    const imaggaComplete = imaggaKey.length > 0 && imaggaSecret.length > 0;
+
+    if (imaggaConfigured && !imaggaComplete) {
+      throw new Error(
+        'Incomplete Imagga configuration: both IMAGGA_API_KEY and IMAGGA_API_SECRET are required.',
+      );
+    }
+  }
+
+  private initializeVisionClient() {
+    this.googleApiKey = this.configService.get<string>('GOOGLE_CLOUD_VISION_API_KEY') || '';
+    
+    if (ImageAnnotatorClient && this.googleApiKey && this.googleApiKey !== 'your_google_vision_api_key_here') {
+      this.visionClient = new ImageAnnotatorClient({
+        keyFilename: undefined,
+        projectId: undefined,
+        credentials: { key: this.googleApiKey }
+      });
+      console.log('✅ Google Cloud Vision initialized');
+    } else if (this.googleApiKey && this.googleApiKey !== 'your_google_vision_api_key_here') {
+      console.log('⚠️ Google Cloud Vision client not available');
+    } else {
+      console.log('ℹ️ Google Cloud Vision not configured - using fallback analysis');
+    }
   }
 
   onModuleInit() {
@@ -688,27 +773,210 @@ export class ChatbotService implements OnModuleInit {
   }
 
   async analyzeImage(userId: string, userRole: string, image: any, language: string) {
-    // Placeholder for image analysis
-    const analysis = language === 'ar' 
-      ? 'تحليل الصور قيد التنفيذ. يرجى الانتظار.'
-      : language === 'fr'
-      ? 'Analyse d\'image en cours. Veuillez patienter.'
-      : 'Image analysis in progress. Please wait.';
+    try {
+      const imagePath = image?.path || '';
+      const imageName = image?.originalname || 'uploaded image';
+      
+      console.log('🔍 Image analysis debug:');
+      console.log('  - imagePath:', imagePath);
+      console.log('  - imageName:', imageName);
+      console.log('  - Google Cloud configured:', !!this.visionClient);
+      
+      // Check Imagga config
+      const imaggaKey = this.configService.get<string>('IMAGGA_API_KEY') || '';
+      const imaggaSecret = this.configService.get<string>('IMAGGA_API_SECRET') || '';
+      console.log('  - IMAGGA_API_KEY exists:', !!imaggaKey);
+      console.log('  - IMAGGA_API_SECRET exists:', !!imaggaSecret);
+      console.log('  - imagePath exists:', !!imagePath);
+      console.log('  - fs.existsSync(imagePath):', imagePath ? fs.existsSync(imagePath) : 'no path');
+      
+      let labels: string[] = [];
+      let imaggaErrorMessage = '';
+      const objects: string[] = [];
+      const texts: string[] = [];
+      const safeSearch: any = null;
 
-    return {
-      success: true,
-      message: 'Image analysis processed',
-      data: {
-        conversationId: '',
-        responses: [analysis],
-        suggestions: ['More details about this site', 'Safety status', 'Team information'],
-        quickReplies: [],
-        metadata: {
-          imageAnalysis: 'Construction site analysis',
+      // Primary provider: Imagga free tier (tags endpoint)
+      if (
+        imaggaKey &&
+        imaggaSecret &&
+        imaggaKey !== 'your_imagga_api_key_here' &&
+        imaggaSecret !== 'your_imagga_api_secret_here' &&
+        imagePath &&
+        fs.existsSync(imagePath)
+      ) {
+        try {
+          labels = await this.analyzeWithImagga(imagePath, imaggaKey, imaggaSecret);
+          console.log(`  ✅ Imagga analysis OK (${labels.length} tags)`);
+        } catch (imaggaError: any) {
+          imaggaErrorMessage = imaggaError?.message || 'unknown Imagga error';
+          console.error('  ❌ Imagga analysis failed:', imaggaError?.message || imaggaError);
+        }
+      } else {
+        console.log('  → Imagga not configured or invalid image path, using fallback');
+      }
+
+      const fallbackDescription = this.buildImageFallbackDescription(imageName, labels, language);
+
+      const responses: Record<string, string[]> = {
+        en: [
+          `📷 Image analyzed: ${imageName}`,
+          '',
+          '🔍 Analysis results:',
+          '',
+          '🏷️ Labels detected:',
+          ...(labels.length > 0 ? labels.slice(0, 8).map((l) => `  • ${l}`) : ['  • No labels detected']),
+          '',
+          labels.length === 0 ? `🧾 Description: ${fallbackDescription}` : '',
+          imaggaErrorMessage ? `⚠️ API note: ${imaggaErrorMessage}` : '',
+          '',
+          objects.length > 0 ? '🔲 Objects detected:' : '',
+          ...objects.slice(0, 6).map((o) => `  • ${o}`),
+          '',
+          texts.length > 0 ? '📝 Text detected:' : '',
+          ...texts.slice(0, 3).map((t) => `  "${t}"`),
+          '',
+          safeSearch ? `✅ Safety status: Adult=${safeSearch.adult}, Violence=${safeSearch.violence}` : '',
+        ],
+        fr: [
+          `📷 Image analysée: ${imageName}`,
+          '',
+          '🔍 Résultats de l\'analyse:',
+          '',
+          '🏷️ Labels détectés:',
+          ...(labels.length > 0
+            ? labels.slice(0, 8).map((l) => `  • ${l}`)
+            : ['  • Aucune étiquette détectée']),
+          '',
+          labels.length === 0 ? `🧾 Description: ${fallbackDescription}` : '',
+          imaggaErrorMessage ? `⚠️ Note API: ${imaggaErrorMessage}` : '',
+          '',
+          objects.length > 0 ? '🔲 Objets détectés:' : '',
+          ...objects.slice(0, 6).map((o) => `  • ${o}`),
+          '',
+          texts.length > 0 ? '📝 Texte détecté:' : '',
+          ...texts.slice(0, 3).map((t) => `  "${t}"`),
+          '',
+          safeSearch ? `✅ Statut sécurité: Adulte=${safeSearch.adult}, Violence=${safeSearch.violence}` : '',
+        ],
+        ar: [
+          `📷 تم تحليل الصورة: ${imageName}`,
+          '',
+          '🔍 نتائج التحليل:',
+          '',
+          '🏷️ التسميات المكتشفة:',
+          ...(labels.length > 0
+            ? labels.slice(0, 8).map((l) => `  • ${l}`)
+            : ['  • لم يتم اكتشاف تسميات']),
+          '',
+          labels.length === 0 ? `🧾 الوصف: ${fallbackDescription}` : '',
+          imaggaErrorMessage ? `⚠️ ملاحظة API: ${imaggaErrorMessage}` : '',
+          '',
+          objects.length > 0 ? '🔲 الكائنات المكتشفة:' : '',
+          ...objects.slice(0, 6).map((o) => `  • ${o}`),
+          '',
+          texts.length > 0 ? '📝 النص المكتشف:' : '',
+          ...texts.slice(0, 3).map((t) => `  "${t}"`),
+          '',
+          safeSearch ? `✅ حالة السلامة: للكبار=${safeSearch.adult}، العنف=${safeSearch.violence}` : '',
+        ],
+      };
+
+      return {
+        success: true,
+        message: labels.length > 0 ? 'Image analyzed successfully' : 'Image analyzed (fallback mode)',
+        data: {
+          conversationId: '',
+          responses: responses[language] || responses['en'],
+          suggestions: language === 'ar' 
+            ? ['حالة الموقع', 'معلومات الفريق', 'إرشادات السلامة']
+            : language === 'fr'
+            ? ['État du site', 'Informations d\'équipe', 'Consignes de sécurité']
+            : ['Site status', 'Team information', 'Safety guidelines'],
+          quickReplies: [],
+          metadata: {
+            imageAnalysis: labels.length > 0 ? 'Imagga tags' : 'Fallback description',
+            imageName: imageName,
+            provider: labels.length > 0 ? 'imagga' : 'fallback',
+            labelsCount: labels.length,
+            imaggaError: imaggaErrorMessage || null,
+          },
         },
-      },
-      timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      return {
+        success: false,
+        message: 'Error analyzing image',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  private async analyzeWithImagga(imagePath: string, imaggaKey: string, imaggaSecret: string): Promise<string[]> {
+    const auth = Buffer.from(`${imaggaKey}:${imaggaSecret}`).toString('base64');
+    const request = async (form: FormData) => {
+      const response = await axios.post<ImaggaTagsResponse>('https://api.imagga.com/v2/tags', form, {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Basic ${auth}`,
+        },
+        timeout: 30000,
+      });
+      return response.data.result?.tags || [];
     };
+
+    try {
+      const directForm = new FormData();
+      directForm.append('image', fs.createReadStream(imagePath));
+      const tags = await request(directForm);
+      return this.extractImaggaLabels(tags);
+    } catch {
+      // Retry with JPEG conversion for formats that Imagga may reject (e.g., AVIF)
+      const convertedBuffer = await sharp(imagePath).jpeg({ quality: 90 }).toBuffer();
+      const convertedForm = new FormData();
+      const fileName = `${basename(imagePath, extname(imagePath))}.jpg`;
+      convertedForm.append('image', convertedBuffer, {
+        filename: fileName,
+        contentType: 'image/jpeg',
+      });
+      const tags = await request(convertedForm);
+      return this.extractImaggaLabels(tags);
+    }
+  }
+
+  private extractImaggaLabels(tags: ImaggaTagItem[]): string[] {
+    return tags
+      .filter((tag) => (tag.confidence || 0) >= 25)
+      .slice(0, 8)
+      .map((tag) => tag.tag?.en || '')
+      .filter((value) => value.length > 0);
+  }
+
+  private buildImageFallbackDescription(imageName: string, labels: string[], language: string): string {
+    if (labels.length > 0) {
+      const joined = labels.slice(0, 4).join(', ');
+      if (language === 'fr') return `Image probablement liée à: ${joined}.`;
+      if (language === 'ar') return `من المحتمل أن الصورة مرتبطة بـ: ${joined}.`;
+      return `The image is likely related to: ${joined}.`;
+    }
+
+    const normalizedName = imageName
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (normalizedName.length > 0) {
+      if (language === 'fr') return `Aucune étiquette API, description basée sur le nom du fichier: "${normalizedName}".`;
+      if (language === 'ar') return `لا توجد تسميات من API، وصف اعتمادا على اسم الملف: "${normalizedName}".`;
+      return `No API labels found, filename-based description: "${normalizedName}".`;
+    }
+
+    if (language === 'fr') return 'Description indisponible pour cette image.';
+    if (language === 'ar') return 'الوصف غير متاح لهذه الصورة.';
+    return 'Description unavailable for this image.';
   }
 
   async processVoiceMessage(userId: string, userRole: string, audio: any, language: string) {
