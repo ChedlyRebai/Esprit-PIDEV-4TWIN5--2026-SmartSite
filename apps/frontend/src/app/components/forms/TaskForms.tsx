@@ -36,6 +36,7 @@ import {
 import {
   CreateTaskPayload,
   Task,
+  TaskPriorityEnum,
   TaskStage,
   TaskStatusEnum,
   UpdateTaskPayload,
@@ -79,6 +80,7 @@ const formSchema = z
       .max(500, "Description must be at most 500 characters.")
       .optional(),
     status: z.string().optional(),
+    priority: z.nativeEnum(TaskPriorityEnum),
     assignedTeams: z.array(z.string()).optional(),
     startDate: z.date(),
     endDate: z.date(),
@@ -122,6 +124,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
       title: "",
       description: "",
       status: undefined,
+      priority: TaskPriorityEnum.MEDIUM,
       assignedTeams: [],
       startDate: new Date(),
       endDate: new Date(),
@@ -168,6 +171,11 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           title: res.data.title ?? "",
           description: res.data.description ?? "",
           status: res.data.status ?? TaskStatusEnum.BACKLOG,
+          priority:
+            res.data.priority &&
+            Object.values(TaskPriorityEnum).includes(res.data.priority)
+              ? res.data.priority
+              : TaskPriorityEnum.MEDIUM,
           assignedTeams: Array.isArray(res.data.assignedTeams)
             ? res.data.assignedTeams
             : [],
@@ -396,6 +404,38 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                     >
                       <PlusIcon /> Add new stage
                     </Button>
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="priority"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="form-rhf-TaskForms-priority">
+                  Priority
+                </FieldLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger
+                    className="w-full"
+                    id="form-rhf-TaskForms-priority"
+                  >
+                    <SelectValue placeholder="Select a priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TaskPriorityEnum.LOW}>Low</SelectItem>
+                    <SelectItem value={TaskPriorityEnum.MEDIUM}>
+                      Medium
+                    </SelectItem>
+                    <SelectItem value={TaskPriorityEnum.HIGH}>High</SelectItem>
+                    <SelectItem value={TaskPriorityEnum.CRITICAL}>
+                      Critical
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {fieldState.invalid && (

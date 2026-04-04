@@ -1,5 +1,6 @@
 import { StatusEnum } from "@/StatusEnum";
-import { IsNotEmpty } from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional } from "class-validator";
+import { TaskPriorityEnum } from "../entities/TaskPriorityEnum";
 
 export class CreateTaskDto {
   @IsNotEmpty()
@@ -8,7 +9,9 @@ export class CreateTaskDto {
   description?: string;
   milestoneId: string;
   assignedTeams?: string[];
-  priority?: string;
+  @IsOptional()
+  @IsEnum(TaskPriorityEnum)
+  priority?: TaskPriorityEnum;
   projectId?: string;
   siteId?: string;
   createdBy?: string;

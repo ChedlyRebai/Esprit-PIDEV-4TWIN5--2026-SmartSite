@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/app/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,7 +73,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useJsLoaded } from "@/hooks/use-js-loaded";
 import { CardHeader, CardTitle, CardContent, Card } from "@/components/ui/card";
-import { Task, TaskStatusEnum } from "@/app/types";
+import { Task, TaskPriorityEnum, TaskStatusEnum } from "@/app/types";
 import { useQuery } from "@tanstack/react-query";
 import {
   deleteTask,
@@ -94,6 +95,21 @@ type Column = {
   color: KanbanBoardCircleColor;
   tasks: Task[];
 };
+
+function getPriorityStyles(priority?: TaskPriorityEnum) {
+  switch (priority) {
+    case TaskPriorityEnum.CRITICAL:
+      return "bg-red-100 text-red-700 border-red-200";
+    case TaskPriorityEnum.HIGH:
+      return "bg-orange-100 text-orange-700 border-orange-200";
+    case TaskPriorityEnum.MEDIUM:
+      return "bg-amber-100 text-amber-700 border-amber-200";
+    case TaskPriorityEnum.LOW:
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    default:
+      return "bg-slate-100 text-slate-600 border-slate-200";
+  }
+}
 
 export default function MilestoneTaskss() {
   const { milestoneId } = useParams();
@@ -935,6 +951,14 @@ function MyKanbanBoardCard({
       >
         {card.title}
       </KanbanBoardCardDescription>
+      <div className="mt-2">
+        <Badge
+          className={`border text-xs font-medium ${getPriorityStyles(card.priority)}`}
+          variant="outline"
+        >
+          Priority: {card.priority ?? TaskPriorityEnum.MEDIUM}
+        </Badge>
+      </div>
       {card.description}
 
       {/* and start and end date */}

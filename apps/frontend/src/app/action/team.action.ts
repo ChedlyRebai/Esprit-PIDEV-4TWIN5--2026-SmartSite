@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3010', // Proxy to backend server
+  baseURL: 'http://localhost:3000', // Proxy to backend server
 }); 
 
 // Add auth token to requests

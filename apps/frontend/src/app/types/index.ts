@@ -38,7 +38,7 @@ export interface CreateTaskPayload {
   description?: string;
   milestoneId?: string;
   status?: string;
-  priority?: string;
+  priority?: TaskPriorityEnum;
   projectId?: string;
   siteId?: string;
   assignedTeams?: string[];
@@ -50,7 +50,7 @@ export interface UpdateTaskPayload {
   title?: string;
   description?: string;
   status?: string;
-  priority?: string;
+  priority?: TaskPriorityEnum;
   projectId?: string;
   siteId?: string;
   assignedTeams?: string[];
@@ -264,7 +264,7 @@ export interface Task {
 
   assignedTeams?: string[];
 
-  priority?: string;
+  priority?: TaskPriorityEnum;
 
   projectId?: string;
 
@@ -287,6 +287,13 @@ export enum TaskStatusEnum {
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
   DONE = "DONE",
+}
+
+export enum TaskPriorityEnum {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
 }
 export interface Client {
   _id: string;

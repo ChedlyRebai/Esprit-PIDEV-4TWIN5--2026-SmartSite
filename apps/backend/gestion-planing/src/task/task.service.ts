@@ -95,11 +95,11 @@ export class TaskService implements OnModuleInit {
         : `Task "${newTask.title}" has been created and assigned to your team.`,
       recipients: normalizedRecipients,
       priority:
-        newTask.priority === 'HIGH' ||
-        newTask.priority === 'MEDIUM' ||
-        newTask.priority === 'LOW'
-          ? newTask.priority
-          : 'MEDIUM',
+        newTask.priority === 'CRITICAL' || newTask.priority === 'HIGH'
+          ? 'HIGH'
+          : newTask.priority === 'LOW'
+            ? 'LOW'
+            : 'MEDIUM',
       type: 'INFO',
       source: 'gestion-planing',
       taskId: newTask._id.toString(),
@@ -186,7 +186,17 @@ export class TaskService implements OnModuleInit {
         $or: [
           {
             priority: {
-              $in: ['urgent', 'high', 'Urgent', 'High', 'URGENT', 'HIGH'],
+              $in: [
+                'critical',
+                'high',
+                'urgent',
+                'Critical',
+                'High',
+                'Urgent',
+                'CRITICAL',
+                'HIGH',
+                'URGENT',
+              ],
             },
           },
           { endDate: { $lte: soon } },
