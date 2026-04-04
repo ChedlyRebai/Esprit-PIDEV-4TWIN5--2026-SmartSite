@@ -105,15 +105,15 @@ export default function Login() {
                 Intelligent construction platform
               </p>
               <h2 className="mt-6 text-2xl font-bold leading-9 tracking-tight text-gray-900">
-                Connectez-vous à votre compte
+                Sign in to your account
               </h2>
               <p className="mt-2 text-sm leading-6 text-gray-500">
-                Pas encore de compte?{" "}
+                Don't have an account?{" "}
                 <a
                   href="/register"
                   className="font-semibold text-indigo-600 hover:text-indigo-500"
                 >
-                  S'inscrire
+                  Sign up
                 </a>
               </p>
             </div>
@@ -189,14 +189,14 @@ export default function Login() {
                   form="form-rhf-demo"
                   className="flex w-full mt-4 justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
-                  Se connecter
+                  Sign in
                 </Button>
                 <p className="mt-4 text-center text-sm text-gray-500">
                   <a
                     href="/forgot-password"
                     className="font-semibold text-indigo-600 hover:text-indigo-500"
                   >
-                    Mot de passe oublié?
+                    Forgot password?
                   </a>
                 </p>
 
@@ -261,7 +261,7 @@ export default function Login() {
                     type="submit"
                     form="bug-report-form"
                   >
-                    Mot de passe oublié?
+                    Forgot password?
                   </a>
                 </p>
                 */}

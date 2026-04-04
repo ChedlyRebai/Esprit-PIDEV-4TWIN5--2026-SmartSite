@@ -60,11 +60,11 @@ export class EmailService {
         },
       });
       this.logger.log(
-        `Transport SMTP configuré (smtp.gmail.com:587) pour ${emailUser}`,
+        `SMTP transport configured (smtp.gmail.com:587) for ${emailUser}`,
       );
     } else {
       this.logger.warn(
-        'EMAIL_USER ou EMAIL_PASSWORD manquant — les envois réels échoueront. Définissez un mot de passe d’application Google (16 caractères, sans espaces).',
+        'EMAIL_USER or EMAIL_PASSWORD missing - real sends will fail. Set a Google app password (16 characters, no spaces).',
       );
       this.transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
@@ -104,7 +104,7 @@ export class EmailService {
     const logoPath = fs.existsSync(fromDist) ? fromDist : fromSrc;
     if (!fs.existsSync(logoPath)) {
       this.logger.warn(
-        `Logo email absent (dist: ${fromDist} | dev: ${fromSrc}). Définissez EMAIL_LOGO_URL ou ajoutez le fichier.`,
+        `Email logo missing (dist: ${fromDist} | dev: ${fromSrc}). Set EMAIL_LOGO_URL or add the file.`,
       );
       return {
         html: `<div style="text-align:center;margin-bottom:16px;font-family:Arial,sans-serif;">

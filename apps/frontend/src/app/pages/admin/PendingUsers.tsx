@@ -48,7 +48,7 @@ function getUserCreatedAtLabel(user: any): string {
   if (!raw) return "N/A";
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return "N/A";
-  return d.toLocaleString("fr-FR");
+  return d.toLocaleString("en-US");
 }
 
 export default function PendingUsers() {
@@ -126,13 +126,13 @@ export default function PendingUsers() {
   const handleReject = async (id: string) => {
     if (!rejectUser) return;
     if (!rejectReason.trim()) {
-      toast.error("Veuillez spécifier un motif de rejet");
+      toast.error("Please specify a rejection reason");
       return;
     }
     setActionLoading(id);
     try {
       await rejectUser(id, rejectReason);
-      toast.success("Utilisateur rejeté. Email de notification envoyé.");
+      toast.success("User rejected. Notification email sent.");
       setRejectDialogOpen(false);
       setRejectReason("");
       setSelectedUser(null);
@@ -169,12 +169,12 @@ export default function PendingUsers() {
 
   // Fonction pour obtenir le label du rôle
   const getRoleLabel = (role: any) => {
-    if (!role) return "Rôle non défini";
+    if (!role) return "Role not defined";
     if (typeof role === "object" && role.name) {
-      return roleLabels[role.name] || "Rôle non défini";
+      return roleLabels[role.name] || "Role not defined";
     }
     if (typeof role === "string") {
-      return roleLabels[role] || "Rôle non défini";
+      return roleLabels[role] || "Role not defined";
     }
     // Si c'est un document contenant _id, essayer de mapper l'id du rôle
     if (typeof role === "object" && role._id) {
@@ -195,10 +195,10 @@ export default function PendingUsers() {
       const roleId = String(role._id);
       return roleMap[roleId]
         ? (roleLabels as any)[roleMap[roleId]] || roleMap[roleId]
-        : "Rôle non défini";
+        : "Role not defined";
     }
 
-    return roleLabels[role] || "Rôle non défini";
+    return roleLabels[role] || "Role not defined";
   };
 
   // Fonction pour générer un motif de rejet avec IA
@@ -230,10 +230,10 @@ Le motif doit être:
       const generatedReason = `Après examen de votre demande d'inscription en tant que ${getRoleLabel(selectedUser.role?.name) || "candidat"}, nous regrettons de vous informer que votre profil ne correspond pas actuellement aux critères requis pour ce rôle. Nous vous encourageons à consulter nos exigences et à soumettre une nouvelle candidature lorsque vous aurez complété les qualifications nécessaires. Pour améliorer votre profil, nous vous suggérons de fournir plus d'informations sur vos expériences professionnelles et de mettre à jour vos compétences.`;
 
       setRejectReason(generatedReason);
-      toast.success("Motif de rejet généré avec succès !");
+      toast.success("Rejection reason generated successfully!");
     } catch (error) {
       console.error("Erreur lors de la génération du motif:", error);
-      toast.error("Erreur lors de la génération du motif de rejet");
+      toast.error("Error generating rejection reason");
     } finally {
       setIsGeneratingReason(false);
     }
@@ -243,18 +243,18 @@ Le motif doit être:
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Utilisateurs en attente d'approbation</CardTitle>
+          <CardTitle>Users Pending Approval</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Filtre par role */}
           <div className="mb-4 flex items-center gap-4">
-            <Label htmlFor="role-filter">Filtrer par role:</Label>
+            <Label htmlFor="role-filter">Filter by role:</Label>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Tous les roles" />
+                <SelectValue placeholder="All roles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous les roles</SelectItem>
+                <SelectItem value="all">All roles</SelectItem>
                 {uniqueRoles.map((role) => (
                   <SelectItem key={role} value={role}>
                     {getRoleLabel(role)}
@@ -265,12 +265,12 @@ Le motif doit être:
           </div>
 
           {loading ? (
-            <div className="text-sm text-gray-500">Chargement...</div>
+            <div className="text-sm text-gray-500">Loading...</div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-sm text-gray-500">
               {users.length === 0
-                ? "Aucun utilisateur en attente"
-                : "Aucun utilisateur trouvé pour ce filtre"}
+                ? "No pending users"
+                : "No users found for this filter"}
             </div>
           ) : (
             <div className="space-y-3">
@@ -296,23 +296,23 @@ Le motif doit être:
                         {u.email || "N/A"}
                       </div>
                       <div>
-                        <span className="font-medium">Téléphone:</span>{" "}
+                        <span className="font-medium">Phone:</span>{" "}
                         {(u as any).phoneNumber || (u as any).phone || "N/A"}
                       </div>
                       <div>
-                        <span className="font-medium">Adresse:</span>{" "}
+                        <span className="font-medium">Address:</span>{" "}
                         {(u as any).address || (u as any).adresse || "N/A"}
                       </div>
                       <div>
-                        <span className="font-medium">Rôle:</span>{" "}
+                        <span className="font-medium">Role:</span>{" "}
                         {getRoleLabel(u.role)}
                       </div>
                       <div className="text-xs text-gray-400">
-                        <span className="font-medium">Statut:</span>{" "}
+                        <span className="font-medium">Status:</span>{" "}
                         {(u as any).status || "pending"}
                       </div>
                       <div className="text-xs text-gray-400">
-                        <span className="font-medium">Créé le:</span>{" "}
+                        <span className="font-medium">Created:</span>{" "}
                         {getUserCreatedAtLabel(u)}
                       </div>
                     </div>
@@ -323,7 +323,7 @@ Le motif doit être:
                       onClick={() => handleApprove(u._id)}
                       disabled={actionLoading !== null}
                     >
-                      {actionLoading === u._id ? "..." : "Approuver"}
+                      {actionLoading === u._id ? "..." : "Approve"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -334,7 +334,7 @@ Le motif doit être:
                       }}
                       disabled={actionLoading !== null}
                     >
-                      {actionLoading === u._id ? "..." : "Rejeter"}
+                      {actionLoading === u._id ? "..." : "Reject"}
                     </Button>
                   </div>
                 </div>
@@ -344,7 +344,7 @@ Le motif doit être:
         </CardContent>
       </Card>
 
-      {/* Détails utilisateur en attente */}
+      {/* Pending user details */}
       <Dialog
         open={detailsOpen}
         onOpenChange={(open) => {
@@ -354,47 +354,47 @@ Le motif doit être:
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Détails de l'utilisateur en attente</DialogTitle>
+            <DialogTitle>Pending User Details</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-2 text-sm">
               <p>
-                <span className="font-semibold">Nom complet :</span>{" "}
+                <span className="font-semibold">Full Name:</span>{" "}
                 {(selectedUser as any).firstname ||
                   (selectedUser as any).firstName}{" "}
                 {(selectedUser as any).lastname ||
                   (selectedUser as any).lastName}
               </p>
               <p>
-                <span className="font-semibold">CIN :</span>{" "}
+                <span className="font-semibold">CIN:</span>{" "}
                 {(selectedUser as any).cin || "N/A"}
               </p>
               <p>
-                <span className="font-semibold">Email :</span>{" "}
+                <span className="font-semibold">Email:</span>{" "}
                 {selectedUser.email || "N/A"}
               </p>
               <p>
-                <span className="font-semibold">Téléphone :</span>{" "}
+                <span className="font-semibold">Phone:</span>{" "}
                 {(selectedUser as any).telephone ||
                   (selectedUser as any).phone ||
                   "N/A"}
               </p>
               <p>
-                <span className="font-semibold">Adresse :</span>{" "}
+                <span className="font-semibold">Address:</span>{" "}
                 {(selectedUser as any).address ||
                   (selectedUser as any).adresse ||
                   "N/A"}
               </p>
               <p>
-                <span className="font-semibold">Rôle :</span>{" "}
-                {getRoleLabel(selectedUser.role) || "Rôle non défini"}
+                <span className="font-semibold">Role:</span>{" "}
+                {getRoleLabel(selectedUser.role) || "Role not defined"}
               </p>
               <p>
-                <span className="font-semibold">Statut :</span>{" "}
+                <span className="font-semibold">Status:</span>{" "}
                 {(selectedUser as any).status || "pending"}
               </p>
               <p>
-                <span className="font-semibold">Créé le :</span>{" "}
+                <span className="font-semibold">Created:</span>{" "}
                 {getUserCreatedAtLabel(selectedUser)}
               </p>
             </div>
@@ -402,7 +402,7 @@ Le motif doit être:
         </DialogContent>
       </Dialog>
 
-      {/* Dialogue de rejet */}
+      {/* Rejection dialog */}
       <Dialog
         open={rejectDialogOpen}
         onOpenChange={(open) => {
@@ -415,31 +415,31 @@ Le motif doit être:
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rejeter l'utilisateur</DialogTitle>
+            <DialogTitle>Reject User</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
               <div className="text-sm">
                 <p>
-                  <span className="font-semibold">Utilisateur :</span>{" "}
+                  <span className="font-semibold">User:</span>{" "}
                   {(selectedUser as any).firstname ||
                     (selectedUser as any).firstName}{" "}
                   {(selectedUser as any).lastname ||
                     (selectedUser as any).lastName}
                 </p>
                 <p>
-                  <span className="font-semibold">Email :</span>{" "}
+                  <span className="font-semibold">Email:</span>{" "}
                   {selectedUser.email || "N/A"}
                 </p>
                 <p>
-                  <span className="font-semibold">CIN :</span>{" "}
+                  <span className="font-semibold">CIN:</span>{" "}
                   {(selectedUser as any).cin || "N/A"}
                 </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="reject-reason">Motif du rejet *</Label>
+                  <Label htmlFor="reject-reason">Rejection Reason *</Label>
                   <Button
                     type="button"
                     variant="outline"
@@ -451,16 +451,16 @@ Le motif doit être:
                     {isGeneratingReason ? (
                       <>
                         <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900 mr-2"></div>
-                        Génération...
+                        Generating...
                       </>
                     ) : (
-                      <>✨ Générer avec IA</>
+                      <>✨ Generate with AI</>
                     )}
                   </Button>
                 </div>
                 <Textarea
                   id="reject-reason"
-                  placeholder="Veuillez spécifier la raison du rejet..."
+                  placeholder="Please specify the rejection reason..."
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={4}
@@ -473,7 +473,7 @@ Le motif doit être:
                   onClick={() => setRejectDialogOpen(false)}
                   disabled={actionLoading !== null}
                 >
-                  Annuler
+                  Cancel
                 </Button>
                 <Button
                   variant="destructive"
@@ -481,8 +481,8 @@ Le motif doit être:
                   disabled={actionLoading !== null || !rejectReason.trim()}
                 >
                   {actionLoading === selectedUser._id
-                    ? "Rejet en cours..."
-                    : "Rejeter et envoyer email"}
+                    ? "Rejecting..."
+                    : "Reject and send email"}
                 </Button>
               </div>
             </div>
