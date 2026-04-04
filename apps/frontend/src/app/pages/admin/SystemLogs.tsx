@@ -90,7 +90,7 @@ export default function SystemLogs() {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error("Token manquant, veuillez vous reconnecter.");
+        toast.error("Token missing, please reconnect.");
         return;
       }
       const params: Record<string, string> = {};
@@ -113,7 +113,7 @@ export default function SystemLogs() {
       });
       setRetentionDays(retention?.data?.retentionDays || 365);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Erreur de chargement des logs");
+      toast.error(err?.response?.data?.message || "Error loading logs");
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export default function SystemLogs() {
   useEffect(() => {
     const roleName = (user as any)?.role?.name || (user as any)?.role;
     if (roleName !== "super_admin") {
-      toast.error("Accès réservé au Super Admin.");
+      toast.error("Access reserved for Super Admin.");
       return;
     }
     loadLogs();
@@ -133,24 +133,24 @@ export default function SystemLogs() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">System Logs & Audit Trail</h1>
-        <p className="text-gray-500 mt-1">Surveillance des actions et détection d'anomalies</p>
+        <p className="text-gray-500 mt-1">Action monitoring and anomaly detection</p>
         <p className="text-xs text-gray-500 mt-1">
-          Rétention automatique: {retentionDays} jours. Suppression manuelle désactivée.
+          Automatic retention: {retentionDays} days. Manual deletion disabled.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtres</CardTitle>
+          <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <div>
-              <Label>Utilisateur</Label>
+              <Label>User</Label>
               <Select value={filters.userId} onValueChange={(v) => setFilters((f) => ({ ...f, userId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Tous" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   {users.map((u) => (
                     <SelectItem key={u._id} value={u.userId || ""}>
                       {u.userName || u.userCin || u.userId}
@@ -162,7 +162,7 @@ export default function SystemLogs() {
             <div>
               <Label>CIN</Label>
               <Input
-                placeholder="Rechercher par CIN..."
+                placeholder="Search by CIN..."
                 value={filters.userCin}
                 onChange={(e) => setFilters((f) => ({ ...f, userCin: e.target.value }))}
               />
@@ -170,46 +170,46 @@ export default function SystemLogs() {
             <div>
               <Label>Action</Label>
               <Select value={filters.actionType} onValueChange={(v) => setFilters((f) => ({ ...f, actionType: v }))}>
-                <SelectTrigger><SelectValue placeholder="Toutes" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   {actionTypes.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Sévérité</Label>
+              <Label>Severity</Label>
               <Select value={filters.severity} onValueChange={(v) => setFilters((f) => ({ ...f, severity: v }))}>
-                <SelectTrigger><SelectValue placeholder="Toutes" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="important">Important</SelectItem>
-                  <SelectItem value="critical">Critique</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Début</Label>
+              <Label>Start</Label>
               <Input type="date" value={filters.startDate} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
             </div>
             <div>
-              <Label>Fin</Label>
+              <Label>End</Label>
               <Input type="date" value={filters.endDate} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
             </div>
             <div>
-              <Label>Recherche</Label>
-              <Input placeholder="mot-clé..." value={filters.keyword} onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))} />
+              <Label>Search</Label>
+              <Input placeholder="keyword..." value={filters.keyword} onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))} />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <Button onClick={loadLogs}>Filtrer</Button>
+            <Button onClick={loadLogs}>Filter</Button>
             <Button
               variant="outline"
               onClick={() => {
                 const logsToArchive = logs.filter(log => !archivedLogs.has(log._id));
                 if (logsToArchive.length === 0) {
-                  toast.error("Aucun nouveau log à archiver");
+                  toast.error("No new logs to archive");
                   return;
                 }
 
@@ -228,17 +228,17 @@ export default function SystemLogs() {
                 logsToArchive.forEach(log => newArchivedLogs.add(log._id));
                 setArchivedLogs(newArchivedLogs);
 
-                toast.success(`${logsToArchive.length} logs archivés avec succès`);
+                toast.success(`${logsToArchive.length} logs archived successfully`);
               }}
             >
-              Archiver JSON
+              Archive JSON
             </Button>
             <Button
               variant="outline"
               onClick={() => {
                 const logsToArchive = logs.filter(log => !archivedLogs.has(log._id));
                 if (logsToArchive.length === 0) {
-                  toast.error("Aucun nouveau log à archiver");
+                  toast.error("No new logs to archive");
                   return;
                 }
 
@@ -274,10 +274,10 @@ export default function SystemLogs() {
                 logsToArchive.forEach(log => newArchivedLogs.add(log._id));
                 setArchivedLogs(newArchivedLogs);
 
-                toast.success(`${logsToArchive.length} logs archivés avec succès`);
+                toast.success(`${logsToArchive.length} logs archived successfully`);
               }}
             >
-              Archiver CSV
+              Archive CSV
             </Button>
             <Button
               variant="outline"
@@ -287,7 +287,7 @@ export default function SystemLogs() {
                 loadLogs();
               }}
             >
-              Réinitialiser
+              Reset
             </Button>
           </div>
         </CardContent>
@@ -299,9 +299,9 @@ export default function SystemLogs() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-gray-500">Chargement...</p>
+            <p className="text-sm text-gray-500">Loading...</p>
           ) : logs.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucun log trouvé.</p>
+            <p className="text-sm text-gray-500">No logs found.</p>
           ) : (
             <div className="space-y-2">
               {logs.map((log) => (
@@ -309,20 +309,20 @@ export default function SystemLogs() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{log.actionLabel}</span>
-                      {archivedLogs.has(log._id) && <Badge variant="secondary">Archivé</Badge>}
+                      {archivedLogs.has(log._id) && <Badge variant="secondary">Archived</Badge>}
                       <Badge variant={severityVariant(log.severity)}>{log.severity || "normal"}</Badge>
                       <Badge variant={log.status === "failed" ? "destructive" : "secondary"}>{log.status || "success"}</Badge>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {new Date(log.createdAt).toLocaleString("fr-FR")} • {log.userName || log.userCin || "Système"} • {log.actionType}
+                      {new Date(log.createdAt).toLocaleString("en-US")} • {log.userName || log.userCin || "System"} • {log.actionType}
                     </p>
                     {log.sessionDurationSec != null && (
                       <p className="text-xs text-gray-500">
-                        Durée session: {formatSessionDuration(log.sessionDurationSec)}
+                        Session duration: {formatSessionDuration(log.sessionDurationSec)}
                       </p>
                     )}
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setSelectedLog(log)}>Voir détails</Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedLog(log)}>View Details</Button>
                 </div>
               ))}
             </div>
@@ -333,20 +333,20 @@ export default function SystemLogs() {
       <Dialog open={!!selectedLog} onOpenChange={(o) => !o && setSelectedLog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Détail du log</DialogTitle>
+            <DialogTitle>Log Details</DialogTitle>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-2 text-sm">
               <p><strong>Action:</strong> {selectedLog.actionLabel}</p>
               <p><strong>Type:</strong> {selectedLog.actionType}</p>
-              <p><strong>Utilisateur:</strong> {selectedLog.userName || selectedLog.userCin || "Système"}</p>
-              <p><strong>Rôle:</strong> {selectedLog.userRole || "N/A"}</p>
-              <p><strong>Ressource:</strong> {selectedLog.resourceType || "N/A"} {selectedLog.resourceId ? `(${selectedLog.resourceId})` : ""}</p>
+              <p><strong>User:</strong> {selectedLog.userName || selectedLog.userCin || "System"}</p>
+              <p><strong>Role:</strong> {selectedLog.userRole || "N/A"}</p>
+              <p><strong>Resource:</strong> {selectedLog.resourceType || "N/A"} {selectedLog.resourceId ? `(${selectedLog.resourceId})` : ""}</p>
               <p><strong>IP:</strong> {selectedLog.ipAddress || "N/A"}</p>
-              <p><strong>Date:</strong> {new Date(selectedLog.createdAt).toLocaleString("fr-FR")}</p>
+              <p><strong>Date:</strong> {new Date(selectedLog.createdAt).toLocaleString("en-US")}</p>
               <p><strong>Session ID:</strong> {selectedLog.sessionId || "N/A"}</p>
-              <p><strong>Durée session:</strong> {formatSessionDuration(selectedLog.sessionDurationSec)}</p>
-              <p><strong>Détails:</strong> {selectedLog.details || "N/A"}</p>
+              <p><strong>Session duration:</strong> {formatSessionDuration(selectedLog.sessionDurationSec)}</p>
+              <p><strong>Details:</strong> {selectedLog.details || "N/A"}</p>
             </div>
           )}
         </DialogContent>
