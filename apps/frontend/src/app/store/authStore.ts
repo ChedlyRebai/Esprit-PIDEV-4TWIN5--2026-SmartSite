@@ -11,9 +11,10 @@ const api = axios.create({
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
+      isFirstLogin: false,
 
       login: async (cin: string, password: string) => {
         try {
@@ -27,23 +28,31 @@ export const useAuthStore = create<AuthState>()(
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           console.log("Login successful, token:", token);
 
+          const userData = {
+            access_token: res.data.access_token,
+            id: res.data.id,
+            cin: res.data.cin,
+            firstName: res.data.firstName,
+            lastName: res.data.lastName,
+            role: res.data.role,
+            firstLogin: res.data.firstLogin,
+          };
+
           set({
-            user: {
-              access_token: res.data.access_token,
-              id: res.data.id,
-              cin: res.data.cin,
-              firstName: res.data.firstName,
-              lastName: res.data.lastName,
-              role: res.data.role,
-              firstLogin: res.data.firstLogin,
-            },
+            user: userData,
             isAuthenticated: true,
+            isFirstLogin: res.data.firstLogin || false,
           });
+
+          // Debug logging
+          console.log("AuthStore login - res.data:", res.data);
+          console.log("AuthStore login - firstLogin from response:", res.data.firstLogin);
+          console.log("AuthStore login - isFirstLogin set to:", res.data.firstLogin || false);
           if (res.data.session_id) {
             localStorage.setItem("session_id", res.data.session_id);
           }
 
-          return res.data;
+          return userData;
         } catch (error: any) {
           console.error(
             "Login failed:",
@@ -52,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: null,
             isAuthenticated: false,
+            isFirstLogin: false,
           });
           throw error;
         }
@@ -117,7 +127,11 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem("session_id");
         // Clear authorization header
         delete api.defaults.headers.common["Authorization"];
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, isFirstLogin: false });
+      },
+
+      updateFirstLoginStatus: (status: boolean) => {
+        set({ isFirstLogin: status });
       },
     }),
     {

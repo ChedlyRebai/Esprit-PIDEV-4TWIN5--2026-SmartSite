@@ -75,9 +75,6 @@ export interface User {
   preferredLanguage?: string;
   projectsCount?: number;
   companyName?: string;
-  preferredLanguage?: string;
-  projectsCount?: number;
-  companyName?: string;
   createdDate: string;
   lastLoginDate?: string;
   avatar?: string;
@@ -145,7 +142,9 @@ export interface AuthState {
     firstLogin?: boolean;
   };
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  isFirstLogin: boolean;
+  login: (cin: string, password: string) => Promise<any>;
+  updateFirstLoginStatus: (status: boolean) => void;
   register: (
     cin: string,
     password: string,

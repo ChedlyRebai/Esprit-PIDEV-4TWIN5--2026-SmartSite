@@ -202,11 +202,10 @@ export default function DashboardLayout() {
                   onClick={() => setSidebarOpen(false)}
                   className={`
                         flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                        ${
-                          isActive
-                            ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }
+                        ${isActive
+                      ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-gray-100"
+                    }
                       `}
                 >
                   <span className="font-medium">{item.label}</span>

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { useAuthStore } from "../../store/authStore";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { AUTH_API_URL } from "@/lib/auth-api-url";
 
 type AuditLog = {
@@ -67,6 +67,8 @@ export default function SystemLogs() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [retentionDays, setRetentionDays] = useState<number>(365);
   const [archivedLogs, setArchivedLogs] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [logsPerPage] = useState(10);
 
   const [filters, setFilters] = useState({
     userId: "all",
@@ -85,12 +87,20 @@ export default function SystemLogs() {
   );
   const actionTypes = useMemo(() => Array.from(new Set(logs.map((l) => l.actionType))), [logs]);
 
+  // Pagination logic
+  const indexOfLastLog = currentPage * logsPerPage;
+  const indexOfFirstLog = indexOfLastLog - logsPerPage;
+  const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
+  const totalPages = Math.ceil(logs.length / logsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   const loadLogs = async () => {
     setLoading(true);
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error("Token missing, please reconnect.");
+        toast.error("Token manquant, veuillez vous reconnecter.");
         return;
       }
       const params: Record<string, string> = {};
@@ -107,13 +117,14 @@ export default function SystemLogs() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLogs(res.data || []);
+      setCurrentPage(1); // Reset to first page when loading new logs
 
       const retention = await api.get("/audit-logs/retention", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setRetentionDays(retention?.data?.retentionDays || 365);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Error loading logs");
+      toast.error(err?.response?.data?.message || "Erreur lors du chargement des logs");
     } finally {
       setLoading(false);
     }
@@ -122,7 +133,7 @@ export default function SystemLogs() {
   useEffect(() => {
     const roleName = (user as any)?.role?.name || (user as any)?.role;
     if (roleName !== "super_admin") {
-      toast.error("Access reserved for Super Admin.");
+      toast.error("Accès réservé au Super Admin.");
       return;
     }
     loadLogs();
@@ -132,16 +143,16 @@ export default function SystemLogs() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">System Logs & Audit Trail</h1>
-        <p className="text-gray-500 mt-1">Action monitoring and anomaly detection</p>
+        <h1 className="text-3xl font-bold text-gray-900">Journaux système et traçabilité d'audit</h1>
+        <p className="text-gray-500 mt-1">Surveillance des actions et détection d'anomalies</p>
         <p className="text-xs text-gray-500 mt-1">
-          Automatic retention: {retentionDays} days. Manual deletion disabled.
+          Rétention automatique : {retentionDays} jours. Suppression manuelle désactivée.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle>Filtres</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3">
@@ -209,7 +220,7 @@ export default function SystemLogs() {
               onClick={() => {
                 const logsToArchive = logs.filter(log => !archivedLogs.has(log._id));
                 if (logsToArchive.length === 0) {
-                  toast.error("No new logs to archive");
+                  toast.error("Aucun nouveau log à archiver");
                   return;
                 }
 
@@ -228,7 +239,7 @@ export default function SystemLogs() {
                 logsToArchive.forEach(log => newArchivedLogs.add(log._id));
                 setArchivedLogs(newArchivedLogs);
 
-                toast.success(`${logsToArchive.length} logs archived successfully`);
+                toast.success(`${logsToArchive.length} logs archivés avec succès`);
               }}
             >
               Archive JSON
@@ -238,7 +249,7 @@ export default function SystemLogs() {
               onClick={() => {
                 const logsToArchive = logs.filter(log => !archivedLogs.has(log._id));
                 if (logsToArchive.length === 0) {
-                  toast.error("No new logs to archive");
+                  toast.error("Aucun nouveau log à archiver");
                   return;
                 }
 
@@ -274,7 +285,7 @@ export default function SystemLogs() {
                 logsToArchive.forEach(log => newArchivedLogs.add(log._id));
                 setArchivedLogs(newArchivedLogs);
 
-                toast.success(`${logsToArchive.length} logs archived successfully`);
+                toast.success(`${logsToArchive.length} logs archivés avec succès`);
               }}
             >
               Archive CSV
@@ -304,7 +315,7 @@ export default function SystemLogs() {
             <p className="text-sm text-gray-500">No logs found.</p>
           ) : (
             <div className="space-y-2">
-              {logs.map((log) => (
+              {currentLogs.map((log) => (
                 <div key={log._id} className={`p-3 border rounded-md flex items-center justify-between ${archivedLogs.has(log._id) ? 'bg-gray-50 opacity-75' : ''}`}>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -330,10 +341,50 @@ export default function SystemLogs() {
         </CardContent>
       </Card>
 
+      {/* Pagination */}
+      {logs.length > logsPerPage && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Affichage de {indexOfFirstLog + 1} à {Math.min(indexOfLastLog, logs.length)} sur {logs.length} logs
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Précédent
+            </Button>
+            <div className="flex space-x-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => paginate(page)}
+                  className="w-8 h-8 p-0"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Suivant
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Dialog open={!!selectedLog} onOpenChange={(o) => !o && setSelectedLog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Log Details</DialogTitle>
+            <DialogTitle>Détails du log</DialogTitle>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-2 text-sm">

@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { useAuthStore } from "../../store/authStore";
+import WelcomeModal from "./WelcomeModalSimple";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -45,10 +46,12 @@ type FormData = z.infer<typeof formSchema>;
 export default function ChangePasswordFirstLogin() {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
+  const { updateFirstLoginStatus } = useAuthStore((state) => state);
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -81,11 +84,12 @@ export default function ChangePasswordFirstLogin() {
         },
       );
 
-      toast.success("Mot de passe changé avec succès!");
+      toast.success("Password changed successfully!");
       form.reset();
-      
-      // Redirect to dashboard after successful password change
-      navigate("/dashboard");
+
+      // Update first login status and show welcome modal
+      updateFirstLoginStatus(false);
+      setShowWelcome(true);
     } catch (error: any) {
       console.error("Error changing password:", error);
       const errorMessage =
@@ -179,7 +183,7 @@ export default function ChangePasswordFirstLogin() {
                   {form.formState.errors.newPassword.message}
                 </p>
               )}
-              
+
             </div>
 
             {/* Confirm Password */}
@@ -233,6 +237,14 @@ export default function ChangePasswordFirstLogin() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Welcome Modal */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        userRole={typeof authUser?.role === "string" ? authUser.role : "user"}
+        userName={`${authUser?.firstName} ${authUser?.lastName}`}
+      />
     </div>
   );
 }

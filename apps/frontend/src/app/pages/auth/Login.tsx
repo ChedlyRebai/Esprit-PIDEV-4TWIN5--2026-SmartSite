@@ -22,6 +22,7 @@ import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
+import WelcomeModal from "./WelcomeModalSimple";
 
 const formSchema = z.object({
   cin: z
@@ -36,7 +37,16 @@ const formSchema = z.object({
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const { user, isFirstLogin } = useAuthStore((state) => state);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [showWelcome, setShowWelcome] = React.useState(false);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("Login component - user:", user);
+    console.log("Login component - isFirstLogin:", isFirstLogin);
+    console.log("Login component - showWelcome:", showWelcome);
+  }, [user, isFirstLogin, showWelcome]);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,31 +58,21 @@ export default function Login() {
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      await login(data.cin, data.password).then((userData: any) => {
-        console.log("Login successful!", userData);
+      console.log("Login - Starting login with CIN:", data.cin);
+      const userData = await login(data.cin, data.password);
+      console.log("Login - Login successful!", userData);
 
-        // Redirection selon le rôle de l'utilisateur
-        const userRole = userData.user?.role?.name || userData.user?.role;
-        if (userRole === "project_manager") {
-          console.log("Redirection vers dashboard Project Manager");
-          navigate("/project-manager-dashboard");
-        } else if (userRole === "super_admin") {
-          console.log("Redirection vers dashboard Super Admin");
-          navigate("/super-admin-projects");
-        } else {
-          console.log("Redirection vers dashboard général");
-          navigate("/dashboard");
-        }
+      toast.success("Login successful!");
 
-        toast.success("Login successful!");
-
-        // Check if this is the first login
-        if (data.firstLogin) {
-          navigate("/change-password-first-login");
-        } else {
-          navigate("/dashboard");
-        }
-      });
+      // Check if this is the first login - show welcome modal directly
+      if (userData.firstLogin) {
+        console.log("Login - First login, showing welcome modal");
+        setShowWelcome(true);
+      } else {
+        // Not first login - navigate directly to dashboard
+        console.log("Login - Not first login, navigating to dashboard");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       const message =
         error?.message ||
@@ -277,6 +277,14 @@ export default function Login() {
           />
         </div>
       </div>
+
+      {/* Welcome Modal */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        userRole={typeof user?.role === "string" ? user.role : "user"}
+        userName={`${user?.firstName} ${user?.lastName}`}
+      />
     </>
   );
 }

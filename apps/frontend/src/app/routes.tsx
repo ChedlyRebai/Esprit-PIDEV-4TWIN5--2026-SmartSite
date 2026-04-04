@@ -29,6 +29,7 @@ import Profile from "./pages/profile/Profile";
 import Home2 from "./pages/Home/Home2";
 import Pricing from "./pages/pricing/Pricing";
 import ClientsNew from "./pages/clients/ClientsNew";
+import UserGuide from "./pages/guide/UserGuide";
 
 import PLaningProjects from "./pages/planning/PLaningProjects";
 import ProjectMilestone from "./pages/planning/ProjectMilestone";
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
   {
     path: "/reset-password",
     element: <ResetPassword />,
+  },
+  {
+    path: "/change-password-first-login",
+    element: <ChangePasswordFirstLogin />,
   },
   {
     path: "/",
@@ -187,6 +192,10 @@ export const router = createBrowserRouter([
         element: <Profile />,
       },
     ],
+  },
+  {
+    path: "/user-guide/:role",
+    element: <UserGuide />,
   },
   {
     path: "*",
