@@ -27,6 +27,9 @@ import { getMynavigationAccess } from "../action/permission.action";
 import { Permission } from "../types";
 import { getUnreadNotificationCount } from "../action/notification.action";
 import ChatbotWidget from "../components/Chatbot";
+import { SidebarMenu } from "../components/SidebarMenu";
+import type { RoleType } from "../types";
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -34,13 +37,11 @@ export default function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
-  console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
-  console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 
   // Utiliser useEffect pour la redirection
   useEffect(() => {
@@ -66,10 +67,11 @@ export default function DashboardLayout() {
   }
 
   // Contournement : si le role est null, utiliser un role par défaut
-  const userRole = user.role || { name: "super_admin" as const };
+  const roleName = (typeof user.role === "object" && user.role?.name
+    ? user.role.name
+    : "super_admin") as RoleType;
 
-  // Navigation statique en fonction du rôle
-  const navigationItems = getNavigationForRole(userRole.name);
+  const navigationItems = getNavigationForRole(roleName);
   const unreadNotifications = 0; // Placeholder - will be implemented with real notifications
 
   const getInitials = (nom: string, lastName: string) => {
@@ -136,12 +138,10 @@ export default function DashboardLayout() {
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 to-green-600 text-white">
                       {getInitials(user.firstName || "", user.lastName || "")}
-                      {getInitials(user.firstName || "", user.lastName || "")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-semibold">
-                      {user.firstName} {user.lastName}
                       {user.firstName} {user.lastName}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -155,7 +155,6 @@ export default function DashboardLayout() {
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span>
-                      {user.firstName} {user.lastName}
                       {user.firstName} {user.lastName}
                     </span>
                     <span className="text-xs font-normal text-muted-foreground">
@@ -185,44 +184,33 @@ export default function DashboardLayout() {
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`
-            fixed lg:sticky top-0 left-0 z-30 h-screen bg-card border-r border-border
-            transition-transform duration-300 lg:translate-x-0
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            w-64 pt-16 lg:pt-0 flex flex-col
-          `}
+          className={cn(
+            "fixed lg:sticky top-0 left-0 z-30 h-screen w-[17rem] flex flex-col",
+            "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
+            "transition-transform duration-300 ease-out lg:translate-x-0",
+            "pt-16 lg:pt-6 shadow-sm",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          )}
         >
-          <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-            {navigationItems.map((item) => {
-              const isActive = location.pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`
-                        flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                        ${isActive
-                      ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
-                      : "text-muted-foreground hover:bg-muted"
-                    }
-                      `}
-                >
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
+          <div className="px-4 pb-2 hidden lg:block">
+            <p className="text-xs font-medium text-muted-foreground">Workspace</p>
+            <p className="text-sm font-semibold tracking-tight text-sidebar-foreground truncate">
+              SmartSite
+            </p>
+          </div>
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4">
+            <SidebarMenu items={navigationItems} isCollapsed={false} roleName={roleName} />
           </nav>
-          {/* Logout Button at Bottom */}
-          <div className="p-4 border-t border-border">
+          <div className="p-3 mt-auto border-t border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
             <Button
+              variant="outline"
               onClick={handleLogout}
-              className="w-full bg-red-600 hover:bg-red-700 text-white gap-2"
+              className="w-full justify-center gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              Log out
             </Button>
-          </div>{" "}
+          </div>
         </aside>
 
         {/* Overlay for mobile */}

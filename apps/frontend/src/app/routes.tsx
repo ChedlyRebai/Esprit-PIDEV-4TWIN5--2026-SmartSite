@@ -39,6 +39,7 @@ import GanttChart from "./pages/planning/GanttManage";
 import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
+import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -190,6 +191,14 @@ export const router = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
+      },
+      {
+        path: "resource-optimization",
+        element: <ResourceOptimizationDashboard />,
+      },
+      {
+        path: "resource-optimization/:siteId",
+        element: <ResourceOptimizationDashboard />,
       },
     ],
   },
