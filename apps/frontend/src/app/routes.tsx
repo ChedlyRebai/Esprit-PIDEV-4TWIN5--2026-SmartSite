@@ -39,8 +39,6 @@ import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
 import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
-<<<<<<< HEAD
-import GestionFournisseurs from "./pages/fournisseurs/GestionFournisseurs";
 import CheckoutSimulator from "./pages/CheckoutSimulator";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -101,15 +99,6 @@ export const router = createBrowserRouter([
         path: "sites",
         element: <Sites />,
       },
-
-      {
-        path: "projects",
-        element: <Projects />,
-      },
-      {
-        path: "projects",
-        element: <Projects />,
-      },
       {
         path: "projects",
         element: <Projects />,
@@ -140,7 +129,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "suppliers",
-        element: <GestionFournisseurs />,
+        element: <Clients />,
       },
       {
         path: "materials",
