@@ -259,12 +259,6 @@ export default function Clients() {
                                   {selectedClient.projectsCount}
                                 </p>
                               </div>
-                              {/* <div>
-                              {/* <div>
-                                <p className="text-sm text-gray-600">Total Value</p>
-                                <p className="font-semibold text-gray-900">${(selectedClient.totalValue / 1000000).toFixed(1)}M</p>
-                              </div> */}
-                              </div> */}
                             </div>
                             <Badge variant="secondary">Active Client</Badge>
                             <Button

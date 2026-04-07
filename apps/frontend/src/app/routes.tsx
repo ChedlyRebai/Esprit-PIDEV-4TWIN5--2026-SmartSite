@@ -15,6 +15,7 @@ import Team from "./pages/team/Team";
 import Clients from "./pages/clients/Clients";
 import Materials from "./pages/materials/Materials";
 import Finance from "./pages/finance/Finance";
+import Payments from "./pages/payments/Payments";
 import QHSE from "./pages/qhse/QHSE";
 import Incidents from "./pages/incidents/Incidents";
 import Reports from "./pages/reports/Reports";
@@ -29,7 +30,6 @@ import Home2 from "./pages/Home/Home2";
 import Pricing from "./pages/pricing/Pricing";
 import ClientsNew from "./pages/clients/ClientsNew";
 import UserGuide from "./pages/guide/UserGuide";
-
 import SupplierList from "./pages/suppliers/SupplierList";
 import AddSupplier from "./pages/suppliers/AddSupplier";
 import EditSupplier from "./pages/suppliers/EditSupplier";
@@ -40,7 +40,7 @@ import CatalogList from "./pages/catalog/CatalogList";
 import AddCatalogItem from "./pages/catalog/AddCatalogItem";
 import EditCatalogItem from "./pages/catalog/EditCatalogItem";
 import CatalogDetails from "./pages/catalog/CatalogDetails";
-
+import CheckoutSimulator from "./pages/CheckoutSimulator";
 import PLaningProjects from "./pages/planning/PLaningProjects";
 import ProjectMilestone from "./pages/planning/ProjectMilestone";
 import MilestoneTasks from "./pages/planning/MilestoneTasks";
@@ -50,6 +50,7 @@ import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
 import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
+import CheckoutSimulator from "./pages/CheckoutSimulator";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -108,15 +109,6 @@ export const router = createBrowserRouter([
       {
         path: "sites",
         element: <Sites />,
-      },
-
-      {
-        path: "projects",
-        element: <Projects />,
-      },
-      {
-        path: "projects",
-        element: <Projects />,
       },
       {
         path: "projects",
@@ -179,12 +171,20 @@ export const router = createBrowserRouter([
         element: <CatalogDetails />,
       },
       {
+        path: "clients",
+        element: <Clients />,
+      },
+      {
         path: "materials",
         element: <Materials />,
       },
       {
         path: "finance",
         element: <Finance />,
+      },
+      {
+        path: "payments",
+        element: <Payments />,
       },
       {
         path: "qhse",
@@ -243,6 +243,10 @@ export const router = createBrowserRouter([
   {
     path: "/user-guide/:role",
     element: <UserGuide />,
+  },
+  {
+    path: "/checkout-simulator",
+    element: <CheckoutSimulator />,
   },
   {
     path: "*",

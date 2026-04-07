@@ -23,6 +23,34 @@ export default defineConfig({
   // Dev : optionnel — si vous appelez des URLs relatives `/api/...`, elles sont proxifiées vers l’API locale (même port que VITE_AUTH_API_URL / PORT Nest).
   server: {
     proxy: {
+      '/api/materials': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      '/api/site-materials': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      '/api/orders': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      '/api/fournisseurs': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+      },
+      '/fournisseurs': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+      },
+      '/gestion-sites': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api/gestion-sites': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:3007',
         changeOrigin: true,
