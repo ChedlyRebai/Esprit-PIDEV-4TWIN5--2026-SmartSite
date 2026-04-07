@@ -16,11 +16,12 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isFirstLogin: false,
 
-      login: async (cin: string, password: string) => {
+      login: async (cin: string, password: string, recaptchaToken?: string) => {
         try {
           const res = await api.post("/auth/login", {
             cin,
             password,
+            recaptchaToken,
           });
 
           const token = res.data.access_token;

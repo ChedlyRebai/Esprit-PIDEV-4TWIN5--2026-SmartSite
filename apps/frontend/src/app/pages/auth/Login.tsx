@@ -30,7 +30,7 @@ const formSchema = z.object({
     .string()
     .min(5, "Le mot de passe est requis et doit contenir au moins 5 caractères.")
     .max(100, "Le mot de passe ne doit pas dépasser 100 caractères."),
-  recaptchaToken: z.string().min(1, "Veuillez vérifier que vous n'êtes pas un robot"),
+  recaptchaToken: z.string().optional(),
 });
 
 export default function Login() {

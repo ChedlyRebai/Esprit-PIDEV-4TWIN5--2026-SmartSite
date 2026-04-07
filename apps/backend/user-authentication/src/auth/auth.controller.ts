@@ -23,18 +23,16 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
     console.log('🔐 Login attempt:', loginDto.cin);
     
-    if (!loginDto.recaptchaToken) {
-      console.log('❌ reCAPTCHA token missing');
-      throw new UnauthorizedException('reCAPTCHA token is required');
+    if (loginDto.recaptchaToken) {
+      const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
+      if (!isValidRecaptcha) {
+        console.log('⚠️ reCAPTCHA validation failed, continuing anyway');
+      } else {
+        console.log('✅ reCAPTCHA validation passed');
+      }
+    } else {
+      console.log('ℹ️ No reCAPTCHA token - skipping validation');
     }
-
-    const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
-    if (!isValidRecaptcha) {
-      console.log('❌ reCAPTCHA validation failed');
-      throw new UnauthorizedException('reCAPTCHA validation failed');
-    }
-    
-    console.log('✅ reCAPTCHA validation passed');
 
     const user = await this.authService.validateUser(
       loginDto.cin,
