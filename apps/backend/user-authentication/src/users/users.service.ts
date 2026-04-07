@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
+import * as bcrypt from 'bcrypt';
 import { EmailService } from '../email/email.service';
 import { RolesService } from '../roles/roles.service';
 import path from 'path';
@@ -55,24 +55,17 @@ export class UsersService {
     }
 
     try {
-      if (createUserDto.password) {
-        createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
-      }
       const createdUser = new this.userModel(createUserDto);
       console.log(' DEBUG: createdUser avant save:', createdUser);
-      
-      const result = await createdUser.save();
 
+      const result = await createdUser.save();
       console.log(' DEBUG: Utilisateur créé:', result);
       return result;
+    } catch (error: any) {
+      console.error('❌ ERREUR SAVE:', error.message);
       console.error('❌ ERREUR DETAILS:', error);
       throw error;
     }
-  }
-
-  async findByEmail(email: string) {
-    console.log('from user service findByEmail', email);
-    return this.userModel.findOne({ email }).populate('role').exec();
   }
 
   async mypermission(userId: string) {
@@ -100,10 +93,6 @@ export class UsersService {
   }
 
   async findByCin(cin: string) {
-<<<<<<< HEAD
-    console.log('from user service findByCin', cin);
-    return this.userModel.findOne({ cin }).populate('role').exec();
-=======
     console.log('🔍 DEBUG: findByCin appelé pour:', cin);
     try {
       const result = await this.userModel
@@ -131,7 +120,6 @@ export class UsersService {
 
   async findByEmail(email: string) {
     return this.userModel.findOne({ email }).populate('role').exec();
->>>>>>> origin/main
   }
 
   async findById(id: string) {
@@ -181,7 +169,7 @@ export class UsersService {
         cin: result[0].cin,
         role: result[0].role,
         roleType: typeof result[0].role,
-        roleName: (result[0].role as any)?.name,
+       // roleName: (result[0].role as any)?.name,
       });
     }
     return result;
@@ -221,9 +209,6 @@ export class UsersService {
 
     return user;
   }
-<<<<<<< HEAD
-}
-=======
 
   async getAllclients() {
     return await this.userModel.find().populate({
@@ -407,4 +392,3 @@ export class UsersService {
     };
   }
 }
->>>>>>> origin/main

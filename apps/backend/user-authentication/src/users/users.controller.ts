@@ -239,8 +239,4 @@ export class UsersController {
     });
     return user;
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/main

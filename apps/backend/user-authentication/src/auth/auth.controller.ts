@@ -23,13 +23,11 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
     console.log('🔐 Login attempt:', loginDto.cin);
     
-    // Vérifier la présence du token reCAPTCHA
     if (!loginDto.recaptchaToken) {
       console.log('❌ reCAPTCHA token missing');
       throw new UnauthorizedException('reCAPTCHA token is required');
     }
 
-    // Valider le token reCAPTCHA auprès de Google
     const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
     if (!isValidRecaptcha) {
       console.log('❌ reCAPTCHA validation failed');
@@ -38,64 +36,10 @@ export class AuthController {
     
     console.log('✅ reCAPTCHA validation passed');
 
-    // Validation des identifiants utilisateur (CIN + mot de passe)
     const user = await this.authService.validateUser(
       loginDto.cin,
       loginDto.password,
     );
-    
-    console.log('👤 User validated:', user ? 'Yes' : 'No');
-    
-    if (!user) {
-      await this.auditLogsService.createLog({
-        userCin: loginDto.cin,
-        actionType: 'login',
-        actionLabel: 'Login failed',
-        resourceType: 'auth',
-        status: 'failed',
-        severity: 'critical',
-        ipAddress: req?.ip,
-        details: 'Invalid credentials or pending account',
-      });
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Génération du token JWT
-    const result = await this.authService.login(user);
-    await this.auditLogsService.createLog({
-      userId: String((user as any)?._id || ''),
-      userCin: user?.cin,
-      userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-      userRole: (user as any)?.role?.name,
-      actionType: 'login',
-      actionLabel: 'User logged in',
-      resourceType: 'auth',
-      status: 'success',
-      severity: 'normal',
-      ipAddress: req?.ip,
-      sessionId: result.session_id,
-    });
-    return result;
-  }
-
-    // Valider le token reCAPTCHA auprès de Google
-    const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
-    if (!isValidRecaptcha) {
-      console.log('❌ reCAPTCHA validation failed');
-      throw new UnauthorizedException('reCAPTCHA validation failed');
-    }
-    
-    console.log('✅ reCAPTCHA validation passed');
-
-    // Validation des identifiants utilisateur (CIN + mot de passe)
-=======
-  async login(@Body() loginDto: LoginDto, @Request() req: any) {
->>>>>>> origin/main
-    const user = await this.authService.validateUser(
-      loginDto.cin,
-      loginDto.password,
-    );
-<<<<<<< HEAD
     
     console.log('👤 User validated:', user ? 'Yes' : 'No');
     
@@ -162,7 +106,6 @@ export class AuthController {
     });
     return { message: 'Logout tracked' };
   }
-  }
 
   @Post('register')
   async register(@Body() registerDto: any, @Request() req: any) {
@@ -196,26 +139,26 @@ export class AuthController {
     const response = {
       message: 'User registered successfully',
       user: {
-        id: user._id,
-        cin: user.cin,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        telephone: user.phoneNumber,
-        address: user.address,
-        role: user.role,
-        companyName: user.companyName,
+        id: (user as any)._id,
+        cin: (user as any).cin,
+        firstName: (user as any).firstName,
+        lastName: (user as any).lastName,
+        email: (user as any).email,
+        telephone: (user as any).phoneNumber,
+        address: (user as any).address,
+        role: (user as any).role,
+        companyName: (user as any).companyName,
       },
     };
 
     await this.auditLogsService.createLog({
-      userId: String(user._id),
-      userCin: user.cin,
-      userName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      userId: String((user as any)._id),
+      userCin: (user as any).cin,
+      userName: `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim(),
       actionType: 'create',
       actionLabel: 'User registered (pending approval)',
       resourceType: 'user',
-      resourceId: String(user._id),
+      resourceId: String((user as any)._id),
       status: 'success',
       severity: 'important',
       ipAddress: req?.ip,
