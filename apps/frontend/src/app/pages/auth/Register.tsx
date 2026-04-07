@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type FieldErrors } from "react-hook-form";
 import * as z from "zod";
-import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +11,7 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldDescription,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
   Card,
   CardContent,
@@ -31,121 +32,161 @@ import {
 import { useAuthStore } from "@/app/store/authStore";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
+import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
 import { roleLabels } from "@/app/utils/roleConfig";
+import type { RoleType } from "@/app/types";
+
+// Liste des roles disponibles (sauf super_admin)
+const availableRoles: RoleType[] = [
+  "director",
+  "project_manager",
+  "site_manager",
+  "works_manager",
+  "accountant",
+  "procurement_manager",
+  "qhse_manager",
+  "client",
+  "subcontractor",
+  "user",
+];
+
+const phoneCountryCodes = [
+  { label: "Tunisie (+216)", value: "+216" },
+  { label: "France (+33)", value: "+33" },
+  { label: "Maroc (+212)", value: "+212" },
+  { label: "Algérie (+213)", value: "+213" },
+  { label: "Belgique (+32)", value: "+32" },
+  { label: "Suisse (+41)", value: "+41" },
+  { label: "Canada (+1)", value: "+1-ca" },
+  { label: "USA (+1)", value: "+1-us" },
+];
+
+// Helper function to convert phone code values back to proper format
+const getPhoneCode = (value: string): string => {
+  switch (value) {
+    case '+1-ca':
+    case '+1-us':
+      return '+1';
+    default:
+      return value;
+  }
+};
 
 const formSchema = z.object({
   cin: z
     .string()
-    .min(5, "CIN est requis et doit contenir au moins 5 caractères.")
-    .max(32, "CIN ne doit pas dépasser 32 caractères."),
-  firstname: z
+    .min(5, "CIN is required and must be at least 5 characters.")
+    .max(32, "CIN must not exceed 32 characters."),
+  firstName: z
     .string()
-    .min(2, "Le prénom est requis et doit contenir au moins 2 caractères.")
-    .max(50, "Le prénom ne doit pas dépasser 50 caractères."),
-  lastname: z
+    .min(2, "First name is required and must be at least 2 characters.")
+    .max(50, "First name must not exceed 50 characters."),
+  lastName: z
     .string()
-    .min(2, "Le nom est requis et doit contenir au moins 2 caractères.")
-    .max(50, "Le nom ne doit pas dépasser 50 caractères."),
+    .min(2, "Name is required and must be at least 2 characters.")
+    .max(50, "Name must not exceed 50 characters."),
   email: z
     .string()
-    .email("Veuillez entrer une adresse email valide.")
-    .min(5, "L'email est requis."),
+    .email("Please enter a valid email address.")
+    .min(5, "Email is required."),
   telephone: z
     .string()
-    .min(8, "Le téléphone est requis et doit contenir au moins 8 caractères.")
-    .max(20, "Le téléphone ne doit pas dépasser 20 caractères."),
-  adresse: z
+    .regex(/^\d{6,14}$/, "Invalid number (6 to 14 digits)."),
+  phoneCountryCode: z.string().min(2, "Please select a country code."),
+  country: z
     .string()
-    .min(5, "L'adresse est requise et doit contenir au moins 5 caractères.")
-    .max(200, "L'adresse ne doit pas dépasser 200 caractères."),
-  role: z
+    .min(2, "Country is required.")
+    .max(56, "Country name is too long."),
+  city: z
     .string()
-    .min(1, "Le rôle est requis."),
+    .min(2, "City is required.")
+    .max(80, "City name is too long.")
+    .regex(/^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/, "Invalid city."),
+  postalCode: z
+    .string()
+    .min(3, "Postal code is required.")
+    .max(12, "Invalid postal code.")
+    .regex(/^[A-Za-z0-9 -]+$/, "Invalid postal code."),
+  addressLine: z
+    .string()
+    .min(5, "Address is required and must be at least 5 characters.")
+    .max(200, "Address must not exceed 200 characters."),
+  role: z.string().min(1, "Role is required."),
+  acceptTerms: z
+    .boolean()
+    .refine(
+      (val) => val === true,
+      "You must accept the acceptance criteria to continue.",
+    ),
+  acceptReglement: z
+    .boolean()
+    .refine(
+      (val) => val === true,
+      "You must accept the regulations to continue.",
+    ),
 });
 
 type RegisterFormData = z.infer<typeof formSchema>;
+
+const STEP_1_FIELDS: (keyof RegisterFormData)[] = [
+  "cin",
+  "email",
+  "firstName",
+  "lastName",
+  "phoneCountryCode",
+  "telephone",
+  "country",
+  "city",
+  "postalCode",
+  "addressLine",
+  "role",
+];
 
 export default function Register() {
   const navigate = useNavigate();
   const register = useAuthStore((state) => state.register);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [roles, setRoles] = React.useState<any[]>([]);
-  const [rolesLoading, setRolesLoading] = React.useState(false);
-  const [rolesError, setRolesError] = React.useState<string | null>(null);
+  const [step, setStep] = React.useState<1 | 2 | 3>(1);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       cin: "",
-      firstname: "",
-      lastname: "",
+      firstName: "",
+      lastName: "",
       email: "",
       telephone: "",
-      adresse: "",
+      phoneCountryCode: "+216",
+      country: "",
+      city: "",
+      postalCode: "",
+      addressLine: "",
       role: "",
+      acceptTerms: false,
+      acceptReglement: false,
     },
   });
-
-  // Récupérer les paramètres de l'URL pour Google
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const email = params.get('email');
-    const google = params.get('google');
-    const error = params.get('error');
-    const firstName = params.get('firstName');
-    const lastName = params.get('lastName');
-
-    if (error === 'no_account' && email) {
-      toast.error(
-        'Aucun compte trouvé avec cet email. Veuillez créer un compte.',
-        { duration: 5000 }
-      );
-      form.setValue('email', email);
-      if (firstName) form.setValue('firstname', firstName);
-      if (lastName) form.setValue('lastname', lastName);
-    }
-  }, []);
-
-  // Charger les rôles depuis le backend (et exclure super_admin)
-  React.useEffect(() => {
-    const loadRoles = async () => {
-      try {
-        setRolesLoading(true);
-        const res = await axios.get("http://localhost:3001/roles");
-        const allRoles = res.data || [];
-        const filtered = allRoles.filter(
-          (r: any) => r.name && r.name !== "super_admin",
-        );
-        setRoles(filtered);
-      } catch (err: any) {
-        console.error("Erreur chargement rôles:", err);
-        setRolesError(
-          err?.response?.data?.message ||
-            err?.message ||
-            "Impossible de charger les rôles.",
-        );
-      } finally {
-        setRolesLoading(false);
-      }
-    };
-    loadRoles();
-  }, []);
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
+      const fullAddress = `${data.addressLine}, ${data.city}, ${data.postalCode}, ${data.country}`;
+      const fullPhone = `${getPhoneCode(data.phoneCountryCode)} ${data.telephone}`;
       await register(
         data.cin,
-        "", // PAS de mot de passe - sera généré lors de l'approbation
-        data.firstname,
-        data.lastname,
+        "", // mot de passe vide à l'inscription, généré à l'approbation
+        data.firstName,
+        data.lastName,
         data.email,
-        data.telephone,
+        fullPhone,
         "", // pas de département
-        data.adresse,
-        data.role
+        fullAddress,
+        data.role,
       );
-      toast.success("Inscription réussie! Votre compte est en attente d'approbation. Vous recevrez un email avec vos identifiants.");
+      toast.success(
+        "Inscription réussie! Votre compte est en attente d'approbation.",
+      );
+      // Redirect to login page
       navigate("/login");
     } catch (error: any) {
       console.error("Erreur inscription:", error);
@@ -159,26 +200,68 @@ export default function Register() {
     }
   };
 
+  const onInvalid = (errors: FieldErrors<RegisterFormData>) => {
+    const first = Object.values(errors)[0];
+    const msg =
+      first && typeof first === "object" && "message" in first
+        ? String(first.message)
+        : null;
+    toast.error(
+      msg ?? "Veuillez compléter tous les champs obligatoires et cocher les cases.",
+    );
+  };
+
+  const goToStep2 = async () => {
+    const ok = await form.trigger(STEP_1_FIELDS);
+    if (!ok) {
+      toast.error("Veuillez corriger les champs du formulaire.");
+      return;
+    }
+    setStep(2);
+  };
+
+  const goToStep3 = () => {
+    form.setValue("acceptTerms", true, { shouldValidate: false });
+    setStep(3);
+  };
+
+  const goBackToStep1 = () => {
+    form.setValue("acceptTerms", false);
+    form.setValue("acceptReglement", false);
+    setStep(1);
+  };
+
+  const goBackToStep2From3 = () => {
+    form.setValue("acceptReglement", false);
+    setStep(2);
+  };
+
+  const submitFinal = () => {
+    form.setValue("acceptReglement", true, { shouldValidate: false });
+    void form.handleSubmit(onSubmit, onInvalid)();
+  };
+
   return (
-    <div className="h-screen flex min-h-full flex-1">
+    <div className="min-h-screen flex min-h-full flex-1">
       <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-lg lg:w-2xl">
           <div>
-            <img
-              src="/logo.png"
-              alt="SmartSite"
-              className="h-16 w-16 object-contain"
-            />
-            <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
-              Créer votre compte
+            <a href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md">
+              <SmartSiteLogo size="sm" />
+            </a>
+            <p className="mt-2 text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase">
+              Intelligent construction platform
+            </p>
+            <h2 className="mt-6 text-2xl font-bold leading-9 tracking-tight text-gray-900">
+              Create your account
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              Déjà un compte?{" "}
+              Already have an account?{" "}
               <a
                 href="/login"
                 className="font-semibold text-indigo-600 hover:text-indigo-500"
               >
-                Se connecter
+                Sign in
               </a>
             </p>
           </div>
@@ -186,197 +269,454 @@ export default function Register() {
           <div className="mt-10">
             <Card>
               <CardHeader>
-                <CardTitle>Formulaire d'inscription</CardTitle>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {([1, 2, 3] as const).map((s) => (
+                    <React.Fragment key={s}>
+                      {s > 1 && (
+                        <span className="text-slate-300 hidden sm:inline">—</span>
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${step === s
+                          ? "bg-indigo-600 text-white"
+                          : step > s
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-slate-100 text-slate-500"
+                          }`}
+                      >
+                        {s === 1
+                          ? "1. Information"
+                          : s === 2
+                            ? "2. Criteria"
+                            : "3. Regulations"}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+                <CardTitle>
+                  {step === 1 && "Registration Form"}
+                  {step === 2 && "Acceptance Criteria"}
+                  {step === 3 && "Platform Regulations"}
+                </CardTitle>
                 <CardDescription>
-                  Remplissez ce formulaire pour créer votre compte SmartSite
+                  {step === 1 &&
+                    "Fill in your information, then validate to read the conditions one by one."}
+                  {step === 2 &&
+                    "Read the criteria carefully. Click the button when you accept them."}
+                  {step === 3 &&
+                    "Final step: read the regulations then send your registration request."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FieldGroup>
-                      <Controller
-                        name="cin"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="cin">CIN *</FieldLabel>
-                            <Input
-                              {...field}
-                              id="cin"
-                              placeholder="Entrez votre CIN"
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
+                <form
+                  onSubmit={(e) => e.preventDefault()}
+                  className="space-y-6"
+                  noValidate
+                >
+                  {step === 1 && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FieldGroup>
+                          <Controller
+                            name="cin"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="cin">CIN *</FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="cin"
+                                  placeholder="Enter your CIN"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
                             )}
-                          </Field>
-                        )}
-                      />
-                    </FieldGroup>
-
-                    <FieldGroup>
-                      <Controller
-                        name="email"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="email">Email *</FieldLabel>
-                            <Input
-                              {...field}
-                              id="email"
-                              type="email"
-                              placeholder="Entrez votre email"
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
-                            )}
-                          </Field>
-                        )}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FieldGroup>
-                      <Controller
-                        name="firstname"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="firstname">Prénom *</FieldLabel>
-                            <Input
-                              {...field}
-                              id="firstname"
-                              placeholder="Entrez votre prénom"
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
-                            )}
-                          </Field>
-                        )}
-                      />
-                    </FieldGroup>
-
-                    <FieldGroup>
-                      <Controller
-                        name="lastname"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                          <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="lastname">Nom *</FieldLabel>
-                            <Input
-                              {...field}
-                              id="lastname"
-                              placeholder="Entrez votre nom"
-                              aria-invalid={fieldState.invalid}
-                            />
-                            {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
-                            )}
-                          </Field>
-                        )}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  <FieldGroup>
-                    <Controller
-                      name="telephone"
-                      control={form.control}
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor="telephone">Téléphone</FieldLabel>
-                          <Input
-                            {...field}
-                            id="telephone"
-                            placeholder="Entrez votre téléphone"
-                            aria-invalid={fieldState.invalid}
                           />
-                          {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                          )}
-                        </Field>
-                      )}
-                    />
-                  </FieldGroup>
+                        </FieldGroup>
 
-                  <FieldGroup>
-                    <Controller
-                      name="adresse"
-                      control={form.control}
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor="adresse">Adresse</FieldLabel>
-                          <Input
-                            {...field}
-                            id="adresse"
-                            placeholder="Entrez votre adresse"
-                            aria-invalid={fieldState.invalid}
+                        <FieldGroup>
+                          <Controller
+                            name="email"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="email">Email *</FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="email"
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
                           />
-                          {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                          )}
-                        </Field>
-                      )}
-                    />
-                  </FieldGroup>
+                        </FieldGroup>
+                      </div>
 
-                  <FieldGroup>
-                    <Controller
-                      name="role"
-                      control={form.control}
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor="role">Rôle *</FieldLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionnez un rôle" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {rolesLoading && (
-                                <SelectItem value="__loading" disabled>
-                                  Chargement des rôles...
-                                </SelectItem>
-                              )}
-                              {rolesError && !rolesLoading && (
-                                <SelectItem value="__error" disabled>
-                                  {rolesError}
-                                </SelectItem>
-                              )}
-                              {!rolesLoading &&
-                                !rolesError &&
-                                roles.map((role) => (
-                                  <SelectItem key={role._id} value={role._id}>
-                                    {roleLabels[role.name] || role.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                          {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                          )}
-                        </Field>
-                      )}
-                    />
-                  </FieldGroup>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FieldGroup>
+                          <Controller
+                            name="firstName"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="firstname">
+                                  First Name *
+                                </FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="firstName"
+                                  placeholder="Enter your first name"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
+                          />
+                        </FieldGroup>
 
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Inscription en cours...
-                      </>
-                    ) : (
-                      "S'inscrire"
-                    )}
-                  </Button>
+                        <FieldGroup>
+                          <Controller
+                            name="lastName"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="lastName">Last Name *</FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="lastName"
+                                  placeholder="Enter your last name"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
+                          />
+                        </FieldGroup>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FieldGroup>
+                          <Controller
+                            name="phoneCountryCode"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="phoneCountryCode">
+                                  Country (code) *
+                                </FieldLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <SelectTrigger id="phoneCountryCode">
+                                    <SelectValue placeholder="Code" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {phoneCountryCodes.map((item) => (
+                                      <SelectItem
+                                        key={`${item.label}-${item.value}`}
+                                        value={item.value}
+                                      >
+                                        {item.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
+                          />
+                        </FieldGroup>
+
+                        <div className="md:col-span-2">
+                          <FieldGroup>
+                            <Controller
+                              name="telephone"
+                              control={form.control}
+                              render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                  <FieldLabel htmlFor="telephone">
+                                    Phone *
+                                  </FieldLabel>
+                                  <Input
+                                    {...field}
+                                    id="telephone"
+                                    placeholder="12345678"
+                                    aria-invalid={fieldState.invalid}
+                                  />
+                                  <FieldDescription>
+                                    Enter numbers only, country code is selected on the left.
+                                  </FieldDescription>
+                                  {fieldState.invalid && (
+                                    <FieldError errors={[fieldState.error]} />
+                                  )}
+                                </Field>
+                              )}
+                            />
+                          </FieldGroup>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FieldGroup>
+                          <Controller
+                            name="country"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="country">Country *</FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="country"
+                                  placeholder="Tunisia"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
+                          />
+                        </FieldGroup>
+
+                        <FieldGroup>
+                          <Controller
+                            name="city"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="city">City *</FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="city"
+                                  placeholder="Tunis"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
+                          />
+                        </FieldGroup>
+
+                        <FieldGroup>
+                          <Controller
+                            name="postalCode"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel htmlFor="postalCode">
+                                  Postal Code *
+                                </FieldLabel>
+                                <Input
+                                  {...field}
+                                  id="postalCode"
+                                  placeholder="1000"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
+                            )}
+                          />
+                        </FieldGroup>
+                      </div>
+
+                      <FieldGroup>
+                        <Controller
+                          name="addressLine"
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel htmlFor="addressLine">
+                                Address (street / number) *
+                              </FieldLabel>
+                              <Input
+                                {...field}
+                                id="addressLine"
+                                placeholder="Street name..., N 15"
+                                aria-invalid={fieldState.invalid}
+                              />
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </Field>
+                          )}
+                        />
+                      </FieldGroup>
+
+                      <FieldGroup>
+                        <Controller
+                          name="role"
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel htmlFor="role">Role *</FieldLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <SelectTrigger id="role">
+                                  <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableRoles.map((roleName) => (
+                                    <SelectItem key={roleName} value={roleName}>
+                                      {roleLabels[roleName] || roleName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </Field>
+                          )}
+                        />
+                      </FieldGroup>
+
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        <Button
+                          type="button"
+                          onClick={goToStep2}
+                          className="flex-1 rounded-md bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                        >
+                          Continue to acceptance criteria
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {step === 2 && (
+                    <div className="space-y-5">
+                      <div className="max-h-[min(420px,55vh)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700 shadow-inner">
+                        <h4 className="font-semibold text-base text-slate-900 mb-3 flex items-center gap-2">
+                          <span aria-hidden>📋</span> Acceptance Criteria
+                        </h4>
+                        <p className="mb-3 text-slate-600">
+                          Before submitting your registration request,
+                          please note that:
+                        </p>
+                        <ul className="list-disc pl-5 space-y-2 leading-relaxed">
+                          <li>
+                            The information provided must be accurate and verifiable
+                          </li>
+                          <li>
+                            The profile must match the requirements of the requested role
+                          </li>
+                          <li>
+                            A verification will be performed by our administrative team
+                          </li>
+                          <li>
+                            The approval process may take 24-48 hours
+                          </li>
+                          <li>
+                            A confirmation email will be sent after validation
+                          </li>
+                        </ul>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Scroll the text above if needed, then confirm your agreement.
+                      </p>
+                      <div className="flex flex-col-reverse sm:flex-row gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={goBackToStep1}
+                          className="flex-1"
+                        >
+                          Back to form
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={goToStep3}
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white"
+                        >
+                          I have read and accept these criteria
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 3 && (
+                    <div className="space-y-5">
+                      <div className="max-h-[min(420px,55vh)] overflow-y-auto rounded-xl border border-blue-200 bg-blue-50/80 p-5 text-sm text-slate-800 shadow-inner">
+                        <h4 className="font-semibold text-base text-blue-950 mb-3 flex items-center gap-2">
+                          <span aria-hidden>📜</span> Platform Regulations
+                        </h4>
+                        <p className="mb-3 text-blue-950/90">
+                          By using the SmartSite platform, you commit to respecting:
+                        </p>
+                        <ul className="list-disc pl-5 space-y-2 leading-relaxed text-blue-950/90">
+                          <li>
+                            Privacy and security policies
+                          </li>
+                          <li>
+                            Provide accurate and up-to-date information
+                          </li>
+                          <li>
+                            Use the platform for professional purposes only
+                          </li>
+                          <li>
+                            Do not share your credentials with third parties
+                          </li>
+                          <li>
+                            Respect other users and collaborators
+                          </li>
+                          <li>
+                            Report any issues or anomalies promptly
+                          </li>
+                          <li>
+                            Accept final administrative decisions
+                          </li>
+                        </ul>
+                        <p className="mt-4 font-semibold text-blue-950 border-t border-blue-200 pt-4">
+                          Any violation of the regulations may result in the suspension or deletion of your account.
+                        </p>
+                      </div>
+                      <div className="flex flex-col-reverse sm:flex-row gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={goBackToStep2From3}
+                          disabled={isLoading}
+                          className="flex-1"
+                        >
+                          Back to criteria
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={submitFinal}
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white"
+                        >
+                          {isLoading ? (
+                            <>
+                              <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2 align-middle" />
+                              Sending...
+                            </>
+                          ) : (
+                            "I accept the regulations and send my request"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </CardContent>
             </Card>

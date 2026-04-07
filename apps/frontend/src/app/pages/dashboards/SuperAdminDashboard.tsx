@@ -1,41 +1,77 @@
-import { Building2, Users, Briefcase, DollarSign, AlertTriangle, TrendingUp, Shield, Clock } from 'lucide-react';
+import { Building2, Users, Briefcase, DollarSign, AlertTriangle, TrendingUp, Shield, Clock, MapPin, Calendar, Target, Search } from 'lucide-react';
 import { StatCard } from '../../components/DashboardStats';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
 import { Progress } from '../../components/ui/progress';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { mockProjects, mockSites, mockIncidents, mockTeamMembers } from '../../utils/mockData';
 import { useAuthStore } from '../../store/authStore';
-
-const projectStatusData = [
-  { name: 'In Progress', value: 8, color: '#3b82f6' },
-  { name: 'Planning', value: 3, color: '#f59e0b' },
-  { name: 'On Hold', value: 2, color: '#ef4444' },
-  { name: 'Completed', value: 12, color: '#10b981' },
-];
-
-const monthlyBudgetData = [
-  { month: 'Sep', budget: 1200000, spent: 980000 },
-  { month: 'Oct', budget: 1500000, spent: 1350000 },
-  { month: 'Nov', budget: 1800000, spent: 1620000 },
-  { month: 'Dec', budget: 2100000, spent: 1890000 },
-  { month: 'Jan', budget: 2400000, spent: 2160000 },
-  { month: 'Feb', budget: 2700000, spent: 2200000 },
-];
+import {
+  getDashboardStats,
+  type Site,
+  type Project,
+  type Task,
+  type TeamMember,
+  type Incident
+} from '../../action/dashboard.action';
+import { useState, useEffect, useMemo } from 'react';
+import { incidentMatchesSearch, taskMatchesSearch } from '../../utils/incidentSearchFilter';
 
 export default function SuperAdminDashboard() {
   const user = useAuthStore((state) => state.user);
-  const totalBudget = mockProjects.reduce((sum, p) => sum + p.budget, 0);
-  const activeProjects = mockProjects.filter(p => p.status === 'in_progress').length;
-  const activeSites = mockSites.filter(s => s.status === 'in_progress').length;
-  const activeUsers = mockTeamMembers.filter(u => u.isActive).length;
-  const criticalIncidents = mockIncidents.filter(i => i.severity === 'high' || i.severity === 'critical').length;
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [urgentSectionSearch, setUrgentSectionSearch] = useState('');
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await getDashboardStats();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Utiliser les données réelles ou des valeurs par défaut
+  const stats = dashboardData?.stats || {};
+  const sites = dashboardData?.sites || [];
+  const projects = dashboardData?.projects || [];
+  const urgentTasks = dashboardData?.urgentTasks || [];
+  const incidents = dashboardData?.incidents || [];
+  const teamMembers = dashboardData?.teamMembers || [];
+
+  const filteredUrgentTasks = useMemo(
+    () => urgentTasks.filter((task: Task) => taskMatchesSearch(task, urgentSectionSearch)).slice(0, 5),
+    [urgentTasks, urgentSectionSearch],
+  );
+  const filteredIncidentsForCard = useMemo(
+    () =>
+      incidents
+        .filter((inc: Incident) => incidentMatchesSearch(inc, urgentSectionSearch))
+        .slice(0, 5),
+    [incidents, urgentSectionSearch],
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Chargement du dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstname}!</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstName}!</h1>
         <p className="text-gray-500 mt-1">System Overview - Super Administrator Dashboard</p>
       </div>
 
@@ -43,25 +79,25 @@ export default function SuperAdminDashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Projects"
-          value={mockProjects.length}
+          value={stats.totalProjects}
           icon={Briefcase}
           trend={{ value: 12.5, isPositive: true }}
         />
         <StatCard
           title="Active Sites"
-          value={activeSites}
+          value={stats.activeSites}
           icon={Building2}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
           title="Team Members"
-          value={activeUsers + 10}
+          value={stats.totalTeamMembers}
           icon={Users}
-          subtitle={`${activeUsers} active`}
+          subtitle={`${stats.activeTeamMembers} active`}
         />
         <StatCard
           title="Total Budget"
-          value={`$${(totalBudget / 1000000).toFixed(1)}M`}
+          value={`$${(stats.totalBudget / 1000000).toFixed(1)}M`}
           icon={DollarSign}
           trend={{ value: 15.3, isPositive: true }}
         />
@@ -70,153 +106,182 @@ export default function SuperAdminDashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Active Projects"
-          value={activeProjects}
+          value={stats.activeProjects}
           icon={TrendingUp}
           subtitle="Currently ongoing"
         />
         <StatCard
           title="Critical Incidents"
-          value={criticalIncidents}
+          value={stats.criticalIncidents}
           icon={AlertTriangle}
           trend={{ value: 25, isPositive: false }}
         />
         <StatCard
-          title="Safety Score"
-          value="92%"
-          icon={Shield}
-          trend={{ value: 3.5, isPositive: true }}
+          title="Urgent Tasks"
+          value={stats.urgentTasks}
+          icon={Target}
+          subtitle="Need attention"
         />
         <StatCard
-          title="On-Time Delivery"
-          value="85%"
+          title="Avg Progress"
+          value={`${stats.avgProgress}%`}
           icon={Clock}
           trend={{ value: 5, isPositive: true }}
         />
       </div>
 
-      {/* Charts Row */}
+      {/* Data Overview Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Budget Overview */}
+        {/* Recent Sites */}
         <Card>
           <CardHeader>
-            <CardTitle>Budget Overview - Last 6 Months</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Recent Sites
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyBudgetData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-                <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" />
-                <Bar dataKey="spent" fill="#10b981" name="Spent" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {sites.slice(0, 5).map((site: Site) => (
+                <div key={site._id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-semibold">{site.name}</h4>
+                    <p className="text-sm text-gray-600">{site.localisation}</p>
+                  </div>
+                  <Badge variant={site.status === 'active' ? 'default' : 'secondary'}>
+                    {site.status}
+                  </Badge>
+                </div>
+              ))}
+              {sites.length === 0 && (
+                <div className="text-center py-4 text-gray-500">No sites found</div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Project Status Distribution */}
+        {/* Recent Projects */}
         <Card>
           <CardHeader>
-            <CardTitle>Project Status Distribution</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Recent Projects
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={projectStatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {projectStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {projects.slice(0, 5).map((project: Project) => (
+                <div key={project._id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-semibold">{project.name}</h4>
+                    <p className="text-sm text-gray-600">{project.assignedToName}</p>
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span>Progress</span>
+                        <span>{project.progress}%</span>
+                      </div>
+                      <Progress value={project.progress} className="h-2" />
+                    </div>
+                  </div>
+                  <Badge variant={project.status === 'en_cours' ? 'default' : 'secondary'}>
+                    {project.status}
+                  </Badge>
+                </div>
+              ))}
+              {projects.length === 0 && (
+                <div className="text-center py-4 text-gray-500">No projects found</div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Projects */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Projects</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {mockProjects.map((project) => (
-              <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                    <Badge variant={
-                      project.status === 'in_progress' ? 'default' :
-                      project.status === 'completed' ? 'secondary' :
-                      project.status === 'on_hold' ? 'destructive' :
-                      'outline'
-                    }>
-                      {project.status.replace('_', ' ')}
-                    </Badge>
+      {/* Team and Tasks Overview */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Team Members */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Team Members
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {teamMembers.slice(0, 5).map((member: TeamMember) => (
+                <div key={member._id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-semibold">{member.firstName} {member.lastName}</h4>
+                    <p className="text-sm text-gray-600">{member.email}</p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">{project.code} • Budget: ${project.budget.toLocaleString()}</p>
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-gray-600">Progress</span>
-                      <span className="font-semibold text-gray-900">{project.progress}%</span>
-                    </div>
-                    <Progress value={project.progress} className="h-2" />
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{typeof member.role === 'object' ? (member.role as any).name || 'Unknown' : member.role}</Badge>
+                    <div className={`w-2 h-2 rounded-full ${member.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+              {teamMembers.length === 0 && (
+                <div className="text-center py-4 text-gray-500">No team members found</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Recent Incidents */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Incidents & Alerts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {mockIncidents.map((incident) => (
-              <div key={incident.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                <div className={`p-2 rounded-lg ${
-                  incident.severity === 'critical' ? 'bg-red-100' :
-                  incident.severity === 'high' ? 'bg-orange-100' :
-                  incident.severity === 'medium' ? 'bg-yellow-100' :
-                  'bg-blue-100'
-                }`}>
-                  <AlertTriangle className={`h-4 w-4 ${
-                    incident.severity === 'critical' ? 'text-red-600' :
-                    incident.severity === 'high' ? 'text-orange-600' :
-                    incident.severity === 'medium' ? 'text-yellow-600' :
-                    'text-blue-600'
-                  }`} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-sm text-gray-900">{incident.type.toUpperCase()}</h4>
-                    <Badge variant={incident.status === 'resolved' ? 'secondary' : 'destructive'} className="text-xs">
-                      {incident.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{incident.description}</p>
-                  <p className="text-xs text-gray-400 mt-1">{new Date(incident.createdAt).toLocaleString()}</p>
-                </div>
+        {/* Urgent Tasks & Incidents */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <span>Urgent Tasks & Incidents</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="relative w-full sm:max-w-xs">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Rechercher par nom d'incident, type..."
+                  value={urgentSectionSearch}
+                  onChange={(e) => setUrgentSectionSearch(e.target.value)}
+                  className="pl-10"
+                  aria-label="Filtrer tâches et incidents"
+                />
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {filteredUrgentTasks.map((task: Task) => (
+                <div key={task._id} className="flex items-center gap-3 p-3 border rounded-lg bg-red-50 dark:bg-red-950/30">
+                  <Target className="h-4 w-4 text-red-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-sm">{task.title}</h4>
+                    <p className="text-xs text-muted-foreground">Due: {new Date(task.deadline).toLocaleDateString()}</p>
+                  </div>
+                  <Badge variant="destructive">{task.priority}</Badge>
+                </div>
+              ))}
+              {filteredIncidentsForCard.map((incident: Incident) => (
+                <div key={incident._id} className="flex items-center gap-3 p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/30">
+                  <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-sm">{incident.type}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{incident.description}</p>
+                  </div>
+                  <Badge variant={incident.severity === 'critical' ? 'destructive' : 'secondary'}>
+                    {incident.severity}
+                  </Badge>
+                </div>
+              ))}
+              {filteredUrgentTasks.length === 0 && filteredIncidentsForCard.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  {urgentSectionSearch.trim()
+                    ? 'Aucun incident trouvé pour cette recherche'
+                    : 'No urgent items'}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

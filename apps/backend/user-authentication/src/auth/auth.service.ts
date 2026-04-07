@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
+import { RolesService } from '../roles/roles.service';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +15,7 @@ export class AuthService {
     private jwtService: JwtService,
     private emailService: EmailService,
     private configService: ConfigService,
+    private rolesService: RolesService,
   ) {}
 
   /**
@@ -80,6 +83,50 @@ export class AuthService {
     }
     return null;
   }
+<<<<<<< HEAD
+    console.log('🔍 validateUser:', cin);
+    const user = await this.usersService.findByCin(cin);
+    
+=======
+
+    const user = await this.usersService.findByCin(cin);
+>>>>>>> origin/main
+    if (!user) {
+      console.log('❌ Utilisateur non trouvé');
+      return null;
+    }
+
+    if ((user as any).status && (user as any).status !== 'approved') {
+<<<<<<< HEAD
+      console.log('❌ User not approved, status =', (user as any).status);
+=======
+>>>>>>> origin/main
+      return null;
+    }
+
+    const storedHash = (user as any).password;
+    if (!storedHash) {
+<<<<<<< HEAD
+      console.log('❌ No stored password hash for user', cin);
+      return null;
+    }
+
+    const isMatch = await bcrypt.compare(password, storedHash);
+    console.log('📊 Password match:', isMatch ? '✅' : '❌');
+    
+    if (isMatch) {
+=======
+      return null;
+    }
+
+    if (await bcrypt.compare(password, storedHash)) {
+>>>>>>> origin/main
+      const userObj = user.toObject ? user.toObject() : user;
+      const { password: _p, ...result } = userObj as any;
+      return result;
+    }
+    return null;
+  }
 
   async login(user: any) {
     console.log('🔐 Login user:', user.cin);
@@ -92,68 +139,247 @@ export class AuthService {
     console.log('📦 JWT Payload:', payload);
 
     const userData = user.toObject ? user.toObject() : user;
-
+    const sessionId = randomUUID();
     return {
       access_token: this.jwtService.sign(payload),
       id: userData._id,
       cin: userData.cin,
-      lastname: userData.lastname,
-      firstname: userData.firstname,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
       role: userData.role || null,
+      firstLogin: userData.firstLogin,
+      session_id: sessionId,
     };
   }
 
   async register(
     cin: string,
     password: string,
-    firstname: string,
-    lastname: string,
-    role: string,
-    email?: string,
+    firstName: string,
+    lastName: string,
+    email: string,
     telephone?: string,
     departement?: string,
     address?: string,
+    role?: string,
+    companyName?: string,
   ) {
-    console.log('🔍 DEBUG register appelé avec:', {
-      cin,
-      password,
-      firstname,
-      lastname,
-      role,
-      email,
-      telephone,
-      departement,
-      address,
-    });
-
     const existingUser = await this.usersService.findByCin(cin);
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
 
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
+    const hashedPassword = password
+      ? await bcrypt.hash(password, 10)
+      : undefined;
 
-    const userData = {
+    const normalizedRole = (role || 'user').trim();
+    const roleDoc = await this.rolesService.findByName(normalizedRole);
+    const fallbackRoleDoc = roleDoc
+      ? null
+      : await this.rolesService.findByName('user');
+    const resolvedRole = roleDoc || fallbackRoleDoc;
+    if (!resolvedRole) {
+      throw new BadRequestException(
+        'Aucun rôle valide trouvé en base (seed roles manquant)',
+      );
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    const userData: Record<string, unknown> = {
       cin,
-      password: hashedPassword,
-      lastname,
-      firstname,
-      role,
-      email: email || address,
-      telephone,
+      firstName,
+      lastName,
+      role: resolvedRole._id,
+      email: email || '',
+      phoneNumber: telephone,
       departement,
-      address: address,
+      address: address || '',
+      companyName,
       status: 'pending',
+      emailVerified: false,
+      emailVerificationOtp: otp,
+      otpExpiresAt,
     };
-
-    console.log('🔍 DEBUG userData à créer:', userData);
+    if (hashedPassword) {
+      userData.password = hashedPassword;
+    }
 
     const result = await this.usersService.create(userData);
-    console.log('🔍 DEBUG utilisateur créé:', result);
+
+    if (result && result.email) {
+      try {
+        await this.emailService.sendOTPEmail(
+          result.email,
+          result.firstName,
+          otp,
+        );
+      } catch (error) {
+        console.error("Erreur lors de l'envoi de l'OTP:", error);
+      }
+    }
+
     return result;
   }
 
+  async verifyOTP(cin: string, otp: string) {
+    const user = await this.usersService.findByCin(cin);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    if (!user.emailVerificationOtp) {
+      throw new BadRequestException('No OTP found for this user');
+    }
+
+    if (user.otpExpiresAt && new Date() > user.otpExpiresAt) {
+      throw new BadRequestException('OTP has expired');
+    }
+
+    if (user.emailVerificationOtp !== otp) {
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    const updatedUser = await this.usersService.update(user._id.toString(), {
+      emailVerified: true,
+      emailVerificationOtp: null,
+      otpExpiresAt: null,
+    });
+
+    if (!updatedUser) {
+      throw new BadRequestException('Failed to update user');
+    }
+
+    return {
+      success: true,
+      message: 'Email verified successfully',
+      user: {
+        id: updatedUser._id,
+        cin: updatedUser.cin,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        emailVerified: updatedUser.emailVerified,
+      },
+    };
+  }
+
+  async resendOTP(cin: string) {
+    const user = await this.usersService.findByCin(cin);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.usersService.update(user._id.toString(), {
+      emailVerificationOtp: otp,
+      otpExpiresAt,
+    });
+
+    if (user.email) {
+      try {
+        await this.emailService.sendOTPEmail(user.email, user.firstName, otp);
+      } catch (error) {
+        console.error('Erreur lors du renvoi de l OTP:', error);
+        throw new BadRequestException('Failed to send OTP email');
+      }
+    } else {
+      throw new BadRequestException('No email found for this user');
+    }
+
+    return {
+      success: true,
+      message: 'OTP sent successfully',
+    };
+  }
+
   async approveUser(userId: string, password: string, adminId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if ((user as any).status && (user as any).status !== 'pending') {
+      throw new BadRequestException(
+        "L'utilisateur n'est pas en attente d'approbation",
+      );
+    }
+
+    const plainPassword = password?.trim() || '';
+    const updatePayload: Record<string, unknown> = {
+      status: 'approved',
+      approvedBy: adminId,
+      approvedAt: new Date(),
+    };
+    // usersService.update() hash le mot de passe une seule fois — ne pas pré-hasher ici
+    if (plainPassword) {
+      updatePayload.password = plainPassword;
+    }
+
+    const updatedUser = await this.usersService.update(userId, updatePayload);
+    if (!updatedUser) {
+      throw new BadRequestException("Échec de l'approbation");
+    }
+
+    if (updatedUser.email && plainPassword) {
+      try {
+        await this.emailService.sendApprovalEmail(
+          updatedUser.email,
+          updatedUser.firstName,
+          updatedUser.lastName,
+          updatedUser.cin,
+          plainPassword,
+        );
+      } catch (error) {
+        console.error("Échec envoi email d'approbation (compte déjà approuvé):", error);
+      }
+    }
+
+    return updatedUser;
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return { message: 'If the email exists, a reset code will be sent' };
+    }
+
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetCodeExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.usersService.update(user._id.toString(), {
+      passwordResetCode: resetCode,
+      passwordResetCodeExpiresAt: resetCodeExpiresAt,
+    });
+
+    if (user.email) {
+      try {
+        await this.emailService.sendOTPEmail(
+          user.email,
+          user.firstName || 'Utilisateur',
+          resetCode,
+        );
+      } catch (error) {
+        console.error('Failed to send reset email:', error);
+      }
+    }
+
+    return { message: 'If the email exists, a reset code will be sent' };
+  }
+
+  async rejectUser(userId: string, reason?: string) {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -163,34 +389,24 @@ export class AuthService {
       throw new BadRequestException('User is not in pending status');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
     const updatedUser = await this.usersService.update(userId, {
-      password: hashedPassword,
-      status: 'approved',
-      approvedBy: adminId,
-      approvedAt: new Date(),
+      status: 'rejected',
+      rejectedAt: new Date(),
+      rejectReason: reason || 'Aucun motif spécifié',
     });
 
-    console.log('🔍 DEBUG: Vérification email pour utilisateur approuvé...');
-    console.log('🔍 DEBUG: updatedUser:', updatedUser);
-    console.log('🔍 DEBUG: updatedUser.email:', updatedUser?.email);
-
-    if (updatedUser && updatedUser.email) {
-      console.log('📧 ENVOI EMAIL: Envoi en cours à', updatedUser.email);
+    if (updatedUser?.email) {
       try {
-        await this.emailService.sendApprovalEmail(
+        await this.emailService.sendRejectionEmail(
           updatedUser.email,
-          updatedUser.firstname,
-          updatedUser.lastname,
+          updatedUser.firstName,
+          updatedUser.lastName,
           updatedUser.cin,
-          password,
+          reason || 'Aucun motif spécifié',
         );
-        console.log('✅ EMAIL ENVOYÉ avec succès à', updatedUser.email);
       } catch (error) {
-        console.error('❌ Failed to send approval email:', error);
+        console.error('Failed to send rejection email:', error);
       }
-    } else {
-      console.log("⚠️ PAS D'EMAIL: Utilisateur sans adresse email");
     }
 
     return updatedUser;

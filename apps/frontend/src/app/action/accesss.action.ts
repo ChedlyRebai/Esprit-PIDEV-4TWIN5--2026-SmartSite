@@ -4,11 +4,8 @@ import { useAuthStore } from "../store/authStore";
 export const getPermissions = async () => {
   try {
     const token = useAuthStore.getState().user?.access_token;
-    console.log(
-      "Fetching permissions with token:",
-      token,
-    );
-    
+    console.log("Fetching permissions with token:", token);
+
     if (!token) {
       console.error("No token found in auth store");
       return Promise.resolve({
@@ -16,12 +13,15 @@ export const getPermissions = async () => {
         data: "No authentication token found",
       });
     }
-    
-    const res = await axios.get(`http://localhost:3000/users/mypermissions`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+
+    const res = await axios.get(
+      `https://smartsite-platform-auth.vercel.app/users/mypermissions`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
     if (res.status === 200) {
       return Promise.resolve({
         status: res.status,

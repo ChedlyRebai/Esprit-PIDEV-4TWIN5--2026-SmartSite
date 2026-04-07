@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/stats";
+const API_URL = "https://smartsite-platform-auth.vercel.app/stats";
 
 export const getAllStatics = async () => {
   try {

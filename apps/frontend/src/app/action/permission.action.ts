@@ -1,20 +1,12 @@
 import axios from "axios";
+import { useAuthStore } from "../store/authStore";
 
-const API_URL =  "http://localhost:3000/permissions";
+const API_URL = "https://smartsite-platform-auth.vercel.app/permissions";
 
 export const getAllPermissions = async () => {
-  try {
-    const res = await axios.get(`${API_URL}`);
-    if (res.status === 200) {
-      return Promise.resolve({ status: res.status, data: res.data });
-    }
-  } catch (error: any) {
-    console.error("Get permissions error:", error?.response?.data?.message);
-    return Promise.resolve({
-      status: error?.response?.status,
-      data: error?.response?.data?.message,
-    });
-  }
+  const { data } = await axios.get(`${API_URL}`);
+
+  return data;
 };
 
 export const getPermissionById = async (id: string) => {
@@ -64,7 +56,7 @@ export const updatePermission = async (
     create?: boolean;
     update?: boolean;
     delete?: boolean;
-  }
+  },
 ) => {
   try {
     const res = await axios.put(`${API_URL}/${id}`, permissionData);
@@ -93,4 +85,32 @@ export const deletePermission = async (id: string) => {
       data: error?.response?.data?.message,
     });
   }
+};
+
+export const accessPermissionByurl = async (url: string) => {
+  const token = useAuthStore.getState().user.access_token;
+
+  const { data } = await axios.get(
+    `https://smartsite-platform-auth.vercel.app/users/acessurl/${url}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return data;
+};
+
+export const getMynavigationAccess = async () => {
+  const token = useAuthStore.getState().user.access_token;
+  const { data } = await axios.get(
+    `https://smartsite-platform-auth.vercel.app/users/mypermissions`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return data;
 };

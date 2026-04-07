@@ -1,285 +1,632 @@
-import { RefreshCw } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { useAuthStore } from '../../store/authStore';
-import { toast } from 'sonner';
-import { Progress } from '../../components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
-import { PasswordGenerator } from '../../utils/passwordGenerator';
+"use client";
+
+import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Mail,
+  Phone,
+  Calendar,
+  Shield,
+  Building,
+  MapPin,
+  Award,
+  Edit,
+  Save,
+  X,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { Avatar, AvatarFallback } from "../../components/ui/avatar";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { useAuthStore } from "../../store/authStore";
+import toast from "react-hot-toast";
+import axios from "axios";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { getCurrentUser } from "@/app/action/auth.action";
+
+const profileSchema = z.object({
+  firstName: z
+    .string()
+    .min(2, "Le prénom doit contenir au moins 2 caractères")
+    .max(50, "Le prénom ne doit pas dépasser 50 caractères"),
+  lastName: z
+    .string()
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(50, "Le nom ne doit pas dépasser 50 caractères"),
+  email: z.string().email("Email invalide"),
+  telephone: z.string().optional(),
+  address: z.string().optional(),
+  departement: z.string().optional(),
+  companyName: z.string().optional(),
+});
+
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Mot de passe actuel requis"),
+    newPassword: z
+      .string()
+      .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+    confirmPassword: z.string().min(1, "Confirmation requise"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["confirmPassword"],
+  });
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+type PasswordFormData = z.infer<typeof passwordSchema>;
+
+const API_ME = "https://smartsite-platform-auth.vercel.app/users/me";
 
 export default function Profile() {
-  const user = useAuthStore((state) => state.user);
-  const changePassword = useAuthStore((state) => state.changePassword);
-  const [editData, setEditData] = useState({
-    firstname: user?.firstname || '',
-    lastname: user?.lastname || '',
+  const authUser = useAuthStore((state) => state.user);
+
+  const [user, setUser] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const profileForm = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      telephone: "",
+      address: "",
+      departement: "",
+      companyName: "",
+    },
   });
-  const [passwords, setPasswords] = useState({
-    current: '',
-    new: '',
-    confirm: '',
+
+  const passwordForm = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
-  const [passwordStrength, setPasswordStrength] = useState({ 
-    score: 0, 
-    strength: 'Très faible' as const, 
-    color: 'bg-red-500'
-  });
-  const [showPasswordStrength, setShowPasswordStrength] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Mettre à jour la force du mot de passe quand l'utilisateur tape
-  useEffect(() => {
-    if (passwords.new) {
-      const strength = PasswordGenerator.evaluatePasswordStrength(passwords.new);
-      setPasswordStrength(strength);
-      setShowPasswordStrength(true);
-    } else {
-      setShowPasswordStrength(false);
-    }
-  }, [passwords.new]);
-
-  // Générer un nouveau mot de passe fort
-  const generateNewPassword = () => {
-    const newPassword = PasswordGenerator.generateStrongPassword(14);
-    setPasswords({ ...passwords, new: newPassword, confirm: '' });
-    toast.success('Mot de passe fort généré!');
-  };
-
-  if (!user) return null;
-
-  const getInitials = (firstname: string, lastname: string) => {
-    return `${firstname.charAt(0)}${lastname.charAt(0)}`.toUpperCase();
-  };
-
-  const handleSaveProfile = () => {
-    if (!editData.firstname || !editData.lastname) {
-      toast.error('Le prénom et le nom sont requis');
+  const loadUserData = async () => {
+    if (!authUser?.access_token) {
+      setIsLoadingData(false);
       return;
     }
-    toast.success('Profil mis à jour avec succès!');
-  };
-
-  const handleChangePassword = async () => {
-    // Validation des champs
-    if (!passwords.current || !passwords.new || !passwords.confirm) {
-      toast.error('Tous les champs de mot de passe sont requis');
-      return;
-    }
-    
-    if (passwords.new !== passwords.confirm) {
-      toast.error('Les nouveaux mots de passe ne correspondent pas');
-      return;
-    }
-    
-    if (!PasswordGenerator.isStrongPassword(passwords.new)) {
-      toast.error('Le mot de passe est trop faible. Veuillez choisir un mot de passe plus fort.');
-      return;
-    }
-    
-    setIsChangingPassword(true);
-    
+    setIsLoadingData(true);
     try {
-      // Appel API pour changer le mot de passe
-      await changePassword(passwords.current, passwords.new);
-      
-      toast.success('Mot de passe changé avec succès!');
-      setPasswords({ current: '', new: '', confirm: '' });
-      setShowPasswordStrength(false);
-      setIsDialogOpen(false);
-    } catch (error: any) {
-      console.error('Error changing password:', error);
-      if (error.response?.status === 401) {
-        toast.error('Mot de passe actuel incorrect');
-      } else if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error('Erreur lors du changement de mot de passe');
+      const res = await getCurrentUser(authUser);
+      if (res.status === 200 && res.data && typeof res.data === "object") {
+        const userData = res.data as Record<string, unknown>;
+        setUser(userData);
+        profileForm.reset({
+          firstName: String(userData.firstName ?? ""),
+          lastName: String(userData.lastName ?? ""),
+          email: String(userData.email ?? ""),
+          telephone: String(
+            userData.telephone ?? userData.phoneNumber ?? "",
+          ),
+          address: String(userData.address ?? ""),
+          departement: String(userData.departement ?? ""),
+          companyName: String(userData.companyName ?? ""),
+        });
       }
+    } catch (error: unknown) {
+      console.error("Error loading user:", error);
+      toast.error("Erreur lors du chargement du profil");
     } finally {
-      setIsChangingPassword(false);
+      setIsLoadingData(false);
     }
   };
 
-  // Réinitialiser les états quand le dialogue se ferme
-  const handleDialogOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
-      setPasswords({ current: '', new: '', confirm: '' });
-      setShowPasswordStrength(false);
+  useEffect(() => {
+    void loadUserData();
+  }, [authUser?.access_token]);
+
+  const getInitials = (firstName: string, lastName: string) =>
+    `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
+
+  const handleSaveProfile = async (data: ProfileFormData) => {
+    setIsLoading(true);
+    try {
+      await axios.put(API_ME, data, {
+        headers: {
+          Authorization: `Bearer ${authUser?.access_token}`,
+        },
+      });
+      toast.success("Profil mis à jour avec succès!");
+      setUser((u: any) => ({ ...u, ...data }));
+      setIsEditing(false);
+      await loadUserData();
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Erreur lors de la mise à jour du profil",
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const handleChangePassword = async (data: PasswordFormData) => {
+    setIsLoading(true);
+    try {
+      await axios.put(
+        `${API_ME}/password`,
+        {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authUser?.access_token}`,
+          },
+        },
+      );
+
+      toast.success("Mot de passe changé avec succès!");
+      passwordForm.reset();
+      setIsEditingPassword(false);
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Erreur lors du changement de mot de passe",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500">
+          Impossible de charger les données du profil
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto p-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
-        <p className="text-gray-500 mt-1">Gérez vos informations personnelles</p>
+        <p className="text-gray-500 mt-1">
+          Gérez vos informations personnelles
+        </p>
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Informations Personnelles</CardTitle>
+          {!isEditing ? (
+            <Button
+              onClick={() => setIsEditing(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Modifier
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setIsEditing(false);
+                  profileForm.reset();
+                }}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                Annuler
+              </Button>
+              <Button
+                onClick={profileForm.handleSubmit(handleSaveProfile)}
+                disabled={isLoading}
+                size="sm"
+                className="gap-2 bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Save className="h-4 w-4" />
+                {isLoading ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex items-start gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarFallback className="bg-gradient-to-br from-blue-600 to-green-600 text-white text-2xl">
-                {getInitials(user.firstname, user.lastname)}
+              <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-2xl">
+                {getInitials(
+                  String(user.firstName ?? ""),
+                  String(user.lastName ?? ""),
+                )}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 space-y-4">
-              <div className="flex gap-3 pt-4">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                      Modifier le Profil
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Modifier le Profil</DialogTitle>
-                      <DialogDescription>
-                        Mettez à jour vos informations personnelles
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstname">Prénom</Label>
-                          <Input
-                            id="firstname"
-                            value={editData.firstname}
-                            onChange={(e) => setEditData({ ...editData, firstname: e.target.value })}
-                            placeholder="Prénom"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastname">Nom</Label>
-                          <Input
-                            id="lastname"
-                            value={editData.lastname}
-                            onChange={(e) => setEditData({ ...editData, lastname: e.target.value })}
-                            placeholder="Nom"
-                          />
-                        </div>
-                      </div>
-                      <Button 
-                        className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                        onClick={handleSaveProfile}
-                      >
-                        Sauvegarder les modifications
-                      </Button>
+
+            {!isEditing ? (
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {user.firstName} {user.lastName}
+                  </h2>
+                  <p className="text-gray-500">CIN: {user.cin}</p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Mail className="h-5 w-5 text-indigo-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="font-medium">
+                        {user.email || "Non renseigné"}
+                      </p>
                     </div>
-                  </DialogContent>
-                </Dialog>
-
-                <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">Changer le Mot de Passe</Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Changer le Mot de Passe</DialogTitle>
-                      <DialogDescription>
-                        Entrez votre mot de passe actuel et votre nouveau mot de passe
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="current">Mot de Passe Actuel</Label>
-                        <Input
-                          id="current"
-                          type="password"
-                          value={passwords.current}
-                          onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                          placeholder="Entrez votre mot de passe actuel"
-                          disabled={isChangingPassword}
-                        />
+                  </div>
+                  {user.telephone && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Phone className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">Téléphone</p>
+                        <p className="font-medium">{user.telephone}</p>
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="new">Nouveau Mot de Passe</Label>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  type="button"
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={generateNewPassword}
-                                  className="text-xs"
-                                  disabled={isChangingPassword}
-                                >
-                                  <RefreshCw className="h-3 w-3 mr-1" />
-                                  Générer un mot de passe fort
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Génère un mot de passe fort aléatoirement</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <Input
-                          id="new"
-                          type="text"
-                          value={passwords.new}
-                          onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                          placeholder="Entrez votre nouveau mot de passe"
-                          className="font-mono"
-                          disabled={isChangingPassword}
-                        />
-                        
-                        {showPasswordStrength && (
-                          <div className="mt-2">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs text-gray-600">Force du mot de passe:</span>
-                              <span className={`text-xs font-semibold ${passwordStrength.color.replace('bg-', 'text-')}`}>
-                                {passwordStrength.strength}
-                              </span>
-                            </div>
-                            <Progress 
-                              value={(passwordStrength.score / 6) * 100} 
-                              className={passwordStrength.color}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm">Confirmer le Mot de Passe</Label>
-                        <Input
-                          id="confirm"
-                          type="password"
-                          value={passwords.confirm}
-                          onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                          placeholder="Confirmez votre nouveau mot de passe"
-                          disabled={isChangingPassword}
-                        />
-                        {passwords.confirm && passwords.new !== passwords.confirm && (
-                          <p className="text-xs text-red-500">Les mots de passe ne correspondent pas</p>
-                        )}
-                      </div>
-
-                      <Button 
-                        className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                        onClick={handleChangePassword}
-                        disabled={isChangingPassword}
-                      >
-                        {isChangingPassword ? 'Changement en cours...' : 'Mettre à jour le mot de passe'}
-                      </Button>
                     </div>
-                  </DialogContent>
-                </Dialog>
+                  )}
+                  {user.address && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <MapPin className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">Adresse</p>
+                        <p className="font-medium">{user.address}</p>
+                      </div>
+                    </div>
+                  )}
+                  {user.departement && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Shield className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">Département</p>
+                        <p className="font-medium">{user.departement}</p>
+                      </div>
+                    </div>
+                  )}
+                  {user.companyName && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Building className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">Entreprise</p>
+                        <p className="font-medium">{user.companyName}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Calendar className="h-5 w-5 text-indigo-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Inscrit le</p>
+                      <p className="font-medium">
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString("fr-FR")
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {Array.isArray(user.certifications) &&
+                  user.certifications.length > 0 && (
+                    <div className="pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Award className="h-5 w-5 text-indigo-600" />
+                        <p className="text-sm font-medium text-gray-700">
+                          Certifications
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {user.certifications.map((cert: string, idx: number) => (
+                          <Badge key={idx} variant="secondary">
+                            {cert}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
+            ) : (
+              <form className="flex-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FieldGroup>
+                    <Controller
+                      name="firstName"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="firstName">Prénom</FieldLabel>
+                          <Input {...field} id="firstName" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Controller
+                      name="lastName"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="lastName">Nom</FieldLabel>
+                          <Input {...field} id="lastName" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Controller
+                      name="email"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="email">Email</FieldLabel>
+                          <Input {...field} id="email" type="email" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Controller
+                      name="telephone"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="telephone">
+                            Téléphone
+                          </FieldLabel>
+                          <Input {...field} id="telephone" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup className="md:col-span-2">
+                    <Controller
+                      name="address"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="address">Adresse</FieldLabel>
+                          <Input {...field} id="address" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Controller
+                      name="departement"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="departement">
+                            Département
+                          </FieldLabel>
+                          <Input {...field} id="departement" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Controller
+                      name="companyName"
+                      control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor="companyName">
+                            Entreprise
+                          </FieldLabel>
+                          <Input {...field} id="companyName" />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+                </div>
+              </form>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Sécurité</CardTitle>
+          {!isEditingPassword && (
+            <Button
+              onClick={() => setIsEditingPassword(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Changer le mot de passe
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {isEditingPassword ? (
+            <form
+              onSubmit={passwordForm.handleSubmit(handleChangePassword)}
+              className="space-y-4 max-w-md"
+            >
+              <FieldGroup>
+                <Controller
+                  name="currentPassword"
+                  control={passwordForm.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="currentPassword">
+                        Mot de passe actuel
+                      </FieldLabel>
+                      <Input {...field} id="currentPassword" type="password" />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+
+              <FieldGroup>
+                <Controller
+                  name="newPassword"
+                  control={passwordForm.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="newPassword">
+                        Nouveau mot de passe
+                      </FieldLabel>
+                      <Input {...field} id="newPassword" type="password" />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+
+              <FieldGroup>
+                <Controller
+                  name="confirmPassword"
+                  control={passwordForm.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="confirmPassword">
+                        Confirmer le mot de passe
+                      </FieldLabel>
+                      <Input {...field} id="confirmPassword" type="password" />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingPassword(false);
+                    passwordForm.reset();
+                  }}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="gap-2 bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <Save className="h-4 w-4" />
+                  {isLoading ? "Enregistrement..." : "Changer le mot de passe"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-gray-600">
+              Cliquez sur « Changer le mot de passe » pour mettre à jour votre
+              mot de passe.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Statut du Compte</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-gray-500 mb-1">Statut</p>
+              <Badge
+                variant={user.status === "approved" ? "secondary" : "default"}
+                className="text-sm"
+              >
+                {user.status === "approved"
+                  ? "Approuvé"
+                  : user.status === "pending"
+                    ? "En attente"
+                    : "Actif"}
+              </Badge>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-gray-500 mb-1">Email vérifié</p>
+              <Badge
+                variant={user.emailVerified ? "secondary" : "destructive"}
+                className="text-sm"
+              >
+                {user.emailVerified ? "Oui" : "Non"}
+              </Badge>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-gray-500 mb-1">Compte actif</p>
+              <Badge
+                variant={user.isActif ? "secondary" : "destructive"}
+                className="text-sm"
+              >
+                {user.isActif ? "Oui" : "Non"}
+              </Badge>
             </div>
           </div>
         </CardContent>

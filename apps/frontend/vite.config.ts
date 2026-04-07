@@ -17,14 +17,15 @@ export default defineConfig({
       
     },
   },
-
-  // API Proxy configuration for backend communication
+  define: {
+    "process.env": {},
+  },
+  // Dev : optionnel — si vous appelez des URLs relatives `/api/...`, elles sont proxifiées vers l’API locale (même port que VITE_AUTH_API_URL / PORT Nest).
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3007',
         changeOrigin: true,
-        secure: false,
       },
     },
   },

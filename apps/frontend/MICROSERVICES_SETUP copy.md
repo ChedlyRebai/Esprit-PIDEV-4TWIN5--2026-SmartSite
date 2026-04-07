@@ -51,7 +51,7 @@ docker-compose down
 
 **Access:**
 - Frontend: http://localhost:5173
-- API: http://localhost:3000/api
+- API: https://smartsite-platform-auth.vercel.app/api
 - Database: localhost:5432
 
 ---
@@ -159,7 +159,7 @@ CREATE DATABASE qhse_db;
 Update React components to use API Gateway:
 ```typescript
 // src/utils/api.ts
-const API_URL = process.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.VITE_API_URL || 'https://smartsite-platform-auth.vercel.app/api';
 
 export const fetchProjects = async () => {
   const response = await fetch(`${API_URL}/projects`);

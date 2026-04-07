@@ -49,6 +49,8 @@ const PERMISSION_CATEGORIES = [
   { name: "Notifications", href: "/notifications" },
   { name: "Pending Approvals", href: "/admin/pending-users" },
   
+  {name: "My Tasks", href: "/my-task"}  
+  
 ];
 
 const PermissionForms = ({ type }: { type: "add" | "edit" }) => {

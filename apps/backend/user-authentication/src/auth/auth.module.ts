@@ -11,6 +11,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { EmailModule } from '../email/email.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     UsersModule,
     RolesModule,
     EmailModule,
+    AuditLogsModule,
   ],
   providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
   controllers: [AuthController, GoogleController],

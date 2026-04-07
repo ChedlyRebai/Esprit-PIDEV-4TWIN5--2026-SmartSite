@@ -9,4 +9,14 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('projects/all')
+  async getAllProjects() {
+    return this.appService.getAllProjectsForSuperAdmin();
+  }
+
+  @Get('tasks/urgent')
+  async getUrgentTasks() {
+    return this.appService.getUrgentTasksForDashboard();
+  }
 }

@@ -148,7 +148,7 @@ kubectl set image deployment/auth-service auth-service=smartsite/auth-service:v2
 
 ## 📡 API Endpoints
 
-**Base URL:** `http://localhost:3000/api` (Development)
+**Base URL:** `https://smartsite-platform-auth.vercel.app/api` (Development)
 
 ### Auth
 - `POST /auth/login` - User login

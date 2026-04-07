@@ -18,14 +18,9 @@ import { useAuthStore } from "@/app/store/authStore";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
+import WelcomeModal from "./WelcomeModalSimple";
 
-/**
- * ====================================================
- * SCHÉMA DE VALIDATION - AVEC reCAPTCHA
- * ====================================================
- * Le champ recaptchaToken est requis pour la validation
- * ====================================================
- */
 const formSchema = z.object({
   cin: z
     .string()
@@ -41,12 +36,19 @@ const formSchema = z.object({
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const { user, isFirstLogin } = useAuthStore((state) => state);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [showWelcome, setShowWelcome] = React.useState(false);
   
-  // Référence pour le composant reCAPTCHA
   const recaptchaRef = React.useRef<ReCAPTCHA>(null);
 
+  React.useEffect(() => {
+    console.log("Login component - user:", user);
+    console.log("Login component - isFirstLogin:", isFirstLogin);
+    console.log("Login component - showWelcome:", showWelcome);
+  }, [user, isFirstLogin, showWelcome]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,35 +58,26 @@ export default function Login() {
     },
   });
 
-  /**
-   * ====================================================
-   * CALLBACK reCAPTCHA
-   * ====================================================
-   * Cette fonction est appelée lorsque le reCAPTCHA est validé
-   * ====================================================
-   */
   const onRecaptchaChange = (token: string | null) => {
     form.setValue("recaptchaToken", token || "");
-    // Effacer l'erreur si elle existe
     if (token) {
       form.clearErrors("recaptchaToken");
     }
   };
 
-  /**
-   * ====================================================
-   * SOUMISSION DU FORMULAIRE - AVEC reCAPTCHA
-   * ====================================================
-   * Le token reCAPTCHA est envoyé au backend pour validation
-   * ====================================================
-   */
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      // Appel login avec le token reCAPTCHA
-      await login(data.cin, data.password, data.recaptchaToken);
+      const userData = await login(data.cin, data.password, data.recaptchaToken);
       toast.success("Connexion réussie!");
-      navigate("/dashboard");
+
+      if (userData.firstLogin) {
+        console.log("Login - First login, showing welcome modal");
+        setShowWelcome(true);
+      } else {
+        console.log("Login - Not first login, navigating to dashboard");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
@@ -92,7 +85,6 @@ export default function Login() {
         "Identifiants invalides. Veuillez réessayer.";
       toast.error(message);
       
-      // Réinitialiser le reCAPTCHA en cas d'erreur
       recaptchaRef.current?.reset();
       form.setValue("recaptchaToken", "");
     } finally {
@@ -105,12 +97,16 @@ export default function Login() {
       <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="mx-auto w-full lg:w-96">
           <div>
-            <img
-              src="/logo.png"
-              alt="SmartSite"
-              className="h-16 w-16 object-contain"
-            />
-            <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
+            <a
+              href="/"
+              className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md"
+            >
+              <SmartSiteLogo size="sm" />
+            </a>
+            <p className="mt-2 text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase">
+              Intelligent construction platform
+            </p>
+            <h2 className="mt-6 text-2xl font-bold leading-9 tracking-tight text-gray-900">
               Connectez-vous à votre compte
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
@@ -139,6 +135,7 @@ export default function Login() {
                         placeholder="Entrez votre CIN"
                         aria-invalid={fieldState.invalid}
                         disabled={isLoading}
+                        autoComplete="off"
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -178,9 +175,6 @@ export default function Login() {
                   )}
                 />
 
-                {/* ==================================================== */}
-                {/* COMPOSANT reCAPTCHA - ACTIVÉ */}
-                {/* ==================================================== */}
                 <div className="flex justify-center my-4">
                   <ReCAPTCHA
                     ref={recaptchaRef}
@@ -215,7 +209,6 @@ export default function Login() {
               </FieldGroup>
             </form>
 
-            {/* Séparateur */}
             <div className="relative mt-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
@@ -225,7 +218,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Bouton Google */}
             <div className="mt-6">
               <a
                 href="http://localhost:3000/auth/google"
@@ -255,6 +247,7 @@ export default function Login() {
           </div>
         </div>
       </div>
+
       <div className="relative hidden w-0 flex-1 lg:block">
         <img
           className="absolute inset-0 h-full w-full object-cover"
@@ -262,6 +255,13 @@ export default function Login() {
           alt=""
         />
       </div>
+
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        userRole={typeof user?.role === "string" ? user.role : "user"}
+        userName={`${user?.firstName} ${user?.lastName}`}
+      />
     </div>
   );
 }
