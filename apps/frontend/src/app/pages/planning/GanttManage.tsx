@@ -1,28 +1,21 @@
+import { getGanttTasksByMilestoneId } from "@/app/action/task.actions";
 import { Editor, Gantt, IApi, Toolbar, Willow } from "@svar-ui/react-gantt";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useParams } from "react-router";
 
-const tasks = [
-  {
-    id: 1,
-    text: "Project Planning",
-    start: new Date(2024, 0, 1),
-    end: new Date(2024, 0, 10),
-    progress: 100,
-    type: "summary",
-    open: true,
-  },
-  {
-    id: 2,
-    text: "Requirements Gathering",
-    start: new Date(2024, 0, 1),
-    end: new Date(2024, 0, 5),
-    progress: 100,
-    parent: 1,
-  },
-  
-];
+type GanttTask = {
+  id: number;
+  text: string;
+  start: string | Date;
+  end: string | Date;
+  progress: number;
+  type?: string;
+  open?: boolean;
+  parent?: number;
+};
 
-const links = [{ id: 1, source: 2, target: 3, type: "e2s" }];
+const links: never[] = [];
 
 const scales = [
   { unit: "month", step: 1, format: "%M %Y" },
@@ -32,8 +25,26 @@ const scales = [
 ];
 
 const GanttChart = () => {
+  const { milestoneId } = useParams();
+
+  const { data } = useQuery({
+    queryKey: ["ganttTasksByMilestoneId", milestoneId],
+    queryFn: () => getGanttTasksByMilestoneId(milestoneId || ""),
+    enabled: Boolean(milestoneId),
+  });
+
+  const tasks = useMemo(
+    () =>
+      ((data as GanttTask[] | undefined) || []).map((task) => ({
+        ...task,
+        start: new Date(task.start),
+        end: new Date(task.end),
+      })),
+    [data],
+  );
+
   const [api, setApi] = useState<IApi | undefined>(undefined);
-  console.log(api);
+
   return (
     <div style={{ height: "100%", width: "100%" }}>
       <Willow>

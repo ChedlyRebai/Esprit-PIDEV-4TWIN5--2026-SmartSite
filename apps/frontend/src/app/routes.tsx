@@ -226,7 +226,7 @@ export const router = createBrowserRouter([
         element: <Notifications />,
       },
       {
-        path: "gantt",
+        path: "gantt/:milestoneId",
         element: <GanttChart />,
       },
       {

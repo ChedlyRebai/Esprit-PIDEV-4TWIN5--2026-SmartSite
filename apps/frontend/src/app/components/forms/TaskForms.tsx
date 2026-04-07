@@ -132,7 +132,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   });
 
   const mutation = useMutation({
-    mutationFn: (task: CreateTaskPayload | UpdateTaskPayload) => {
+    mutationFn: async (task: CreateTaskPayload | UpdateTaskPayload) => {
       if (type === "add") {
         console.log("Creating task with data:", task);
         return createTask(task, milestoneId, task.status as string);
@@ -141,6 +141,8 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
       if (type === "edit" && taskId) {
         return updateTask(taskId as string, task);
       }
+
+      throw new Error("Invalid task mutation state");
     },
 
     onSuccess: () => {
@@ -321,8 +323,8 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                   ) : (
                     teams &&
                     !LODINGuSER &&
-                    teams.map((team: Team) => {
-                      const teamId = team._id;
+                    teams.map((team:any) => {
+                      const teamId = team?._id;
                       const label = team.name;
                       const isChecked = (field.value ?? []).includes(teamId);
                       // team.members && team.members.length > 0 && teams.members.map((member) => {
@@ -389,7 +391,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                     {taskStages &&
                       taskStages.length > 0 &&
                       taskStages.map((taskStage: TaskStage) => (
-                        <SelectItem key={taskStage._id} value={taskStage._id}>
+                        <SelectItem key={taskStage._id} value={taskStage._id as string}>
                           {taskStage.name}
                         </SelectItem>
                       ))}

@@ -12,7 +12,7 @@ import {
 import { Button } from "../../components/ui/button";
 import type { Site } from "../../types";
 
-import "leaflet/dist/leaflet.css";
+
 import { useState } from "react";
 import { Link } from "react-router";
 

@@ -51,9 +51,9 @@ export const getAllUsers = async (): Promise<{
 export const getUserById = async (id: string) => {
   try {
     const res = await axios.get(`${API_URL}/${id}`);
-    if (res.status === 200) {
-      return Promise.resolve({ status: res.status, data: res.data });
-    }
+    
+      return res;
+    
   } catch (error: any) {
     console.error("Get user error:", error?.response?.data?.message);
     return Promise.resolve({
@@ -61,6 +61,7 @@ export const getUserById = async (id: string) => {
       data: error?.response?.data?.message,
     });
   }
+   
 };
 
 export const createUser = async (userData: {

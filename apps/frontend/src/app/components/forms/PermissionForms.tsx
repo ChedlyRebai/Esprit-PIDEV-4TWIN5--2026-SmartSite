@@ -118,7 +118,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const loadPermissionData = async () => {
     try {
       const res = await getPermissionById(id as string);
-      if (res.status === 200) {
+      if (res?.status === 200) {
         // Check if the permission name matches a predefined category
         const matchedCategory = PERMISSION_CATEGORIES.find(
           (cat) => cat.name === res.data.name,
@@ -159,27 +159,42 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (type === "add") {
-        const response = await createPermission(data);
+        if (!data.name || data.name.trim().length === 0) {
+          toast.error("Permission name is required.");
+          return;
+        }
+
+        const payload = {
+          name: data.name,
+          description: data.description,
+          access: data.access,
+          href: data.href,
+          create: data.create,
+          update: data.update,
+          delete: data.delete,
+        };
+
+        const response = await createPermission(payload);
         console.log("data", data);
-        if (response.status === 201) {
+        if (response?.status === 201) {
           toast.success("Permission created successfully");
           form.reset();
           onClose();
           onPermissionChange();
           loadPermissionData();
         } else {
-          toast.error(response.data || "Failed to create permission");
+          toast.error(response?.data || "Failed to create permission");
         }
       } else {
         const response = await updatePermission(id as string, data);
-        if (response.status === 200 || response.status === 204) {
+        if (response?.status === 200 || response?.status === 204) {
           toast.success("Permission updated successfully");
           form.reset();
           onClose();
           onPermissionChange();
           loadPermissionData();
         } else {
-          toast.error(response.data || "Failed to update permission");
+          toast.error(response?.data || "Failed to update permission");
         }
       }
     } catch (error) {

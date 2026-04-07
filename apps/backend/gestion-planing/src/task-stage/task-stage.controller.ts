@@ -55,6 +55,11 @@ export class TaskStageController {
     return taskStages;
   }
 
+  @Get('milestone/:milestoneId/gantt')
+  async findGanttTasksByMilestoneId(@Param('milestoneId') milestoneId: string) {
+    return this.taskStageService.findGanttTasksByMilestoneId(milestoneId);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.taskStageService.findONe(id);

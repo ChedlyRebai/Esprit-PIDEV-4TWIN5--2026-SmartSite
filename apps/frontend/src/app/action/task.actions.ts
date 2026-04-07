@@ -45,6 +45,11 @@ export const getTaskSTagesByMilestoneId = async (milestoneId: string) => {
   return data;
 };
 
+export const getGanttTasksByMilestoneId = async (milestoneId: string) => {
+  const { data } = await planingApi.get(`task-stage/milestone/${milestoneId}/gantt`);
+  return data;
+};
+
 export const getMyTAsks = async (milestoneId: string,teamId:string) => {
   //milestone/:milestoneId/team/:teamId
   //http://localhost:3002/task-stage/milestone/69bc788e0912805125e58f70
