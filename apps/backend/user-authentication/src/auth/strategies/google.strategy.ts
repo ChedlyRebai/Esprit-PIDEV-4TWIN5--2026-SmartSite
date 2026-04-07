@@ -60,8 +60,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         return { 
           id: user._id,
           email: user.email,
-          firstname: user.firstname,
-          lastname: user.lastname,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
           status: user.status 
         };
       }
@@ -81,8 +81,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         user: {
           id: user._id,
           email: user.email,
-          firstname: user.firstname,
-          lastname: user.lastname,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
           cin: user.cin,
           role: user.role,
         },
