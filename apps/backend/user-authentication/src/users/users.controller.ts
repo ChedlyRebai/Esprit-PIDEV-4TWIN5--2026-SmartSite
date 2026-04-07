@@ -6,17 +6,16 @@ import {
   Param,
   Put,
   Delete,
-  UseGuards,
+  //UseGuards,
   Headers,
   Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+//import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Controller('users')
-//@UseGuards(JwtAuthGuard)
 //@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(
@@ -240,4 +239,8 @@ export class UsersController {
     });
     return user;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/main

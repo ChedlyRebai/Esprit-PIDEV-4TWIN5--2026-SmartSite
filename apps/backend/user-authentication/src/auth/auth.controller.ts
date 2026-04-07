@@ -21,10 +21,84 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
+    console.log('🔐 Login attempt:', loginDto.cin);
+    
+    // Vérifier la présence du token reCAPTCHA
+    if (!loginDto.recaptchaToken) {
+      console.log('❌ reCAPTCHA token missing');
+      throw new UnauthorizedException('reCAPTCHA token is required');
+    }
+
+    // Valider le token reCAPTCHA auprès de Google
+    const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
+    if (!isValidRecaptcha) {
+      console.log('❌ reCAPTCHA validation failed');
+      throw new UnauthorizedException('reCAPTCHA validation failed');
+    }
+    
+    console.log('✅ reCAPTCHA validation passed');
+
+    // Validation des identifiants utilisateur (CIN + mot de passe)
     const user = await this.authService.validateUser(
       loginDto.cin,
       loginDto.password,
     );
+    
+    console.log('👤 User validated:', user ? 'Yes' : 'No');
+    
+    if (!user) {
+      await this.auditLogsService.createLog({
+        userCin: loginDto.cin,
+        actionType: 'login',
+        actionLabel: 'Login failed',
+        resourceType: 'auth',
+        status: 'failed',
+        severity: 'critical',
+        ipAddress: req?.ip,
+        details: 'Invalid credentials or pending account',
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Génération du token JWT
+    const result = await this.authService.login(user);
+    await this.auditLogsService.createLog({
+      userId: String((user as any)?._id || ''),
+      userCin: user?.cin,
+      userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+      userRole: (user as any)?.role?.name,
+      actionType: 'login',
+      actionLabel: 'User logged in',
+      resourceType: 'auth',
+      status: 'success',
+      severity: 'normal',
+      ipAddress: req?.ip,
+      sessionId: result.session_id,
+    });
+    return result;
+  }
+
+    // Valider le token reCAPTCHA auprès de Google
+    const isValidRecaptcha = await this.authService.validateRecaptcha(loginDto.recaptchaToken);
+    if (!isValidRecaptcha) {
+      console.log('❌ reCAPTCHA validation failed');
+      throw new UnauthorizedException('reCAPTCHA validation failed');
+    }
+    
+    console.log('✅ reCAPTCHA validation passed');
+
+    // Validation des identifiants utilisateur (CIN + mot de passe)
+=======
+  async login(@Body() loginDto: LoginDto, @Request() req: any) {
+>>>>>>> origin/main
+    const user = await this.authService.validateUser(
+      loginDto.cin,
+      loginDto.password,
+    );
+<<<<<<< HEAD
+    
+    console.log('👤 User validated:', user ? 'Yes' : 'No');
+    
     if (!user) {
       await this.auditLogsService.createLog({
         userCin: loginDto.cin,
@@ -87,6 +161,7 @@ export class AuthController {
         durationSec != null ? `Session duration: ${durationSec}s` : undefined,
     });
     return { message: 'Logout tracked' };
+  }
   }
 
   @Post('register')

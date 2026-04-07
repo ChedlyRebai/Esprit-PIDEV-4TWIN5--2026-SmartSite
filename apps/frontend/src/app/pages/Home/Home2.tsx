@@ -318,7 +318,7 @@ export default function Home2() {
                   <div className="w-44 flex-none space-y-8 pt-32 sm:pt-0">
                     <div className="relative">
                       <img
-                        src="https://assets.marketing.quickbase.com/product/Screenshots/_1320x939_crop_center-center_82_line/product-screenshots-mobile-and-gantt.png"
+                        src="https://prezentium.com/wp-content/uploads/2024/11/gantt-chart.webp"
                         alt="Mobile dashboard and Gantt chart for SmartSite construction project tracking"
                         className="aspect-[2/3] w-full rounded-xl bg-gray-900/5 object-cover shadow-lg"
                       />

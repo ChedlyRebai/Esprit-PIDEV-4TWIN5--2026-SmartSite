@@ -1,13 +1,11 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { RolesService } from '../roles/roles.service';
 import * as bcrypt from 'bcrypt';
+import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -16,29 +14,113 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private configService: ConfigService,
     private rolesService: RolesService,
   ) {}
+
+  /**
+   * ====================================================
+   * VALIDATION reCAPTCHA - ACTIVÉE
+   * ====================================================
+   */
+  async validateRecaptcha(token: string): Promise<boolean> {
+    try {
+      const secretKey = this.configService.get('RECAPTCHA_SECRET_KEY');
+      if (!secretKey) {
+        console.log('❌ RECAPTCHA_SECRET_KEY not configured');
+        return false;
+      }
+
+      const response = await axios.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        null,
+        {
+          params: {
+            secret: secretKey,
+            response: token,
+          },
+        },
+      );
+
+      console.log('🔐 reCAPTCHA validation result:', response.data.success);
+      return response.data.success;
+    } catch (error) {
+      console.error('❌ reCAPTCHA validation error:', error);
+      return false;
+    }
+  }
 
   async validateUser(cin: string, password: string): Promise<any> {
     if (!cin || !password) {
       return null;
     }
-
+    console.log('🔍 validateUser:', cin);
     const user = await this.usersService.findByCin(cin);
+    
     if (!user) {
+      console.log('❌ Utilisateur non trouvé');
       return null;
     }
 
     if ((user as any).status && (user as any).status !== 'approved') {
+      console.log('❌ User not approved, status =', (user as any).status);
       return null;
     }
 
     const storedHash = (user as any).password;
     if (!storedHash) {
+      console.log('❌ No stored password hash for user', cin);
+      return null;
+    }
+
+    const isMatch = await bcrypt.compare(password, storedHash);
+    console.log('📊 Password match:', isMatch ? '✅' : '❌');
+    
+    if (isMatch) {
+      const userObj = user.toObject ? user.toObject() : user;
+      const { password: _p, ...result } = userObj as any;
+      return result;
+    }
+    return null;
+  }
+<<<<<<< HEAD
+    console.log('🔍 validateUser:', cin);
+    const user = await this.usersService.findByCin(cin);
+    
+=======
+
+    const user = await this.usersService.findByCin(cin);
+>>>>>>> origin/main
+    if (!user) {
+      console.log('❌ Utilisateur non trouvé');
+      return null;
+    }
+
+    if ((user as any).status && (user as any).status !== 'approved') {
+<<<<<<< HEAD
+      console.log('❌ User not approved, status =', (user as any).status);
+=======
+>>>>>>> origin/main
+      return null;
+    }
+
+    const storedHash = (user as any).password;
+    if (!storedHash) {
+<<<<<<< HEAD
+      console.log('❌ No stored password hash for user', cin);
+      return null;
+    }
+
+    const isMatch = await bcrypt.compare(password, storedHash);
+    console.log('📊 Password match:', isMatch ? '✅' : '❌');
+    
+    if (isMatch) {
+=======
       return null;
     }
 
     if (await bcrypt.compare(password, storedHash)) {
+>>>>>>> origin/main
       const userObj = user.toObject ? user.toObject() : user;
       const { password: _p, ...result } = userObj as any;
       return result;
@@ -47,11 +129,14 @@ export class AuthService {
   }
 
   async login(user: any) {
+    console.log('🔐 Login user:', user.cin);
+    
     const payload = {
       cin: user.cin,
       sub: user._id,
-      roles: user.role ? [user.role] : [],
+      role: user.role,
     };
+    console.log('📦 JWT Payload:', payload);
 
     const userData = user.toObject ? user.toObject() : user;
     const sessionId = randomUUID();
