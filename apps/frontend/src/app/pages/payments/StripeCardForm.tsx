@@ -29,9 +29,9 @@ import { Input } from "@/components/ui/input";
 import { AlertCircle, Lock, CreditCard } from "lucide-react";
 
 // ─── Stripe public key ────────────────────────────────────────────────────────
+// Set VITE_STRIPE_PUBLISHABLE_KEY in .env file (get from Stripe dashboard)
 const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-    "pk_test_51TJIVxLYEJ9IDCatrUshioFWl255hLs7wuMF6Vuw6s8FxLExQk3pfCtS5rngdjZB8XUsG549MqHkmTD2T6luTxEi00N4oJZ2s1"
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_YOUR_KEY_HERE"
 );
 
 // ─── Stripe Element shared style ──────────────────────────────────────────────

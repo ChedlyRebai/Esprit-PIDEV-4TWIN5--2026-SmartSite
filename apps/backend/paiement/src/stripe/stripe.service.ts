@@ -7,10 +7,11 @@ export class StripeService {
   private stripe: any;
 
   constructor(private configService: ConfigService) {
-    // Try env var first, fall back to hardcoded key for development
-    const secretKey =
-      this.configService.get<string>('STRIPE_SECRET_KEY') ||
-      'sk_test_51TJIVxLYEJ9IDCatFuMkDPJtjqUMPkv94cPQOJXQHkxyNw7DB3WLir8TqRrhmBOHPQ6kSkB6qkeMeaKf9ZZQRQqN00VuwVSfnd';
+    // STRIPE_SECRET_KEY must be set in environment variables
+    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
     this.stripe = Stripe(secretKey);
   }
 
