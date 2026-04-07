@@ -134,6 +134,30 @@ export const useAuthStore = create<AuthState>()(
       updateFirstLoginStatus: (status: boolean) => {
         set({ isFirstLogin: status });
       },
+
+      loginWithGoogle: (user: any, token: string) => {
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        console.log("Google login successful, token:", token);
+        
+        const userData = {
+          access_token: token,
+          id: user.id,
+          cin: user.cin || 'GOOGLE_USER',
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          firstLogin: false,
+        };
+
+        set({
+          user: userData,
+          isAuthenticated: true,
+          isFirstLogin: false,
+        });
+
+        localStorage.setItem("session_id", token);
+        return userData;
+      },
     }),
     {
       name: "smartsite-auth",

@@ -143,7 +143,8 @@ export interface AuthState {
   };
   isAuthenticated: boolean;
   isFirstLogin: boolean;
-  login: (cin: string, password: string) => Promise<any>;
+  login: (cin: string, password: string, recaptchaToken?: string) => Promise<any>;
+  loginWithGoogle: (user: any, token: string) => any;
   updateFirstLoginStatus: (status: boolean) => void;
   register: (
     cin: string,
