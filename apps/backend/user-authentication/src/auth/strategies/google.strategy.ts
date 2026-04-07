@@ -12,20 +12,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {
-    const clientID = configService.get('GOOGLE_CLIENT_ID');
-    const clientSecret = configService.get('GOOGLE_CLIENT_SECRET');
-    
-    if (!clientID || !clientSecret) {
-      console.warn('⚠️ Google OAuth not configured - GOOGLE_CLIENT_ID and/or GOOGLE_CLIENT_SECRET missing');
-      super({ clientID: 'dummy', clientSecret: 'dummy', callbackURL: 'http://localhost:3000/auth/google/callback', scope: ['email', 'profile'] });
-    } else {
-      super({
-        clientID,
-        clientSecret,
-        callbackURL: 'http://localhost:3000/auth/google/callback',
-        scope: ['email', 'profile'],
-      });
-    }
+    super({
+      clientID: configService.get('GOOGLE_CLIENT_ID') || 'dummy-client-id',
+      clientSecret: configService.get('GOOGLE_CLIENT_SECRET') || 'dummy-client-secret',
+      callbackURL: 'http://localhost:3000/auth/google/callback',
+      scope: ['email', 'profile'],
+    });
   }
 
   async validate(
@@ -36,63 +28,57 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     try {
       const { name, emails } = profile;
       const email = emails[0].value;
-      const firstName = name.givenName;
-      const lastName = name.familyName;
 
-      console.log('📧 Google profile reçu:', { email, firstName, lastName });
+      console.log('🔍 Google OAuth validation for:', email);
 
-      // Chercher l'utilisateur par email
-      const user = await this.usersService.findByEmail(email);
+      let user = await this.usersService.findByEmail(email);
 
-      // Si l'utilisateur n'existe pas
       if (!user) {
-        console.log('❌ Utilisateur non trouvé pour email:', email);
-        return { 
-          error: 'USER_NOT_FOUND', 
-          email,
-          firstName,
-          lastName,
-        };
+        console.log('⏳ Nouvel utilisateur Google - création');
+        const nameObj = name || {};
+        user = await this.usersService.create({
+          firstName: nameObj.givenName || 'Google',
+          lastName: nameObj.familyName || 'User',
+          cin: `GOOGLE_${Date.now()}`,
+          email: email,
+          password: undefined,
+          status: 'approved',
+          emailVerified: true,
+          role: 'client',
+        });
+      } else {
+        console.log('✅ Utilisateur existant trouvé');
       }
 
-      console.log('✅ Utilisateur trouvé:', { 
-        id: user._id, 
-        email: user.email,
-        status: user.status,
-        role: user.role 
-      });
-
-      // Vérifier le statut
-      if (user.status !== 'approved') {
+      if (user && (user as any).status !== 'approved') {
         console.log('⏳ Compte en attente d\'approbation');
         return { 
-          id: user._id,
-          email: user.email,
+          id: (user as any)._id,
+          email: (user as any).email,
           firstName: (user as any).firstName,
           lastName: (user as any).lastName,
-          status: user.status 
+          status: (user as any).status 
         };
       }
 
-      // Utilisateur trouvé et approuvé - générer un token JWT
       const payload = {
-        email: user.email,
-        sub: user._id,
-        role: user.role,
+        email: (user as any).email,
+        sub: (user as any)._id,
+        role: (user as any).role,
       };
 
       const token = this.jwtService.sign(payload);
-      console.log('🔑 Token JWT généré pour:', user.email);
+      console.log('🔑 Token JWT généré pour:', (user as any).email);
 
       return {
         access_token: token,
         user: {
-          id: user._id,
-          email: user.email,
+          id: (user as any)._id,
+          email: (user as any).email,
           firstName: (user as any).firstName,
           lastName: (user as any).lastName,
-          cin: user.cin,
-          role: user.role,
+          cin: (user as any).cin,
+          role: (user as any).role,
         },
       };
     } catch (error) {
