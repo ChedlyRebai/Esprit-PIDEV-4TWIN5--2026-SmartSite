@@ -34,42 +34,52 @@ export class AuthController {
       console.log('ℹ️ No reCAPTCHA token - skipping validation');
     }
 
-    const user = await this.authService.validateUser(
-      loginDto.cin,
-      loginDto.password,
-    );
-    
-    console.log('👤 User validated:', user ? 'Yes' : 'No');
-    
-    if (!user) {
-      await this.auditLogsService.createLog({
-        userCin: loginDto.cin,
-        actionType: 'login',
-        actionLabel: 'Login failed',
-        resourceType: 'auth',
-        status: 'failed',
-        severity: 'critical',
-        ipAddress: req?.ip,
-        details: 'Invalid credentials or pending account',
-      });
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    try {
+      const user = await this.authService.validateUser(
+        loginDto.cin,
+        loginDto.password,
+      );
+      
+      console.log('👤 User validated:', user ? 'Yes' : 'No');
+      
+      if (!user) {
+        await this.auditLogsService.createLog({
+          userCin: loginDto.cin,
+          actionType: 'login',
+          actionLabel: 'Login failed',
+          resourceType: 'auth',
+          status: 'failed',
+          severity: 'critical',
+          ipAddress: req?.ip,
+          details: 'Invalid credentials or account not found',
+        });
+        throw new UnauthorizedException('Aucun compte trouvé. Veuillez vous inscrire.');
+      }
 
-    const result = await this.authService.login(user);
-    await this.auditLogsService.createLog({
-      userId: String((user as any)?._id || ''),
-      userCin: user?.cin,
-      userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-      userRole: (user as any)?.role?.name,
-      actionType: 'login',
-      actionLabel: 'User logged in',
-      resourceType: 'auth',
-      status: 'success',
-      severity: 'normal',
-      ipAddress: req?.ip,
-      sessionId: result.session_id,
-    });
-    return result;
+      const result = await this.authService.login(user);
+      await this.auditLogsService.createLog({
+        userId: String((user as any)?._id || ''),
+        userCin: user?.cin,
+        userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+        userRole: (user as any)?.role?.name,
+        actionType: 'login',
+        actionLabel: 'User logged in',
+        resourceType: 'auth',
+        status: 'success',
+        severity: 'normal',
+        ipAddress: req?.ip,
+        sessionId: result.session_id,
+      });
+      return result;
+    } catch (error: any) {
+      if (error.message === 'COMPTE_EN_ATTENTE') {
+        throw new UnauthorizedException('Votre compte est en attente d\'approbation par un administrateur.');
+      }
+      if (error.message === 'COMPTE_REJETE') {
+        throw new UnauthorizedException('Votre compte a été rejeté. Veuillez contacter l\'administrateur.');
+      }
+      throw error;
+    }
   }
 
   @Post('logout')

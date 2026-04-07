@@ -57,13 +57,30 @@ export class AuthService {
       return null;
     }
 
-    if ((user as any).status && (user as any).status !== 'approved') {
-      console.log('❌ User not approved, status =', (user as any).status);
+    const userStatus = (user as any).status;
+    const userEmail = (user as any).email;
+    
+    if (userStatus && userStatus !== 'approved') {
+      if (userStatus === 'pending') {
+        console.log('❌ Compte en attente d\'approbation');
+        throw new Error('COMPTE_EN_ATTENTE');
+      }
+      if (userStatus === 'rejected') {
+        console.log('❌ Compte rejeté');
+        throw new Error('COMPTE_REJETE');
+      }
       return null;
     }
 
     const storedHash = (user as any).password;
+    
     if (!storedHash) {
+      if (userEmail) {
+        console.log('🔑 Utilisateur Google OAuth (sans mot de passe) - connexion autorisée');
+        const userObj = user.toObject ? user.toObject() : user;
+        const { password: _p, ...result } = userObj as any;
+        return result;
+      }
       console.log('❌ No stored password hash for user', cin);
       return null;
     }
