@@ -15,6 +15,7 @@ import Team from "./pages/team/Team";
 import Clients from "./pages/clients/Clients";
 import Materials from "./pages/materials/Materials";
 import Finance from "./pages/finance/Finance";
+import Payments from "./pages/payments/Payments";
 import QHSE from "./pages/qhse/QHSE";
 import Incidents from "./pages/incidents/Incidents";
 import Reports from "./pages/reports/Reports";
@@ -38,7 +39,9 @@ import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
 import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
+<<<<<<< HEAD
 import GestionFournisseurs from "./pages/fournisseurs/GestionFournisseurs";
+import CheckoutSimulator from "./pages/CheckoutSimulator";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -148,6 +151,10 @@ export const router = createBrowserRouter([
         element: <Finance />,
       },
       {
+        path: "payments",
+        element: <Payments />,
+      },
+      {
         path: "qhse",
         element: <QHSE />,
       },
@@ -204,6 +211,10 @@ export const router = createBrowserRouter([
   {
     path: "/user-guide/:role",
     element: <UserGuide />,
+  },
+  {
+    path: "/checkout-simulator",
+    element: <CheckoutSimulator />,
   },
   {
     path: "*",
