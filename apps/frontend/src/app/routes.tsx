@@ -13,7 +13,6 @@ import Projects from "./pages/projects/Projects";
 import Planning from "./pages/planning/MyTask";
 import Team from "./pages/team/Team";
 import Clients from "./pages/clients/Clients";
-import Suppliers from "./pages/suppliers/Suppliers";
 import Materials from "./pages/materials/Materials";
 import Finance from "./pages/finance/Finance";
 import QHSE from "./pages/qhse/QHSE";
@@ -30,7 +29,6 @@ import Home2 from "./pages/Home/Home2";
 import Pricing from "./pages/pricing/Pricing";
 import ClientsNew from "./pages/clients/ClientsNew";
 import UserGuide from "./pages/guide/UserGuide";
-
 import PLaningProjects from "./pages/planning/PLaningProjects";
 import ProjectMilestone from "./pages/planning/ProjectMilestone";
 import MilestoneTasks from "./pages/planning/MilestoneTasks";
@@ -40,6 +38,7 @@ import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
 import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
+import GestionFournisseurs from "./pages/fournisseurs/GestionFournisseurs";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -138,7 +137,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "suppliers",
-        element: <Suppliers />,
+        element: <GestionFournisseurs />,
       },
       {
         path: "materials",

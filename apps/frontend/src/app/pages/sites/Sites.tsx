@@ -95,10 +95,14 @@ const ISSUE_CONFIG = {
 };
 
 // Map picker component
-function MapPicker({ position, setPosition }: { position: { lat: number; lng: number } | null; setPosition: (pos: { lat: number; lng: number }) => void }) {
+function MapPicker({ position, setPosition, onLocationSelect }: { position: { lat: number; lng: number } | null; setPosition: (pos: { lat: number; lng: number }) => void; onLocationSelect?: (pos: { lat: number; lng: number }) => void }) {
   useMapEvents({
     click(e) {
-      setPosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+      const newPos = { lat: e.latlng.lat, lng: e.latlng.lng };
+      setPosition(newPos);
+      if (onLocationSelect) {
+        onLocationSelect(newPos);
+      }
     },
   });
   return position ? <Marker position={[position.lat, position.lng]} /> : null;
@@ -130,6 +134,8 @@ export default function Sites() {
   // Form state
   const [newSite, setNewSite] = useState({ name: '', address: '', area: '', budget: '' });
   const [selectedStatusEdit, setSelectedStatusEdit] = useState('all');
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const [nearbyFournisseurs, setNearbyFournisseurs] = useState<Array<{_id: string; nom: string; adresse: string; telephone: string; categories: string[]}>>([]);
   
   // Dialog state
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
@@ -268,6 +274,97 @@ export default function Sites() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchAddressOnMap = async (address: string) => {
+    if (!address.trim() || address.length < 5) {
+      toast.warning('Veuillez entrer une adresse plus complète');
+      return;
+    }
+    
+    setAddressSearchLoading(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=tn`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const result = data[0];
+        const newPosition = {
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon)
+        };
+        setMapPosition(newPosition);
+        setErrors(prev => ({ ...prev, address: undefined }));
+        toast.success(`Localisation trouvée!`);
+        
+        // Search for nearby fournisseurs
+        await searchNearbyFournisseurs(newPosition);
+      } else {
+        toast.warning('Adresse non trouvée en Tunisie. Cliquez sur la carte pour sélectionner.');
+        setNearbyFournisseurs([]);
+      }
+    } catch (error) {
+      console.error('Erreur géocodage:', error);
+      toast.error('Erreur lors de la recherche');
+      setNearbyFournisseurs([]);
+    } finally {
+      setAddressSearchLoading(false);
+    }
+  };
+
+  // Search for nearby fournisseurs based on coordinates
+  const searchNearbyFournisseurs = async (position: { lat: number; lng: number }) => {
+    try {
+      // Get all active fournisseurs from API
+      const response = await fetch('/gestion-fournisseurs/fournisseurs?actif=true');
+      let fournisseurs = [];
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          fournisseurs = data;
+        } else if (data?.data) {
+          fournisseurs = data.data;
+        }
+      }
+      
+      // Filter fournisseurs that have coordinates and calculate distance
+      const fournisseursWithDistance = fournisseurs
+        .filter((f: any) => f.coordinates?.lat && f.coordinates?.lng)
+        .map((f: any) => {
+          const fLat = f.coordinates.lat;
+          const fLng = f.coordinates.lng;
+          // Simple distance calculation (approximate)
+          const distance = Math.sqrt(
+            Math.pow((fLat - position.lat) * 111, 2) + 
+            Math.pow((fLng - position.lng) * 111 * Math.cos(position.lat * Math.PI / 180), 2)
+          );
+          return { ...f, distance };
+        })
+        .sort((a: any, b: any) => a.distance - b.distance)
+        .slice(0, 10); // Top 10 nearest
+      
+      setNearbyFournisseurs(fournisseursWithDistance.map((f: any) => ({
+        _id: f._id,
+        nom: f.nom || '',
+        adresse: f.adresse || '',
+        telephone: f.telephone || '',
+        categories: f.categories || []
+      })));
+      
+      if (fournisseursWithDistance.length > 0) {
+        toast.info(`${fournisseursWithDistance.length} fournisseurs trouvés à proximité`);
+      }
+    } catch (error) {
+      console.error('Erreur recherche fournisseurs:', error);
+      setNearbyFournisseurs([]);
+    }
+  };
+
+  const handleAddressChange = (value: string) => {
+    setNewSite({ ...newSite, address: value });
   };
 
   const filteredAndSortedSites = sites
@@ -588,6 +685,7 @@ export default function Sites() {
     setMapPosition(null);
     setErrors({});
     setSelectedTeam('');
+    setNearbyFournisseurs([]);
     setAddDialogOpen(false);
   };
 
@@ -878,19 +976,47 @@ export default function Sites() {
                     <Label htmlFor="address" className="text-sm font-medium">
                       Address <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      id="address"
-                      placeholder="e.g., 123 Main Street, City"
-                      value={newSite.address}
-                      onChange={(e) => setNewSite({ ...newSite, address: e.target.value })}
-                      className={errors.address ? 'border-red-500 focus:ring-red-500' : ''}
-                    />
-                    {errors.address && (
-                      <p className="text-red-500 text-sm flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.address}
-                      </p>
-                    )}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          id="address"
+                          placeholder="e.g., 123 Main Street, City, Tunisia"
+                          value={newSite.address}
+                          onChange={(e) => handleAddressChange(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              searchAddressOnMap(newSite.address);
+                            }
+                          }}
+                          className={errors.address ? 'border-red-500 focus:ring-red-500' : ''}
+                        />
+                        {errors.address && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {errors.address}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => searchAddressOnMap(newSite.address)}
+                        disabled={addressSearchLoading || !newSite.address.trim()}
+                        className="whitespace-nowrap"
+                      >
+                        {addressSearchLoading ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4 mr-1" />
+                            Chercher
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Tapez l'adresse et cliquez sur "Chercher" pour localiser automatiquement sur la carte
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -970,15 +1096,15 @@ export default function Sites() {
                     </Label>
                     <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors">
                       <MapContainer
-                        center={TUNISIA_CENTER}
-                        zoom={7}
+                        center={mapPosition ? [mapPosition.lat, mapPosition.lng] : TUNISIA_CENTER}
+                        zoom={mapPosition ? 15 : 7}
                         style={{ height: '100%', width: '100%' }}
                       >
                         <TileLayer
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           attribution="&copy; OpenStreetMap contributors"
                         />
-                        <MapPicker position={mapPosition} setPosition={setMapPosition} />
+                        <MapPicker position={mapPosition} setPosition={setMapPosition} onLocationSelect={(pos) => searchNearbyFournisseurs(pos)} />
                       </MapContainer>
                     </div>
                     {mapPosition ? (
@@ -993,6 +1119,45 @@ export default function Sites() {
                       </p>
                     )}
                   </div>
+
+                  {/* Nearby Fournisseurs Section */}
+                  {nearbyFournisseurs.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Fournisseurs à proximité <span className="text-xs font-normal text-gray-500">({nearbyFournisseurs.length} trouvés)</span>
+                      </Label>
+                      <div className="bg-blue-50 rounded-lg border border-blue-200 max-h-48 overflow-y-auto">
+                        {nearbyFournisseurs.map((fournisseur, index) => (
+                          <div 
+                            key={fournisseur._id || index} 
+                            className="p-3 border-b border-blue-100 last:border-b-0 hover:bg-blue-100 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm text-blue-900">{fournisseur.nom}</p>
+                                <p className="text-xs text-gray-600 mt-0.5">{fournisseur.adresse}</p>
+                                {fournisseur.telephone && (
+                                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                    <span>📞</span> {fournisseur.telephone}
+                                  </p>
+                                )}
+                              </div>
+                              {fournisseur.categories && fournisseur.categories.length > 0 && (
+                                <div className="flex flex-wrap gap-1 justify-end">
+                                  {fournisseur.categories.slice(0, 2).map((cat, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs py-0 h-5 bg-white">
+                                      {cat}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex gap-3 pt-4">
