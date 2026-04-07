@@ -32,7 +32,7 @@ export const getTaskByTeamid = async (teamId : string)=>{
   return data;
 }
 
-export const getAllTaskStagesByMilestoneId= async (milestoneId) =>{
+export const getAllTaskStagesByMilestoneId= async (milestoneId:string) =>{
   const {data} = await planingApi.get(`task-stage/milestone/${milestoneId}`);
   return data
 }

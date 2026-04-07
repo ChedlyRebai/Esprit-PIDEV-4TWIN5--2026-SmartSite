@@ -73,8 +73,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useJsLoaded } from "@/hooks/use-js-loaded";
 import { CardHeader, CardTitle, CardContent, Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task, TaskPriorityEnum, TaskStatusEnum } from "@/app/types";
 import { useQuery } from "@tanstack/react-query";
+import GanttChart from "./GanttManage";
 import {
   deleteTask,
   updateTask,
@@ -125,7 +127,7 @@ export default function MilestoneTaskss() {
   });
   console.log("cols", cols);
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-scroll max-w-[95%]">
       <div className="flex taskssetType-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Milestone</h1>
@@ -146,7 +148,7 @@ export default function MilestoneTaskss() {
               variant="default"
               size="sm"
               onClick={() => {
-                setMilestoneid(milestoneId);
+                setMilestoneid(milestoneId as string);
                 setType("add");
                 onOpen();
               }}
@@ -157,15 +159,28 @@ export default function MilestoneTaskss() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid h-screen grid-rows-[var(--header-height)_1fr_6rem] overflow-x-hidden sm:grid-rows-[var(--header-height)_1fr_var(--header-height)]">
-            <main className="relative">
-              <div className="absolute inset-0 h-full overflow-x-hidden px-4 py-4 md:px-6">
-                <KanbanBoardProvider>
-                  <MyKanbanBoard />
-                </KanbanBoardProvider>
+          <Tabs defaultValue="kanban" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="kanban">Kanban</TabsTrigger>
+              <TabsTrigger value="gantt">Gantt</TabsTrigger>
+            </TabsList>
+            <TabsContent value="kanban" className="w-full">
+              <div className="grid h-screen grid-rows-[var(--header-height)_1fr_6rem] overflow-x-hidden sm:grid-rows-[var(--header-height)_1fr_var(--header-height)]">
+                <main className="relative">
+                  <div className="absolute inset-0 h-full overflow-x-hidden px-4 py-4 md:px-6">
+                    <KanbanBoardProvider>
+                      <MyKanbanBoard />
+                    </KanbanBoardProvider>
+                  </div>
+                </main>
               </div>
-            </main>
-          </div>
+            </TabsContent>
+            <TabsContent value="gantt" className="w-full">
+              <div className="h-screen overflow-hidden">
+                <GanttChart />
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

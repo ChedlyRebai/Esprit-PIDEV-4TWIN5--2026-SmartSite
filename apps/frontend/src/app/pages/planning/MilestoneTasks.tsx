@@ -117,7 +117,7 @@ export default function MilestoneTasks() {
               variant="default"
               size="sm"
               onClick={() => {
-                setMilestoneid(milestoneId);
+                setMilestoneid(milestoneId as string);
                 setType("add");
                 onOpen();
               }}
@@ -155,7 +155,7 @@ export function MyKanbanBoard() {
         "fetching tasks by milestone iddddddddddddddddd:",
         milestoneId,
       );
-      const response = await getTasksBYMilestoneId(milestoneId);
+      const response = await getTasksBYMilestoneId(milestoneId as string);
       console.log(response);
       setColumns(response);
     },
@@ -520,7 +520,7 @@ export function MyKanbanBoard() {
             onDeleteColumn={handleDeleteColumn}
             onMoveCardToColumn={handleMoveCardToColumn}
             onUpdateCardTitle={handleUpdateCardTitle}
-            onUpdateColumnTitle={handleUpdateColumnTitle}
+            // onUpdateColumnTitle={handleUpdateColumnTitle}
           />
         ) : (
           <KanbanBoardColumnSkeleton key={column.id} />
@@ -563,7 +563,7 @@ function MyKanbanBoardColumn({
   onDeleteColumn: (columnId: string) => void;
   onMoveCardToColumn: (columnId: string, index: number, card: Task) => void;
   onUpdateCardTitle: (cardId: string, cardTitle: string) => void;
-  onUpdateColumnTitle: (columnId: string, columnTitle: string) => void;
+  onUpdateColumnTitle?: (columnId: string, columnTitle: string) => void;
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const listReference = useRef<HTMLUListElement>(null);
@@ -588,7 +588,7 @@ function MyKanbanBoardColumn({
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const columnTitle = formData.get("columnTitle") as string;
-    onUpdateColumnTitle(column.id, columnTitle);
+   // onUpdateColumnTitle(column.id, columnTitle);
     closeDropdownMenu();
   }
 
