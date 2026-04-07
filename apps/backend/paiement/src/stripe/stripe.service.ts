@@ -7,12 +7,19 @@ export class StripeService {
   private stripe: any;
 
   constructor(private configService: ConfigService) {
-    // STRIPE_SECRET_KEY must be set in environment variables
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+      console.warn('⚠️ STRIPE_SECRET_KEY not set - Stripe will run in demo mode');
+      this.stripe = { dummy: true };
+    } else {
+      this.stripe = Stripe(secretKey);
     }
-    this.stripe = Stripe(secretKey);
+  }
+
+  private checkStripe() {
+    if (this.stripe.dummy) {
+      throw new Error('Stripe is not configured. Set STRIPE_SECRET_KEY in .env');
+    }
   }
 
   /**
@@ -29,6 +36,8 @@ export class StripeService {
     currency: string = 'eur',
     description: string = '',
   ): Promise<{ clientSecret: string; paymentIntentId: string }> {
+    this.checkStripe();
+    
     if (amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
     }
