@@ -126,9 +126,24 @@ export const navigationItems: NavItem[] = [
         roles: ["super_admin", "procurement_manager", "accountant"],
       },
       {
+        label: "Supplier Evaluation",
+        href: "/suppliers-evaluation",
+        roles: ["super_admin", "procurement_manager", "accountant"],
+      },
+      {
+        label: "Supplier Comparison",
+        href: "/suppliers-comparison",
+        roles: ["super_admin", "procurement_manager", "accountant"],
+      },
+      {
         label: "Material Catalog",
         href: "/catalog",
         roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Supplier-Materials",
+        href: "/supplier-materials",
+        roles: ["super_admin", "procurement_manager", "accountant"],
       },
       {
         label: "Materials",

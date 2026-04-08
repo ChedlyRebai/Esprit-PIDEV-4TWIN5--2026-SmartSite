@@ -252,6 +252,16 @@ export default function CatalogList() {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate(`/catalog/${item._id}/suppliers`)
+                            }
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Suppliers
+                          </Button>
                           {canManageCatalog && (
                             <>
                               <Button

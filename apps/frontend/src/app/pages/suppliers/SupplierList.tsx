@@ -241,6 +241,16 @@ export default function SupplierList() {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate(`/suppliers/${supplier._id}/materials`)
+                            }
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Materials
+                          </Button>
                           {canManageSuppliers && (
                             <>
                               <Button

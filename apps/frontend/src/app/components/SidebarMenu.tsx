@@ -36,19 +36,12 @@ export function SidebarMenuItem({
   const pathname = location.pathname;
 
   const visibleChildren = filterChildrenForRole(item.children, roleName);
-  const hasChildren = visibleChildren.length > 0;
-
+  const hasChildren = item.children && item.children.length > 0;
   const hasActiveChild = visibleChildren.some((child) =>
     isRouteActive(pathname, child.href),
   );
   const isParentActive =
     !!item.href && isRouteActive(pathname, item.href);
-
-  useEffect(() => {
-    if (hasActiveChild) {
-      setIsExpanded(true);
-    }
-  }, [hasActiveChild]);
 
   const isItemExpanded = isExpanded || hasActiveChild;
   const itemId = `sidebar-group-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
