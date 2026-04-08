@@ -5,6 +5,7 @@ import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ChangePasswordFirstLogin from "./pages/auth/ChangePasswordFirstLogin";
+import GoogleCallback from "./pages/auth/GoogleCallback";
 import Dashboard from "./pages/dashboards/Dashboard";
 import ProjectManagerDashboard from "./pages/dashboard/ProjectManagerDashboard";
 import SuperAdminProjectsDashboard from "./pages/dashboard/SuperAdminProjectsDashboard";
@@ -64,6 +65,10 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    path: "/google-callback",
+    element: <GoogleCallback />,
   },
   {
     path: "/forgot-password",

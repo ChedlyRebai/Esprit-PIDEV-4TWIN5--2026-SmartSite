@@ -147,14 +147,34 @@ export default function Register() {
   const register = useAuthStore((state) => state.register);
   const [isLoading, setIsLoading] = React.useState(false);
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
+  const [googleEmail, setGoogleEmail] = React.useState("");
+  const [googleFirstName, setGoogleFirstName] = React.useState("");
+  const [googleLastName, setGoogleLastName] = React.useState("");
+
+  // Handle Google OAuth parameters
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email");
+    const firstName = params.get("firstName");
+    const lastName = params.get("lastName");
+    const error = params.get("error");
+
+    if (email) setGoogleEmail(email);
+    if (firstName) setGoogleFirstName(firstName);
+    if (lastName) setGoogleLastName(lastName);
+
+    if (error === "no_account") {
+      toast.error("You are not registered. Please create an account.");
+    }
+  }, []);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       cin: "",
-      firstName: "",
-      lastName: "",
-      email: "",
+      firstName: googleFirstName || "",
+      lastName: googleLastName || "",
+      email: googleEmail || "",
       telephone: "",
       phoneCountryCode: "+216",
       country: "",

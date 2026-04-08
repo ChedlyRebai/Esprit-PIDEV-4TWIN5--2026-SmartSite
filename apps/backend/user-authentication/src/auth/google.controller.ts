@@ -1,49 +1,47 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import type { Response } from 'express'; // ← Utiliser 'import type'
+import type { Request, Response } from 'express';
 
 @Controller('auth')
 export class GoogleController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
-    // Guard redirects to Google
   }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
+  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     try {
-      console.log('Google callback user:', req.user);
-      
-      // Si l'utilisateur n'est pas trouvé
-      if (req.user?.error === 'USER_NOT_FOUND') {
-        return res.redirect(
-          `http://localhost:5173/register?email=${req.user.email}&firstName=${req.user.firstName}&lastName=${req.user.lastName}&error=no_account&google=true`,
-        );
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+      if ((req.user as any)?.error === 'USER_NOT_FOUND') {
+        const user = req.user as any;
+        const params = new URLSearchParams({
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          error: 'no_account',
+          google: 'true',
+        });
+        return res.redirect(`${frontendUrl}/register?${params.toString()}`);
       }
 
-      // Si le compte est en attente d'approbation
-      if (req.user?.status === 'pending') {
-        return res.redirect(
-          `http://localhost:5173/login?error=pending_approval`,
-        );
+      if ((req.user as any)?.status && (req.user as any)?.status !== 'approved') {
+        return res.redirect(`${frontendUrl}/login?error=pending_approval`);
       }
 
-      // Si l'utilisateur existe et est approuvé
-      if (req.user?.access_token) {
-        const { access_token, user } = req.user;
+      if ((req.user as any)?.access_token) {
+        const { access_token, user } = req.user as any;
         const userStr = encodeURIComponent(JSON.stringify(user));
-        return res.redirect(
-          `http://localhost:5173/google-callback?token=${access_token}&user=${userStr}`,
-        );
+        return res.redirect(`${frontendUrl}/google-callback?token=${access_token}&user=${userStr}`);
       }
 
-      // Erreur générique
-      return res.redirect(`http://localhost:5173/login?error=google_auth_failed`);
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
     } catch (error) {
       console.error('Google callback error:', error);
-      return res.redirect(`http://localhost:5173/login?error=google_auth_failed`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
     }
   }
 }
