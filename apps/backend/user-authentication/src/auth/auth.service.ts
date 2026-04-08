@@ -82,6 +82,7 @@ export class AuthService {
     const payload = {
       cin: user.cin,
       sub: user._id,
+      userId: user._id,
       roles: user.role ? [user.role] : [],
     };
 

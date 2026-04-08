@@ -34,7 +34,7 @@ app.use("/api/stream-user/:id", (req, res) => {
 
   upsertStreamUser({
     id: req.params.id,
-    name: "John Doe",
+    name: "karim karim",
     image: "https://getstream.io/random_png/?id=123&name=John",
   }).then((data) => {
     console.log("Stream user upserted successfully");

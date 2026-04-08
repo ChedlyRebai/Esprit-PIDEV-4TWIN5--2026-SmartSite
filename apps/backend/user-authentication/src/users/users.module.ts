@@ -19,7 +19,7 @@ import { SuperAdminSeedService } from '../bootstrap/super-admin.seed.service';
       { name: Role.name, schema: RoleSchema },
     ]),
     JwtModule.register({
-      secret: 'smartiste',
+      secret: 'smartsite',
       signOptions: { expiresIn: '24h' },
     }),
     AuditLogsModule,

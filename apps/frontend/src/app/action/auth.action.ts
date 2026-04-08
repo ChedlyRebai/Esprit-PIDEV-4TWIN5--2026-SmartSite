@@ -18,7 +18,8 @@ export const LoginAction = async (cin: string, password: string) => {
     if (res.status === 200) {
       const expires = new Date(Date.now() + 1000 * 1000 * 1000);
 
-      cookieStore.set("session", res.data.token);
+      cookieStore.set("jwt2", res.data.token);
+      console.log("Login successful, token stored in cookie",res);
       return Promise.resolve({ status: res.status, data: res.data.message });
     }
   } catch (error: any) {

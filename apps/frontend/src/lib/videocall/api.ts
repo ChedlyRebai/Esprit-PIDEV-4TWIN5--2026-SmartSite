@@ -1,11 +1,11 @@
 import { axiosInstance } from "./axios";
 
-export const signup = async (signupData) => {
+export const signup = async (signupData: any) => {
   const response = await axiosInstance.post("/auth/signup", signupData);
   return response.data;
 };
 
-export const login = async (loginData) => {
+export const login = async (loginData: any) => {
   const response = await axiosInstance.post("/auth/login", loginData);
   return response.data;
 };
@@ -24,7 +24,7 @@ export const getAuthUser = async () => {
   }
 };
 
-export const completeOnboarding = async (userData) => {
+export const completeOnboarding = async (userData: any) => {
   const response = await axiosInstance.post("/auth/onboarding", userData);
   return response.data;
 };
@@ -44,7 +44,7 @@ export async function getOutgoingFriendReqs() {
   return response.data;
 }
 
-export async function sendFriendRequest(userId) {
+export async function sendFriendRequest(userId:string) {
   const response = await axiosInstance.post(`/users/friend-request/${userId}`);
   return response.data;
 }
@@ -54,7 +54,7 @@ export async function getFriendRequests() {
   return response.data;
 }
 
-export async function acceptFriendRequest(requestId) {
+export async function acceptFriendRequest(requestId:string) {
   const response = await axiosInstance.put(`/users/friend-request/${requestId}/accept`);
   return response.data;
 }

@@ -794,11 +794,11 @@ function MyKanbanBoardColumn({
         ))}
       </KanbanBoardColumnList>
 
-      <MyNewKanbanBoardCard
+      {/* <MyNewKanbanBoardCard
         column={column}
         onAddCard={onAddCard}
         scrollList={scrollList}
-      />
+      /> */}
     </KanbanBoardColumn>
   );
 }

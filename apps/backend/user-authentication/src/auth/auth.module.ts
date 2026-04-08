@@ -13,7 +13,7 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 @Module({
   imports: [
     JwtModule.register({
-      secret: 'smartiste',
+      secret: 'smartsite',
       signOptions: { expiresIn: '24h' },
     }),
     PassportModule,

@@ -56,6 +56,7 @@ export class AuthController {
       sessionId: result.session_id,
     });
     console.log('Login successful for CINNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN:', loginDto.cin);
+    
     return result;
   }
 

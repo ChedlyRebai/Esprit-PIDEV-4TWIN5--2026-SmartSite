@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>()(
             lastName: res.data.lastName,
             role: res.data.role,
             firstLogin: res.data.firstLogin,
-          };
+          };  
 
           set({
             user: userData,
@@ -44,10 +44,21 @@ export const useAuthStore = create<AuthState>()(
             isFirstLogin: res.data.firstLogin || false,
           });
 
+          const expires = new Date(Date.now() + 1000 * 1000 * 1000);
+
+          cookieStore.set("jwt", res.data.access_token);
+          console.log("Login successful, token stored in cookie", res.data.access_token);
+
           // Debug logging
           console.log("AuthStore login - res.data:", res.data);
-          console.log("AuthStore login - firstLogin from response:", res.data.firstLogin);
-          console.log("AuthStore login - isFirstLogin set to:", res.data.firstLogin || false);
+          console.log(
+            "AuthStore login - firstLogin from response:",
+            res.data.firstLogin,
+          );
+          console.log(
+            "AuthStore login - isFirstLogin set to:",
+            res.data.firstLogin || false,
+          );
           if (res.data.session_id) {
             localStorage.setItem("session_id", res.data.session_id);
           }
