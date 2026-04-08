@@ -27,8 +27,39 @@ export default defineConfig({
       "/api": {
         target: "http://192.168.39.69:3000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path.replace(/^\/api/, "")},
+      '/api/materials': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
       },
+      '/api/site-materials': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      '/api/orders': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      '/api/fournisseurs': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+      },
+      '/fournisseurs': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+      },
+      '/gestion-sites': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api/gestion-sites': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      // '/api': {
+      //   target: 'http://localhost:3007',
+      //   changeOrigin: true,
+      // },
     },
   },
 

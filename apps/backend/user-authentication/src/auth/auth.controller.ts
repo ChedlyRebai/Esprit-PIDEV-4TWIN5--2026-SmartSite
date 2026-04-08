@@ -207,4 +207,37 @@ export class AuthController {
       user: updatedUser,
     };
   }
+
+
+
+  @Post('verify-otp')
+  async verifyOTP(@Body() body: { cin: string; otp: string }) {
+    return this.authService.verifyOTP(body.cin, body.otp);
+  }
+
+  @Post('resend-otp')
+  async resendOTP(@Body() body: { cin: string }) {
+    return this.authService.resendOTP(body.cin);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() body: { email: string; resetCode: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      body.email,
+      body.resetCode,
+      body.newPassword,
+    );
+  }
+
+  @Post('resend-reset-code')
+  async resendResetCode(@Body() body: { email: string }) {
+    return this.authService.resendResetCode(body.email);
+  }
 }

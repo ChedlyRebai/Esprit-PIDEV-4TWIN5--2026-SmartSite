@@ -227,7 +227,7 @@ export class UsersService {
         cin: result[0].cin,
         role: result[0].role,
         roleType: typeof result[0].role,
-        roleName: (result[0].role as any)?.name,
+       // roleName: (result[0].role as any)?.name,
       });
     }
     return result;
@@ -264,7 +264,7 @@ export class UsersService {
     }
     bannedUser.isActif = !bannedUser.isActif;
 
-    bannedUser.isActif = !bannedUser.isActif;
+   // bannedUser.isActif = !bannedUser.isActif;
     return await bannedUser.save();
   }
 

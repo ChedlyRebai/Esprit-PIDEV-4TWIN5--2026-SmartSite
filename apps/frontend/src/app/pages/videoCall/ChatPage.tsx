@@ -57,7 +57,7 @@ const ChatPage = () => {
           await client.connectUser(
             {
               id: streamUserId,
-              name: streamUserId,
+              name: authuser.firstName,
               image: `https://ui-avatars.com/api/?name=${authuser.firstName}`,
             },
             tokenData.token,
@@ -132,7 +132,7 @@ const ChatPage = () => {
         <Channel channel={channel}>
           <div className="w-full relative">
             <CallButton handleVideoCall={handleVideoCall} />
-            <Window>
+            <Window >
               <ChannelHeader />
               <MessageList />
               <MessageInput focus />

@@ -23,8 +23,7 @@ const links: never[] = [];
 const scales = [
   { unit: "month", step: 1, format: "%M %Y" },
   { unit: "week", step: 1, format: "Week %w" },
-  {unit: "day", step: 1, format: "%d %M" },
-  //{ unit: "day", step: 1, format: "day %w" },
+  { unit: "day", step: 1, format: "%d %M" },
 ];
 
 const GanttChart = () => {

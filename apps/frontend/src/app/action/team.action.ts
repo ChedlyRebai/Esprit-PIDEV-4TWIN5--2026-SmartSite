@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000', // Proxy to backend server
-}); 
+  baseURL: 'http://localhost:3000/teams',
+});
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
@@ -35,7 +35,7 @@ export interface Team {
 
 export const getAllTeams = async (): Promise<{ status: number; data: Team[] }> => {
   try {
-    const response = await api.get('/teams');
+    const response = await api.get('/');
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error fetching teams:', error);
@@ -45,7 +45,7 @@ export const getAllTeams = async (): Promise<{ status: number; data: Team[] }> =
 
 export const getTeamById = async (id: string): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.get(`/teams/${id}`);
+    const response = await api.get(`/${id}`);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error fetching team:', error);
@@ -55,7 +55,7 @@ export const getTeamById = async (id: string): Promise<{ status: number; data: T
 
 export const createTeam = async (team: Partial<Team>): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.post('/teams', team);
+    const response = await api.post('/', team);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error creating team:', error);
@@ -65,7 +65,7 @@ export const createTeam = async (team: Partial<Team>): Promise<{ status: number;
 
 export const updateTeam = async (id: string, team: Partial<Team>): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.put(`/teams/${id}`, team);
+    const response = await api.put(`/${id}`, team);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error updating team:', error);
@@ -75,7 +75,7 @@ export const updateTeam = async (id: string, team: Partial<Team>): Promise<{ sta
 
 export const deleteTeam = async (id: string): Promise<{ status: number }> => {
   try {
-    const response = await api.delete(`/teams/${id}`);
+    const response = await api.delete(`/${id}`);
     return { status: response.status };
   } catch (error: any) {
     console.error('Error deleting team:', error);
@@ -85,7 +85,7 @@ export const deleteTeam = async (id: string): Promise<{ status: number }> => {
 
 export const addMemberToTeam = async (teamId: string, memberId: string): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.post(`/teams/${teamId}/members/${memberId}`);
+    const response = await api.post(`/${teamId}/members/${memberId}`);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error adding member to team:', error);
@@ -95,7 +95,7 @@ export const addMemberToTeam = async (teamId: string, memberId: string): Promise
 
 export const removeMemberFromTeam = async (teamId: string, memberId: string): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.delete(`/teams/${teamId}/members/${memberId}`);
+    const response = await api.delete(`/${teamId}/members/${memberId}`);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error removing member from team:', error);
@@ -105,7 +105,7 @@ export const removeMemberFromTeam = async (teamId: string, memberId: string): Pr
 
 export const setTeamManager = async (teamId: string, managerId: string): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.put(`/teams/${teamId}/manager/${managerId}`);
+    const response = await api.put(`/${teamId}/manager/${managerId}`);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error setting team manager:', error);
@@ -115,7 +115,7 @@ export const setTeamManager = async (teamId: string, managerId: string): Promise
 
 export const assignSiteToTeam = async (teamId: string, siteId: string): Promise<{ status: number; data: Team }> => {
   try {
-    const response = await api.put(`/teams/${teamId}/site/${siteId}`);
+    const response = await api.put(`/${teamId}/site/${siteId}`);
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error assigning site to team:', error);

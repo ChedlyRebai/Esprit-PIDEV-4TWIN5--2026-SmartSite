@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router";
+import { Link, Outlet, useNavigate, useLocation, redirect } from "react-router";
 import {
   Building2,
   LogOut,
@@ -10,7 +10,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
-import { getNavigationForRole } from "../utils/roleConfig";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import {
@@ -27,6 +26,10 @@ import { getMynavigationAccess } from "../action/permission.action";
 import { Permission } from "../types";
 import { getUnreadNotificationCount } from "../action/notification.action";
 import ChatbotWidget from "../components/Chatbot";
+import { SidebarMenu } from "../components/SidebarMenu";
+import type { RoleType } from "../types";
+import { cn } from "@/lib/utils";
+import { getCurrentUser } from "../action/auth.action";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -34,8 +37,6 @@ export default function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
-
-  // console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 
   const handleLogout = () => {
     logout();
@@ -55,28 +56,42 @@ export default function DashboardLayout() {
   console.log(navigationItems, "navigationItems in DashboardLayout");
 
   // Utiliser useEffect pour la redirection
-  // useEffect(() => {
-  //   if (!user) {
-  //     console.log("Redirection vers login - user est null");
-  //     navigate("/login");
-  //   } else if (!user.role) {
-  //     console.log("Role est null, utilisation du role par défaut");
-  //     // Contournement : si le role est null, on considère que c'est un admin
-  //     // TODO: Résoudre le problème de populate dans le backend
-  //   } else {
-  //     // Redirection automatique pour les Project Managers
-  //     const userRole = user.role?.name || user.role;
-  //     if (userRole === "project_manager") {
-  //       console.log("Redirection automatique vers dashboard Project Manager");
-  //       navigate("/project-manager-dashboard");
-  //     }
-  //   }
-  // }, [user, navigate]);
+  useEffect(() => {
+    if (!user) {
+      console.log("Redirection vers login - user est null");
+      navigate("/login");
+    } else if (!user.role) {
+      console.log("Role est null, utilisation du role par défaut");
+      // Contournement : si le role est null, on considère que c'est un admin
+      //   TODO: Résoudre le problème de populate dans le backend
+    } else {
+      // Redirection automatique pour les Project Managers
+      //  const userRole = user.role?.name || user.role;
+      //  if (userRole === "project_manager") {
+      //    console.log("Redirection automatique vers dashboard Project Manager");
+      //    navigate("/project-manager-dashboard");
+      //  }
+    }
+  }, [user, navigate]);
 
   if (!user) {
     return null; // Afficher rien pendant la redirection
   }
+  const {data:currentUser} = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: () => getCurrentUser(user), // Simuler une requête pour obtenir les données de l'utilisateur
+  });
 
+  if(currentUser?.data.firstLogin == true){
+    redirect("/reset-password-first-login");
+  }
+
+  if(currentUser?.data.isActif == false){
+    redirect("/account-banned");
+  }
+
+
+  console.log(currentUser, "currentUser in DashboardLayout");
   //const unreadNotifications = mockNotifications.filter((n) => !n.read).length;
   const { data: unredDataLength, isError: UnreadError } = useQuery({
     queryKey: ["unreadNotificationsLength"],
@@ -84,10 +99,15 @@ export default function DashboardLayout() {
   });
 
   // Contournement : si le role est null, utiliser un role par défaut
-  const userRole = user.role || { name: "super_admin" as const };
+  const roleName = (
+    typeof user.role === "object" && user.role?.name
+      ? user.role.name
+      : "super_admin"
+  ) as RoleType;
 
   // Navigation statique en fonction du rôle
   // const navigationItems = getNavigationForRole(userRole.name);
+  // const navigationItems = getNavigationForRole(roleName);
   const unreadNotifications = 0; // Placeholder - will be implemented with real notifications
 
   const getInitials = (nom: string, lastName: string) => {
@@ -119,12 +139,17 @@ export default function DashboardLayout() {
               variant="ghost"
               size="icon"
               className="lg:hidden"
+              aria-label={
+                sidebarOpen ? "Close sidebar menu" : "Open sidebar menu"
+              }
+              aria-controls="primary-sidebar"
+              aria-expanded={sidebarOpen}
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
               {sidebarOpen ? (
-                <X className="h-5 w-5" />
+                <X aria-hidden="true" className="h-5 w-5" />
               ) : (
-                <Menu className="h-5 w-5" />
+                <Menu aria-hidden="true" className="h-5 w-5" />
               )}
             </Button>
             <Link to="/" className="flex items-center gap-2">
@@ -152,9 +177,10 @@ export default function DashboardLayout() {
               variant="ghost"
               size="icon"
               className="relative"
+              aria-label="Open notifications"
               onClick={() => navigate("/notifications")}
             >
-              <Bell className="h-5 w-5" />
+              <Bell aria-hidden="true" className="h-5 w-5" />
               {unreadNotifications > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
                   {unreadNotifications}
@@ -169,26 +195,26 @@ export default function DashboardLayout() {
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 to-green-600 text-white">
                       {getInitials(user.firstName || "", user.lastName || "")}
-                      {getInitials(user.firstName || "", user.lastName || "")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-semibold">
-                      {user.firstName} {user.lastName}
                       {user.firstName} {user.lastName}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {/* {roleLabels[user.role]} */}
                     </span>
                   </div>
-                  <ChevronDown className="h-4 w-4 hidden md:block" />
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="h-4 w-4 hidden md:block"
+                  />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span>
-                      {user.firstName} {user.lastName}
                       {user.firstName} {user.lastName}
                     </span>
                     <span className="text-xs font-normal text-muted-foreground">
@@ -218,17 +244,20 @@ export default function DashboardLayout() {
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`
-            fixed lg:sticky top-0 left-0 z-30 h-screen bg-card border-r border-border
-            transition-transform duration-300 lg:translate-x-0
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            w-64 pt-16 lg:pt-0 flex flex-col
-          `}
+          id="primary-sidebar"
+          aria-label="Sidebar navigation"
+          className={cn(
+            "fixed lg:sticky top-0 left-0 z-30 h-screen w-[17rem] flex flex-col",
+            "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
+            "transition-transform duration-300 ease-out lg:translate-x-0",
+            "pt-16 lg:pt-6 shadow-sm",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          )}
         >
           <nav className="p-4 space-y-1 overflow-y-auto flex-1">
             {!isLoading &&
               navigationItems &&
-              navigationItems.map((item:Permission) => {
+              navigationItems.map((item: Permission) => {
                 const isActive = location.pathname.startsWith(item.href);
                 return (
                   <Link
@@ -237,10 +266,11 @@ export default function DashboardLayout() {
                     onClick={() => setSidebarOpen(false)}
                     className={`
                         flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                        ${isActive
-                      ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
-                      : "text-muted-foreground hover:bg-muted"
-                    }
+                        ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
+                            : "text-muted-foreground hover:bg-muted"
+                        }
                       `}
                   >
                     <span className="font-medium">{item.name}</span>
@@ -248,28 +278,35 @@ export default function DashboardLayout() {
                 );
               })}
           </nav>
-          {/* Logout Button at Bottom */}
-          <div className="p-4 border-t border-border">
+          <div className="p-3 mt-auto border-t border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
             <Button
+              variant="outline"
               onClick={handleLogout}
-              className="w-full bg-red-600 hover:bg-red-700 text-white gap-2"
+              className="w-full justify-center gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              Log out
             </Button>
-          </div>{" "}
+          </div>
         </aside>
 
         {/* Overlay for mobile */}
         {sidebarOpen && (
-          <div
+          <button
+            type="button"
+            aria-label="Close sidebar overlay"
             className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main
+          id="main-content"
+          data-app-content
+          tabIndex={-1}
+          className="flex-1 p-6 lg:p-8 outline-none"
+        >
           <Outlet />
         </main>
       </div>

@@ -9,8 +9,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(to bottom, #c9e8c9, #b7e7bb);
-  height: 100%;
+  
+  height: 90%;
 }
 /* .wx-rHj6070p, .wx-text-center ,.wx-action {
   display: none;
@@ -19,7 +19,7 @@
 .str-chat__container {
   max-width: 1200px;
   width: 100%;
-  height: 80% !important;
+  height: 100% !important;
   margin: 0 auto !important;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -190,6 +190,29 @@
   body {
     @apply bg-background text-foreground;
     }
+
+  /* WCAG 2.1 — visible focus for keyboard users (interactive elements) */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
   :root {
     --color-kanban-board-circle-blue: var(--kanban-board-circle-blue);
     --color-kanban-board-circle-cyan: var(--kanban-board-circle-cyan);

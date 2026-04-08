@@ -1,4 +1,3 @@
-
 import {
   FieldGroup,
   Field,
@@ -29,28 +28,74 @@ import {
 } from "../ui/select";
 
 const PERMISSION_CATEGORIES = [
+  // Core
   { name: "Dashboard", href: "/dashboard" },
-  { name: "User Management", href: "/users" },
-  { name: "Role Management", href: "/roles" },
-  { name: "Permission Management", href: "/permissions" },
-  { name: "Sites", href: "/sites" },
+  { name: "Home", href: "/home" },
+  { name: "Profile", href: "/profile" },
+
+  // Communication
+  { name: "Chat", href: "/chat" },
+  { name: "Group Chat", href: "/group-chat" },
+  { name: "Calls", href: "/call" },
+  { name: "Notifications", href: "/notifications" },
+  { name: "Call Notifications", href: "/notifcall" },
+
+  // Projects & Planning
   { name: "Projects", href: "/projects" },
+  { name: "Project Milestones", href: "/project-milestone" },
+  { name: "Milestone Tasks", href: "/milestone-tasks" },
   { name: "Planning", href: "/planning" },
+  { name: "My Milestones", href: "/my-mil" },
+  { name: "My Tasks", href: "/my-task" },
+
+  // Teams
   { name: "Team", href: "/team" },
+  { name: "My Team Members", href: "/my-team-members" },
+
+  // Sites
+  { name: "Sites", href: "/sites" },
+  { name: "My Sites", href: "/my-sites" },
+  { name: "My Affected Sites", href: "/my-affected-sites" },
+
+  // Clients & Suppliers
   { name: "Clients", href: "/clients" },
   { name: "Suppliers", href: "/suppliers" },
+  { name: "Supplier Evaluation", href: "/suppliers-evaluation" },
+  { name: "Supplier Comparison", href: "/suppliers-comparison" },
+
+  // Catalog & Materials
+  { name: "Catalog", href: "/catalog" },
   { name: "Materials", href: "/materials" },
+  { name: "Supplier Materials", href: "/supplier-materials" },
+  { name: "Material Suppliers", href: "/material-suppliers" },
+
+  // Finance
   { name: "Finance", href: "/finance" },
-  { name: "QHSE & Safety", href: "/qhse" },
+  { name: "Payments", href: "/payments" },
+
+  // QHSE & Safety
+  { name: "QHSE", href: "/qhse" },
   { name: "Incidents", href: "/incidents" },
+
+  // Insights
   { name: "Reports", href: "/reports" },
   { name: "Analytics", href: "/analytics" },
+
+  // Map
   { name: "Map View", href: "/map" },
-  { name: "Notifications", href: "/notifications" },
+
+  // Admin
+  { name: "User Management", href: "/users" },
   { name: "Pending Approvals", href: "/admin/pending-users" },
-  
-  {name: "My Tasks", href: "/my-task"}  
-  
+  { name: "System Logs", href: "/admin/system-logs" },
+  { name: "Super Admin Projects", href: "/super-admin-projects" },
+
+  // Optimization
+  { name: "Resource Optimization", href: "/resource-optimization" },
+
+  // Misc
+  { name: "User Guide", href: "/user-guide" },
+  { name: "Checkout Simulator", href: "/checkout-simulator" },
 ];
 
 const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
@@ -110,6 +155,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const { id, onClose, onPermissionChange } = useAddPermissionModal();
 
   useEffect(() => {
+    loadPermissionData();
     if (type === "edit" && id) {
       loadPermissionData();
     }
@@ -119,7 +165,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
     try {
       const res = await getPermissionById(id as string);
       if (res?.status === 200) {
-        // Check if the permission name matches a predefined category
+        console.log("Permission data loaded:", res.data);
         const matchedCategory = PERMISSION_CATEGORIES.find(
           (cat) => cat.name === res.data.name,
         );
@@ -134,8 +180,6 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
           update: res.data.update || false,
           delete: res.data.delete || false,
         });
-
-        
       }
     } catch (error: any) {
       toast.error("Failed to load permission data. Please try again.");
@@ -148,11 +192,9 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
     );
 
     if (selectedCategory) {
-      
-        setIsCustomCategory(false);
-        form.setValue("name", selectedCategory.name);
-        form.setValue("href", selectedCategory.href);
-      
+      setIsCustomCategory(false);
+      form.setValue("name", selectedCategory.name);
+      form.setValue("href", selectedCategory.href);
     }
   };
 

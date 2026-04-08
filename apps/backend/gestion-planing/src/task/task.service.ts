@@ -5,9 +5,9 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Task } from '@/task/entities/task.entity';
-import { Milestone } from '@/milestone/entities/milestone.entity';
-import { TaskStage } from '@/task-stage/entities/TaskStage.entities';
+import { Task } from '../task/entities/task.entity';
+import { Milestone } from '../milestone/entities/milestone.entity';
+import { TaskStage } from '../task-stage/entities/TaskStage.entities';
 import { ClientKafka } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { AffectedNotificationEventDto } from './dto/affected-notification-event.dto';
@@ -168,7 +168,7 @@ export class TaskService implements OnModuleInit {
     try {
       const response = await this.taskModel.find().exec();
       return response;
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error fetching tasks: ${error.message}`);
     }
   }
@@ -211,12 +211,65 @@ export class TaskService implements OnModuleInit {
     return tasks;
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     try {
       const response = await this.taskModel.findById(id).exec();
       return response;
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error fetching task: ${error.message}`);
+    }
+  }
+
+  /**
+   * Récupère toutes les tâches d'un projet pour le Gantt
+   * Retourne les tâches avec leurs dates, progression et statut
+   */
+  async getTasksForGantt(projectId: string) {
+    try {
+      const tasks = await this.taskModel
+        .find({ projectId })
+        .populate('status')
+        .populate('milestoneId')
+        .lean()
+        .exec();
+
+      // Transformer les données pour le Gantt
+      return tasks.map((task) => ({
+        id: task._id,
+        text: task.title,
+        start: task.startDate || new Date(),
+        end: task.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Par défaut 7 jours
+        progress: task.progress || 0,
+        parent: task.parent || 0, // 0 = pas de parent (tâche principale)
+        open: true,
+        type: task.type === 'summary' ? 'summary' : 'task',
+        priority: task.priority,
+        assignedTeams: task.assignedTeams,
+        description: task.description,
+        milestoneId: task.milestoneId,
+        status: task.status,
+      }));
+    } catch (error:any) {
+      throw new Error(`Error fetching tasks for Gantt: ${error.message}`);
+    }
+  }
+
+  /**
+   * Met à jour les dates d'une tâche (pour drag & drop dans le Gantt)
+   */
+  async updateTaskDates(taskId: string, startDate: Date, endDate: Date) {
+    try {
+      const response = await this.taskModel
+        .findByIdAndUpdate(taskId, { startDate, endDate }, { new: true })
+        .exec();
+
+      if (!response) {
+        throw new Error(`Task with id ${taskId} not found`);
+      }
+
+      return response;
+    } catch (error:any) {
+      throw new Error(`Error updating task dates: ${error.message}`);
     }
   }
   async updateNew(taskId: string, taskStageId: string) {
@@ -245,7 +298,7 @@ export class TaskService implements OnModuleInit {
     console.log(res);
     return res;
   }
-  async update(id: number, updateTaskDto: UpdateTaskDto) {
+  async update(id: string, updateTaskDto: UpdateTaskDto) {
     try {
       const payload: UpdateTaskDto = { ...updateTaskDto };
 
@@ -260,7 +313,7 @@ export class TaskService implements OnModuleInit {
         throw new Error(`Task with id ${id} not found`);
       }
       return response;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Error updating task: ${error.message}`);
     }
   }
@@ -269,12 +322,12 @@ export class TaskService implements OnModuleInit {
     try {
       const response = await this.taskModel.find({ assignedTeams: { $in: [teamId] } }).exec();
       return response;
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error fetching tasks for team ${teamId}: ${error.message}`);
     }
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     try {
       //const taskSTage= await this.taskSTageModel.findByIdAndUpdate()
       const response = await this.taskModel.findByIdAndDelete(id).exec();
@@ -291,7 +344,7 @@ export class TaskService implements OnModuleInit {
         throw new Error(`Task with id ${id} not found`);
       }
       return response;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Error removing task: ${error.message}`);
     }
   }

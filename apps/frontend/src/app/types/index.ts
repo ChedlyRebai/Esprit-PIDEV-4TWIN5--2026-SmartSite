@@ -507,19 +507,22 @@ export interface Client {
 }
 
 export interface Supplier {
-  id: string;
+  _id?: string;
   name: string;
-  address: string;
-  contact: string;
-  email: string;
-  phone: string;
+  supplierCode: string;
   category: string;
-  rating: number;
-  contractDate: string;
-  stockType: string;
-  stockQuantity: number;
-  receivedQuantity: number;
-  usedQuantity: number;
+  specialty?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  paymentTerms?: string;
+  averageDeliveryDays?: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Notification {

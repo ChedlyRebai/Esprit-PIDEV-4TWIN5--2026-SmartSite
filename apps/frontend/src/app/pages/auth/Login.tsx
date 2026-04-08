@@ -114,11 +114,27 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   return (
     <>
-      <div className="h-screen flex min-h-full flex-1">
+      {/*
+        This example requires updating your template:
+
+        ```
+        <html class="h-full bg-white">
+        <body class="h-full">
+        ```
+      */}
+      <div
+        id="main-content"
+        data-app-content
+        tabIndex={-1}
+        className="h-screen flex min-h-full flex-1 outline-none"
+      >
         <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
           <div className="mx-auto w-full  lg:w-96">
             <div>
-              <a href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md">
+              <a
+                href="/"
+                className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md"
+              >
                 <SmartSiteLogo size="sm" />
               </a>
               <p className="mt-2 text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase">
@@ -226,7 +242,7 @@ export default function Login() {
         <div className="relative hidden w-0 flex-1 lg:block">
           <img
             className="absolute inset-0 h-full w-full object-cover"
-            src="https://images.unsplash.com/photo-1496917756835-20cb06e75b4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1908&q=80"
+            src="bg1.jpg"
             alt=""
           />
         </div>

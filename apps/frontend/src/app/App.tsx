@@ -14,6 +14,8 @@ import CallPage from "./pages/videoCall/CallPage";
 import OnboardingPage from "./pages/videoCall/OnboardingPage";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import "stream-chat-react/dist/css/v2/index.css";
+import { GlobalAccessibilityBar } from "./components/accessibility/GlobalAccessibilityBar";
+
 const queryClient = new QueryClient();
 
 export default function App() {
@@ -21,6 +23,7 @@ export default function App() {
     <>
       
 
+      <GlobalAccessibilityBar />
       <QueryClientProvider client={queryClient}>
         <ThemeSync />
         <RouterProvider router={router} />

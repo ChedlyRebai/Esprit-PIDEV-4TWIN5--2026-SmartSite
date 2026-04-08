@@ -13,7 +13,6 @@ import { Button } from "../../components/ui/button";
 
 import type { Milestone, Site } from "../../types";
 
-import "leaflet/dist/leaflet.css";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { getMilestonesByProjectId } from "@/app/action/milestone.action";
@@ -54,7 +53,7 @@ const ProjectMilestone = () => {
             <Button
               className="cursor-pointer"
               onClick={() => {
-                setProjectId(projectId);
+                setProjectId(projectId as string);
                 console.log(
                   "project id from milestone page on click",
                   projectId,
@@ -69,7 +68,7 @@ const ProjectMilestone = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {milestones?.map((milestone) => (
+            {milestones?.map((milestone:Milestone) => (
               <div key={milestone._id} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -80,13 +79,10 @@ const ProjectMilestone = () => {
                       {milestone.description}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      {typeof milestone.startDate == "object"
-                        ? milestone.startDate?.toLocaleDateString()
-                        : milestone.startDate}{" "}
+                      {new Date(milestone.startDate as Date).toLocaleDateString()} -{" "}
+                      
                       •{" "}
-                      {typeof milestone.endDate == "object"
-                        ? milestone.endDate?.toLocaleDateString()
-                        : milestone.endDate}
+                      {new Date(milestone.endDate as Date).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">

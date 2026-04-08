@@ -33,7 +33,7 @@ export const LoginAction = async (cin: string, password: string) => {
 
 export const getCurrentUser = async (authUser: any) => {
   try {
-    const res = await axios.get("http://localhost:3010/users/me", {
+    const res = await axios.get("http://localhost:3000/users/me", {
       headers: {
         Authorization: `Bearer ${authUser?.access_token}`,
       },

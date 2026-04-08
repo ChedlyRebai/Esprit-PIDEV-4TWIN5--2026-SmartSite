@@ -79,17 +79,32 @@ export class TaskController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number) {
+  findOne(@Param('id') id: string) {
     return this.taskService.findOne(id);
   }
 
+  // Endpoint pour le Gantt - récupérer toutes les tâches d'un projet
+  @Get('gantt/:projectId')
+  getTasksForGantt(@Param('projectId') projectId: string) {
+    return this.taskService.getTasksForGantt(projectId);
+  }
+
+  // Endpoint pour mettre à jour les dates d'une tâche (drag & drop Gantt)
+  @Put(':id/dates')
+  updateTaskDates(
+    @Param('id') id: string,
+    @Body() body: { startDate: Date; endDate: Date },
+  ) {
+    return this.taskService.updateTaskDates(id, body.startDate, body.endDate);
+  }
+
   @Put(':id')
-  update(@Param('id') id: number, @Body() updateTaskDto: UpdateTaskDto) {
+  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
     return this.taskService.update(id, updateTaskDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: number) {
+  remove(@Param('id') id: string) {
     return this.taskService.remove(id);
   }
 }
