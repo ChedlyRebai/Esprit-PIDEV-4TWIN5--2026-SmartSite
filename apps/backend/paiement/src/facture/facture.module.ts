@@ -4,6 +4,7 @@ import { FactureController } from './facture.controller';
 import { FactureService } from './facture.service';
 import { Facture, FactureSchema } from '../entities/facture.entity';
 import { Payment, PaymentSchema } from '../entities/payment.entity';
+import { PaiementService } from '../paiement.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { Payment, PaymentSchema } from '../entities/payment.entity';
     ]),
   ],
   controllers: [FactureController],
-  providers: [FactureService],
+  providers: [FactureService, PaiementService],
   exports: [FactureService],
 })
 export class FactureModule {}

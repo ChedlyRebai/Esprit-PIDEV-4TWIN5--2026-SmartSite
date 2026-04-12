@@ -109,7 +109,7 @@ export class FactureService {
     return facture;
   }
 
-  async generatePdfContent(facture: Facture): Promise<string> {
+  async generatePdfContent(facture: Facture, siteInfo?: { budget: number; totalPaid: number; remaining: number }): Promise<string> {
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -134,6 +134,27 @@ export class FactureService {
       };
       return labels[method] || method;
     };
+
+    const hasRemaining = siteInfo && siteInfo.remaining > 0;
+    const remainingHtml = siteInfo ? `
+      <div class="remaining-section" style="background: ${hasRemaining ? '#fef3c7' : '#dcfce7'}; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid ${hasRemaining ? '#f59e0b' : '#22c55e'};">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center;">
+          <div>
+            <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Budget</div>
+            <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 4px;">${formatCurrency(siteInfo.budget)}</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Amount Paid</div>
+            <div style="font-size: 18px; font-weight: 700; color: #22c55e; margin-top: 4px;">${formatCurrency(siteInfo.totalPaid)}</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Remaining</div>
+            <div style="font-size: 18px; font-weight: 700; color: ${hasRemaining ? '#f59e0b' : '#22c55e'}; margin-top: 4px;">${formatCurrency(siteInfo.remaining)}</div>
+          </div>
+        </div>
+        ${hasRemaining ? `<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #92400e; font-weight: 500;">⚠️ Payment incomplete - Balance remaining</div>` : `<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #166534; font-weight: 500;">✓ Fully Paid</div>`}
+      </div>
+    ` : '';
 
     const html = `
 <!DOCTYPE html>
@@ -217,6 +238,8 @@ export class FactureService {
         <div class="amount-label">Amount Paid</div>
         <div class="amount-value">${formatCurrency(facture.amount)}</div>
       </div>
+
+      ${remainingHtml}
 
       ${facture.description ? `
       <div class="description-box">

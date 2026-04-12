@@ -18,6 +18,25 @@ export class PaiementController {
     return this.paiementService.findAll();
   }
 
+  @Get('unpaid-sites')
+  async getUnpaidSites(@Query('sites') sitesJson: string) {
+    const sites = sitesJson ? JSON.parse(sitesJson) : [];
+    const results = await Promise.all(
+      sites.map(async (site: any) => {
+        const status = await this.paiementService.getPaymentStatus(site.id, site.budget);
+        return {
+          siteId: site.id,
+          siteNom: site.nom,
+          budget: site.budget,
+          totalPaid: status.totalPaid,
+          remaining: status.remaining,
+          hasPaid: status.hasPaid,
+        };
+      })
+    );
+    return results.filter(r => r.remaining > 0);
+  }
+
   // Static sub-routes must be declared BEFORE the dynamic :id route
   @Get('site/:siteId/total')
   getTotalPaymentsBySite(@Param('siteId') siteId: string) {

@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Edit, Trash2, RefreshCw, CreditCard, AlertCircle, CheckCircle2, FileText, Download, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Printer } from "lucide-react";
+import { Plus, Edit, Trash2, RefreshCw, CreditCard, AlertCircle, CheckCircle2, FileText, Download, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Printer, Bell } from "lucide-react";
 import StripeCardForm from "./StripeCardForm";
 
 interface Payment {
@@ -55,6 +55,15 @@ interface Facture {
   paymentDate: string;
   description?: string;
   createdAt: string;
+}
+
+interface UnpaidSite {
+  siteId: string;
+  siteNom: string;
+  budget: number;
+  totalPaid: number;
+  remaining: number;
+  hasPaid: boolean;
 }
 
 interface FormErrors {
@@ -149,6 +158,16 @@ const Payments = () => {
     },
   });
 
+  const { data: unpaidSites = [], isLoading: unpaidLoading } = useQuery<UnpaidSite[]>({
+    queryKey: ["unpaidSites"],
+    queryFn: async () => {
+      const sitesParam = JSON.stringify(sitesData.map((s: Site) => ({ id: s.id, nom: s.name, budget: s.budget })));
+      const res = await paymentApi.get(`unpaid-sites?sitesJson=${encodeURIComponent(sitesParam)}`);
+      return res.data;
+    },
+    enabled: sitesData.length > 0,
+  });
+
   const { data: factureData, isLoading: facturesLoading, refetch: refetchFactures } = useQuery({
     queryKey: ["factures", facturePage, factureLimit, factureFilter],
     queryFn: async () => {
@@ -181,7 +200,11 @@ const Payments = () => {
 
   const handleDownloadPdf = async (factureId: string) => {
     try {
-      const res = await factureApi.get(`pdf/${factureId}`, { responseType: "blob" });
+      const facture = factureData?.factures?.find((f: Facture) => f.id === factureId);
+      const site = sitesData.find((s: Site) => s.id === facture?.siteId);
+      const budget = site?.budget || 0;
+      const params = budget > 0 ? `?budget=${budget}` : '';
+      const res = await factureApi.get(`pdf/${factureId}${params}`, { responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -567,6 +590,24 @@ const Payments = () => {
         </Alert>
       )}
 
+      {unpaidSites.length > 0 && (
+        <Alert className="border-amber-300 bg-amber-50 text-amber-800">
+          <Bell className="h-4 w-4" />
+          <AlertDescription>
+            <div className="font-semibold mb-2">Attention: {unpaidSites.length} unfinished payment(s)</div>
+            <div className="space-y-1 text-sm">
+              {unpaidSites.slice(0, 5).map((site) => (
+                <div key={site.siteId} className="flex justify-between">
+                  <span>{site.siteNom}</span>
+                  <span className="font-medium">Remaining: {site.remaining.toFixed(3)} DT / Budget: {site.budget.toFixed(3)} DT</span>
+                </div>
+              ))}
+              {unpaidSites.length > 5 && <div className="text-xs">...and {unpaidSites.length - 5} more</div>}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Payment Management</h1>
         <div className="flex gap-2">
@@ -641,6 +682,35 @@ const Payments = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Payment Summary by Site */}
+      {unpaidSites.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {unpaidSites.map((site) => (
+            <Card key={site.siteId} className={site.remaining > 0 ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}>
+              <CardContent className="pt-4">
+                <div className="font-semibold text-sm truncate">{site.siteNom}</div>
+                <div className="mt-2 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Budget:</span>
+                    <span className="font-medium">{site.budget.toFixed(3)} DT</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Paid:</span>
+                    <span className="font-medium text-green-600">{site.totalPaid.toFixed(3)} DT</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-1">
+                    <span className="text-muted-foreground">Remaining:</span>
+                    <span className={`font-bold ${site.remaining > 0 ? "text-amber-600" : "text-green-600"}`}>
+                      {site.remaining.toFixed(3)} DT
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-4 border-b">
         <button

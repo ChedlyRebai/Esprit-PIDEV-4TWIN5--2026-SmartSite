@@ -10,10 +10,14 @@ import {
 import { Response } from 'express';
 import { FactureService } from './facture.service';
 import { FactureFilterDto, FacturePaginationDto } from '../dto/create-facture.dto';
+import { PaiementService } from '../paiement.service';
 
 @Controller('api/factures')
 export class FactureController {
-  constructor(private readonly factureService: FactureService) {}
+  constructor(
+    private readonly factureService: FactureService,
+    private readonly paiementService: PaiementService,
+  ) {}
 
   @Post(':paymentId')
   async createFromPayment(
@@ -29,9 +33,27 @@ export class FactureController {
   }
 
   @Get('pdf/:id')
-  async getPdf(@Param('id') id: string, @Res() res: Response) {
+  async getPdf(
+    @Param('id') id: string,
+    @Query('budget') budgetStr: string,
+    @Res() res: Response
+  ) {
     const facture = await this.factureService.findOne(id);
-    const html = await this.factureService.generatePdfContent(facture);
+    
+    let siteInfo: { budget: number; totalPaid: number; remaining: number } | undefined = undefined;
+    if (budgetStr && !isNaN(parseFloat(budgetStr))) {
+      const siteBudget = parseFloat(budgetStr);
+      const status = await this.paiementService.getPaymentStatus(facture.siteId.toString(), siteBudget);
+      if (status) {
+        siteInfo = {
+          budget: siteBudget,
+          totalPaid: status.totalPaid,
+          remaining: status.remaining,
+        };
+      }
+    }
+    
+    const html = await this.factureService.generatePdfContent(facture, siteInfo);
 
     res.set({
       'Content-Type': 'text/html',
