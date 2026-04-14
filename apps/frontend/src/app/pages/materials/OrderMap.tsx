@@ -20,7 +20,7 @@ import materialService, { Material } from "../../../services/materialService";
 import { siteService, fournisseurService, Site, Fournisseur } from "../../../services/siteFournisseurService";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { AlertTriangle, Package, Truck, MapPin, Navigation, Clock, Mic, Send, X } from "lucide-react";
+import { AlertTriangle, Package, Truck, MapPin, Navigation, Clock, Mic, Send, X, CheckCircle } from "lucide-react";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
