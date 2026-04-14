@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { paymentApi } from "@/lib/api-client";
+import { paymentApi, factureApi } from "@/lib/api-client";
 import { fetchSites, updateSite } from "@/app/action/site.action";
 import type { Site } from "@/app/types";
 import {
@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Edit, Trash2, RefreshCw, CreditCard, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Edit, Trash2, RefreshCw, CreditCard, AlertCircle, CheckCircle2, FileText, Download, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Printer, Bell } from "lucide-react";
 import StripeCardForm from "./StripeCardForm";
 
 interface Payment {
@@ -43,6 +43,27 @@ interface Payment {
   paymentMethod: string;
   createdAt: string;
   paymentDate: string;
+}
+
+interface Facture {
+  id: string;
+  numeroFacture: string;
+  siteId: string;
+  siteNom: string;
+  amount: number;
+  paymentMethod: string;
+  paymentDate: string;
+  description?: string;
+  createdAt: string;
+}
+
+interface UnpaidSite {
+  siteId: string;
+  siteNom: string;
+  budget: number;
+  totalPaid: number;
+  remaining: number;
+  hasPaid: boolean;
 }
 
 interface FormErrors {
@@ -111,6 +132,10 @@ const Payments = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cardClientSecret, setCardClientSecret] = useState<string | null>(null);
   const [stripePaymentIntentId, setStripePaymentIntentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"payments" | "factures">("payments");
+  const [facturePage, setFacturePage] = useState(1);
+  const [factureFilter, setFactureFilter] = useState("");
+  const [factureLimit] = useState(10);
 
   useEffect(() => {
     const t = setTimeout(() => { setSuccessMessage(null); setErrorMessage(null); }, 5000);
@@ -132,6 +157,267 @@ const Payments = () => {
       return res.data;
     },
   });
+
+  const { data: unpaidSites = [], isLoading: unpaidLoading } = useQuery<UnpaidSite[]>({
+    queryKey: ["unpaidSites"],
+    queryFn: async () => {
+      const sitesParam = JSON.stringify(sitesData.map((s: Site) => ({ id: s.id, nom: s.name, budget: s.budget })));
+      const res = await paymentApi.get(`unpaid-sites?sitesJson=${encodeURIComponent(sitesParam)}`);
+      return res.data;
+    },
+    enabled: sitesData.length > 0,
+  });
+
+  const { data: factureData, isLoading: facturesLoading, refetch: refetchFactures } = useQuery({
+    queryKey: ["factures", facturePage, factureLimit, factureFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append("page", String(facturePage));
+      params.append("limit", String(factureLimit));
+      if (factureFilter) params.append("siteNom", factureFilter);
+      const res = await factureApi.get(`?${params.toString()}`);
+      return res.data;
+    },
+  });
+
+  const createFactureMutation = useMutation({
+    mutationFn: ({ paymentId, siteNom }: { paymentId: string; siteNom: string }) =>
+      factureApi.post(paymentId, { siteNom }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
+      setSuccessMessage("Invoice created successfully.");
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || "Failed to create invoice.";
+      setErrorMessage(Array.isArray(msg) ? msg.join(", ") : msg);
+    },
+  });
+
+  const handleCreateFacture = async (payment: Payment) => {
+    const siteNom = getSiteName(payment, siteMap);
+    createFactureMutation.mutate({ paymentId: payment.id, siteNom });
+  };
+
+  const handleDownloadPdf = async (factureId: string) => {
+    try {
+      const facture = factureData?.factures?.find((f: Facture) => f.id === factureId);
+      const site = sitesData.find((s: Site) => s.id === facture?.siteId);
+      const budget = site?.budget || 0;
+      const params = budget > 0 ? `?budget=${budget}` : '';
+      const res = await factureApi.get(`pdf/${factureId}${params}`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `facture-${factureId}.html`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setErrorMessage("Failed to download invoice PDF.");
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (factureFilter) params.append("siteNom", factureFilter);
+      const res = await factureApi.get(`export/csv?${params.toString()}`, { responseType: "text" });
+      const blob = new Blob([res.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `factures-${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setErrorMessage("Failed to export CSV.");
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (factureFilter) params.append("siteNom", factureFilter);
+      params.append("page", "1");
+      params.append("limit", "10000");
+      const res = await factureApi.get(`?${params.toString()}`);
+      const { factures } = res.data;
+
+      if (!factures || factures.length === 0) {
+        setErrorMessage("No invoices to export.");
+        return;
+      }
+
+      const formatCurrency = (amount: number) => `${amount.toFixed(3)} DT`;
+      const formatDate = (date: string) => new Date(date).toLocaleDateString("en-GB");
+
+      const formatPaymentMethod = (method: string) => {
+        const labels: Record<string, string> = {
+          cash: 'Cash',
+          card: 'Credit/Debit Card',
+          transfer: 'Bank Transfer',
+          check: 'Check',
+        };
+        return labels[method] || method;
+      };
+
+      const rows = factures.map((f: Facture, index: number) => `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${f.numeroFacture}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${f.siteNom}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">${formatCurrency(f.amount)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${formatPaymentMethod(f.paymentMethod)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${formatDate(f.paymentDate)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;"><span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;">PAID</span></td>
+        </tr>
+      `).join('');
+
+      const totalAmount = factures.reduce((sum: number, f: Facture) => sum + f.amount, 0);
+
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Receipts Report - ${new Date().toISOString().split('T')[0]}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1a1a1a; }
+    .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #1e3a8a; }
+    .header h1 { font-size: 28px; font-weight: 700; color: #1e3a8a; text-transform: uppercase; letter-spacing: 2px; }
+    .header-subtitle { font-size: 14px; color: #64748b; margin-top: 8px; }
+    .report-info { display: flex; justify-content: space-between; margin-bottom: 30px; background: #f8fafc; padding: 20px; border-radius: 8px; }
+    .info-item { text-align: center; }
+    .info-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+    .info-value { font-size: 24px; font-weight: 700; color: #1e3a8a; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th { background: #1e3a8a; color: white; padding: 14px 12px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    th:nth-child(4), th:nth-child(6) { text-align: right; }
+    tr:nth-child(even) { background: #f8fafc; }
+    tr:hover { background: #f1f5f9; }
+    .total-row { background: #1e3a8a !important; color: white; }
+    .total-row td { font-weight: 700; font-size: 16px; }
+    .total-label { text-transform: uppercase; letter-spacing: 1px; }
+    .total-amount { text-align: right; font-size: 20px; }
+    .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+    .page-break { page-break-after: always; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Payment Receipts Report</h1>
+    <div class="header-subtitle">SmartSite - Construction Project Management</div>
+  </div>
+
+  <div class="report-info">
+    <div class="info-item">
+      <div class="info-label">Total Invoices</div>
+      <div class="info-value">${factures.length}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Total Amount</div>
+      <div class="info-value">${formatCurrency(totalAmount)}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Report Date</div>
+      <div class="info-value">${new Date().toLocaleDateString('en-GB')}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 50px;">#</th>
+        <th style="width: 150px;">Invoice No.</th>
+        <th>Site / Project</th>
+        <th style="width: 120px; text-align: right;">Amount</th>
+        <th style="width: 140px;">Method</th>
+        <th style="width: 100px;">Date</th>
+        <th style="width: 80px;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+      <tr class="total-row">
+        <td colspan="3" class="total-label">Grand Total</td>
+        <td class="total-amount">${formatCurrency(totalAmount)}</td>
+        <td colspan="3"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <p>Generated by SmartSite on ${new Date().toLocaleString()}</p>
+    <p>SmartSite - Construction Management System</p>
+  </div>
+</body>
+</html>
+      `.trim();
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `payment-receipts-${new Date().toISOString().split("T")[0]}.html`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setErrorMessage("Failed to export PDF.");
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (factureFilter) params.append("siteNom", factureFilter);
+      params.append("page", "1");
+      params.append("limit", "10000");
+      const res = await factureApi.get(`?${params.toString()}`);
+      const { factures } = res.data;
+
+      if (!factures || factures.length === 0) {
+        setErrorMessage("No invoices to export.");
+        return;
+      }
+
+      const headers = ["Invoice Number", "Site/Project", "Amount", "Payment Method", "Payment Date", "Status"];
+      const rows = factures.map((f: Facture) => [
+        f.numeroFacture,
+        f.siteNom,
+        f.amount.toFixed(3),
+        f.paymentMethod,
+        new Date(f.paymentDate).toLocaleDateString("en-GB"),
+        "Paid"
+      ]);
+
+      const totalRow = [["", "Grand Total", factures.reduce((s: number, f: Facture) => s + f.amount, 0).toFixed(3), "", "", ""]];
+
+      const tsvContent = [
+        headers.join("\t"),
+        ...rows.map(r => r.join("\t")),
+        ...totalRow.map(r => r.join("\t"))
+      ].join("\n");
+
+      const blob = new Blob([tsvContent], { type: "text/tab-separated-values;charset=utf-8" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `payment-receipts-${new Date().toISOString().split("T")[0]}.xls`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setErrorMessage("Failed to export Excel.");
+    }
+  };
 
   const selectedSite = sitesData.find((s: Site) => s.id === form.siteId);
   const amount = Number(form.amount);
@@ -304,10 +590,28 @@ const Payments = () => {
         </Alert>
       )}
 
+      {unpaidSites.length > 0 && (
+        <Alert className="border-amber-300 bg-amber-50 text-amber-800">
+          <Bell className="h-4 w-4" />
+          <AlertDescription>
+            <div className="font-semibold mb-2">Attention: {unpaidSites.length} unfinished payment(s)</div>
+            <div className="space-y-1 text-sm">
+              {unpaidSites.slice(0, 5).map((site) => (
+                <div key={site.siteId} className="flex justify-between">
+                  <span>{site.siteNom}</span>
+                  <span className="font-medium">Remaining: {site.remaining.toFixed(3)} DT / Budget: {site.budget.toFixed(3)} DT</span>
+                </div>
+              ))}
+              {unpaidSites.length > 5 && <div className="text-xs">...and {unpaidSites.length - 5} more</div>}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Payment Management</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" title="Refresh" onClick={() => queryClient.invalidateQueries({ queryKey: ["payments"] })}>
+          <Button variant="outline" size="icon" title="Refresh" onClick={() => { queryClient.invalidateQueries({ queryKey: ["payments"] }); queryClient.invalidateQueries({ queryKey: ["factures"] }); }}>
             <RefreshCw className="h-4 w-4" />
           </Button>
 
@@ -379,47 +683,172 @@ const Payments = () => {
         </div>
       </div>
 
+      {/* Payment Summary by Site */}
+      {unpaidSites.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {unpaidSites.map((site) => (
+            <Card key={site.siteId} className={site.remaining > 0 ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}>
+              <CardContent className="pt-4">
+                <div className="font-semibold text-sm truncate">{site.siteNom}</div>
+                <div className="mt-2 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Budget:</span>
+                    <span className="font-medium">{site.budget.toFixed(3)} DT</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Paid:</span>
+                    <span className="font-medium text-green-600">{site.totalPaid.toFixed(3)} DT</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-1">
+                    <span className="text-muted-foreground">Remaining:</span>
+                    <span className={`font-bold ${site.remaining > 0 ? "text-amber-600" : "text-green-600"}`}>
+                      {site.remaining.toFixed(3)} DT
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-4 border-b">
+        <button
+          onClick={() => setActiveTab("payments")}
+          className={`px-4 py-2 font-medium transition-colors ${activeTab === "payments" ? "border-b-2 border-blue-600 text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          Payments
+        </button>
+        <button
+          onClick={() => { setActiveTab("factures"); queryClient.invalidateQueries({ queryKey: ["factures"] }); }}
+          className={`px-4 py-2 font-medium transition-colors ${activeTab === "factures" ? "border-b-2 border-blue-600 text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          Invoices (Factures)
+        </button>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Payment List <span className="text-sm font-normal text-muted-foreground">({payments.length} record{payments.length !== 1 ? "s" : ""})</span></CardTitle>
+          <CardTitle>{activeTab === "payments" ? `Payment List (${payments.length})` : `Invoice List (${factureData?.total || 0})`}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reference</TableHead>
-                <TableHead>Site</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((payment: Payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-mono text-xs">{payment.reference || "-"}</TableCell>
-                  <TableCell className="font-semibold">{getSiteName(payment, siteMap)}</TableCell>
-                  <TableCell className="font-semibold tabular-nums">{payment.amount.toFixed(3)} DT</TableCell>
-                  <TableCell>{getMethodLabel(payment.paymentMethod)}</TableCell>
-                  <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                  <TableCell className="max-w-[200px] truncate text-muted-foreground">{payment.description || "-"}</TableCell>
-                  <TableCell className="text-sm tabular-nums">{new Date(payment.paymentDate || payment.createdAt).toLocaleDateString("en-GB")}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" title="Edit (coming soon)" disabled><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" title="Delete payment" className="text-red-500 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { if (window.confirm("Are you sure you want to delete this payment?")) { deleteMutation.mutate(payment.id); }}}>
-                        <Trash2 className="h-4 w-4" />
+          {activeTab === "payments" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((payment: Payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell className="font-mono text-xs">{payment.reference || "-"}</TableCell>
+                    <TableCell className="font-semibold">{getSiteName(payment, siteMap)}</TableCell>
+                    <TableCell className="font-semibold tabular-nums">{payment.amount.toFixed(3)} DT</TableCell>
+                    <TableCell>{getMethodLabel(payment.paymentMethod)}</TableCell>
+                    <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">{payment.description || "-"}</TableCell>
+                    <TableCell className="text-sm tabular-nums">{new Date(payment.paymentDate || payment.createdAt).toLocaleDateString("en-GB")}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" title="Generate Invoice" onClick={() => handleCreateFacture(payment)} disabled={createFactureMutation.isPending}>
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" title="Delete payment" className="text-red-500 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { if (window.confirm("Are you sure you want to delete this payment?")) { deleteMutation.mutate(payment.id); }}}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <>
+              <div className="flex gap-4 mb-4">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Filter by site name (first letter)..."
+                    value={factureFilter}
+                    onChange={(e) => { setFactureFilter(e.target.value); setFacturePage(1); }}
+                    className="pl-9"
+                  />
+                </div>
+                <Button variant="outline" onClick={handleExportCsv}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />CSV
+                </Button>
+                <Button variant="outline" onClick={handleExportPdf}>
+                  <Printer className="h-4 w-4 mr-2" />PDF
+                </Button>
+                <Button variant="outline" onClick={handleExportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
+                </Button>
+              </div>
+
+              {facturesLoading ? (
+                <div className="text-center py-12 text-muted-foreground">Loading invoices...</div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice Number</TableHead>
+                        <TableHead>Site</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Payment Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {factureData?.factures?.map((facture: Facture) => (
+                        <TableRow key={facture.id}>
+                          <TableCell className="font-mono text-xs">{facture.numeroFacture}</TableCell>
+                          <TableCell className="font-semibold">{facture.siteNom}</TableCell>
+                          <TableCell className="font-semibold tabular-nums">{facture.amount.toFixed(3)} DT</TableCell>
+                          <TableCell>{getMethodLabel(facture.paymentMethod)}</TableCell>
+                          <TableCell className="text-sm tabular-nums">{new Date(facture.paymentDate).toLocaleDateString("en-GB")}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon" title="Download PDF" onClick={() => handleDownloadPdf(facture.id)}>
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {factureData?.factures?.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">No invoices found.</div>
+                  )}
+
+                  {factureData && factureData.totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      <Button variant="outline" size="icon" disabled={facturePage === 1} onClick={() => setFacturePage(p => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {facturePage} of {factureData.totalPages}
+                      </span>
+                      <Button variant="outline" size="icon" disabled={facturePage >= factureData.totalPages} onClick={() => setFacturePage(p => p + 1)}>
+                        <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {payments.length === 0 && <div className="text-center py-12 text-muted-foreground">No payments found. Click <strong>New Payment</strong> to add one.</div>}
+                  )}
+                </>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

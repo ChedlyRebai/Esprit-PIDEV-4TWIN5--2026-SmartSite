@@ -3,7 +3,7 @@ import { StatCard } from '../../components/DashboardStats';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
-import { AlertTriangle, Users, MapPin, Clock, CheckCircle, TrendingUp, Search } from 'lucide-react';
+import { AlertTriangle, Users, MapPin, Clock, CheckCircle, TrendingUp, Search, Lightbulb } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import {
   getDashboardStats,
@@ -15,6 +15,7 @@ import {
 } from '../../action/dashboard.action';
 import axios from 'axios';
 import { incidentMatchesSearch, taskMatchesSearch } from '../../utils/incidentSearchFilter';
+import { getProverbOfTheDay } from '../../utils/chantier-proverbs';
 
 // API pour les incidents (port différent)
 const incidentsApi = axios.create({
@@ -51,6 +52,15 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [urgentSectionSearch, setUrgentSectionSearch] = useState('');
+  const [dailyProverb] = useState(() => getProverbOfTheDay());
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -116,10 +126,32 @@ export default function UserDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome back, {user?.firstName}!</h1>
-        <p className="text-gray-500 mt-1">User Dashboard - Your daily overview</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstName}!</h1>
+          <p className="text-gray-500 mt-1">User Dashboard - Your daily overview</p>
+        </div>
+        <div className="text-right text-sm text-gray-500">
+          <p className="font-medium">{currentTime.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-gray-600">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+        </div>
       </div>
+
+      {/* Daily Proverb Card */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-blue-100 rounded-full">
+              <Lightbulb className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-600 mb-1">Proverb of the Day</p>
+              <p className="text-lg font-semibold text-gray-900 italic">"{dailyProverb.proverb}"</p>
+              <p className="text-sm text-gray-600 mt-2">{dailyProverb.meaning}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -158,7 +190,7 @@ export default function UserDashboard() {
         />
         <StatCard
           title="Completed Tasks"
-          value={projects.filter(p => p.status === 'completed').length}
+          value={projects.filter((p: any) => p.status === 'completed').length}
           icon={CheckCircle}
           trend={{ value: 18.3, isPositive: true }}
         />

@@ -10,6 +10,10 @@ export class PaiementService {
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
   ) {}
 
+  private sanitizeInput(input: string): string {
+    return input.replace(/[<>'";&]/g, '').trim();
+  }
+
   private generateReference(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -21,21 +25,37 @@ export class PaiementService {
       throw new BadRequestException('Invalid siteId format. Must be a valid MongoDB ObjectId');
     }
 
-    const reference = createPaymentDto.reference || this.generateReference();
+    const reference = createPaymentDto.reference 
+      ? this.sanitizeInput(createPaymentDto.reference) 
+      : this.generateReference();
 
-    const paymentDate = new Date();
+    const paymentDate = createPaymentDto.paymentDate 
+      ? new Date(createPaymentDto.paymentDate) 
+      : new Date();
+
+    if (isNaN(paymentDate.getTime())) {
+      throw new BadRequestException('Invalid paymentDate format');
+    }
+
+    if (paymentDate > new Date()) {
+      throw new BadRequestException('paymentDate cannot be in the future');
+    }
 
     let status = createPaymentDto.status || 'pending';
     if (status === 'paid') {
       status = 'completed';
     }
 
+    const description = createPaymentDto.description 
+      ? this.sanitizeInput(createPaymentDto.description) 
+      : undefined;
+
     const createdPayment = new this.paymentModel({
       siteId: new Types.ObjectId(createPaymentDto.siteId),
       reference,
-      amount: createPaymentDto.amount,
-      paymentMethod: createPaymentDto.paymentMethod,
-      description: createPaymentDto.description,
+      amount: Math.round(createPaymentDto.amount * 100) / 100,
+      paymentMethod: this.sanitizeInput(createPaymentDto.paymentMethod),
+      description,
       paymentDate,
       status,
       siteBudget: 0,
@@ -81,10 +101,44 @@ export class PaiementService {
       throw new BadRequestException('Invalid payment ID format');
     }
 
-    const updateData: any = {
-      ...updatePaymentDto,
-      updatedBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
-    };
+    const updateData: any = {};
+
+    if (updatePaymentDto.reference !== undefined) {
+      updateData.reference = this.sanitizeInput(updatePaymentDto.reference);
+    }
+
+    if (updatePaymentDto.amount !== undefined) {
+      updateData.amount = Math.round(updatePaymentDto.amount * 100) / 100;
+    }
+
+    if (updatePaymentDto.paymentMethod !== undefined) {
+      updateData.paymentMethod = this.sanitizeInput(updatePaymentDto.paymentMethod);
+    }
+
+    if (updatePaymentDto.description !== undefined) {
+      updateData.description = this.sanitizeInput(updatePaymentDto.description);
+    }
+
+    if (updatePaymentDto.paymentDate !== undefined) {
+      const paymentDate = new Date(updatePaymentDto.paymentDate);
+      if (isNaN(paymentDate.getTime())) {
+        throw new BadRequestException('Invalid paymentDate format');
+      }
+      if (paymentDate > new Date()) {
+        throw new BadRequestException('paymentDate cannot be in the future');
+      }
+      updateData.paymentDate = paymentDate;
+    }
+
+    if (updatePaymentDto.status !== undefined) {
+      if (updatePaymentDto.status === 'paid') {
+        updateData.status = 'completed';
+      } else {
+        updateData.status = updatePaymentDto.status;
+      }
+    }
+
+    updateData.updatedBy = userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null;
 
     if (updatePaymentDto.siteId && !Types.ObjectId.isValid(updatePaymentDto.siteId)) {
       throw new BadRequestException('Invalid siteId format. Must be a valid MongoDB ObjectId');
@@ -92,10 +146,6 @@ export class PaiementService {
 
     if (updatePaymentDto.siteId) {
       updateData.siteId = new Types.ObjectId(updatePaymentDto.siteId);
-    }
-
-    if (updatePaymentDto.status === 'paid') {
-      updateData.status = 'completed';
     }
 
     const payment = await this.paymentModel.findByIdAndUpdate(
