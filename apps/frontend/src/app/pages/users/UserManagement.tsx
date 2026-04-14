@@ -86,7 +86,7 @@ export default function UserManagement() {
   const loadStatics = async () => {
     try {
       const response = await getAllStatics();
-      if (response.status === 200) {
+      if (response?.status === 200) {
         setStatics(response.data);
       }
     } catch (error) {
@@ -107,11 +107,11 @@ export default function UserManagement() {
   const handleDeleteUser = async (userId: string) => {
     try {
       const response = await deleteUser(userId);
-      if (response.status === 200) {
+      if (response?.status === 200) {
         toast.success("User deleted successfully");
         //loadUsers();
       } else {
-        toast.error(response.data || "Failed to delete user");
+        toast.error(response?.data || "Failed to delete user");
       }
     } catch (error) {
       console.error("Failed to delete user:", error);
@@ -135,11 +135,11 @@ export default function UserManagement() {
   const handleDeletePermission = async (permissionId: string) => {
     try {
       const response = await deletePermission(permissionId);
-      if (response.status === 200) {
+      if (response?.status === 200) {
         toast.success("Permission deleted successfully");
         // loadPermissions();
       } else {
-        toast.error(response.data || "Failed to delete permission");
+        toast.error(response?.data || "Failed to delete permission");
       }
     } catch (error) {
       console.error("Failed to delete permission:", error);
@@ -172,13 +172,13 @@ export default function UserManagement() {
   const handleBanUser = async (userId: string, isActif: boolean) => {
     try {
       const response = await banUser(userId, isActif);
-      if (response.status === 200) {
+      if (response?.status === 200) {
         toast.success(
           isActif ? "User unbanned successfully" : "User banned successfully",
         );
         // loadUsers();
       } else {
-        toast.error(response.data || "Failed to update user status");
+        toast.error(response?.data || "Failed to update user status");
       }
     } catch (error) {
       console.error("Failed to update user status:", error);
@@ -195,11 +195,11 @@ export default function UserManagement() {
   const handleDeleteRole = async (roleId: string) => {
     try {
       const response = await deleteRole(roleId);
-      if (response.status === 200) {
+      if (response?.status === 200) {
         toast.success("Role deleted successfully");
         // loadRoles();
       } else {
-        toast.error(response.data || "Failed to delete role");
+        toast.error(response?.data || "Failed to delete role");
       }
     } catch (error) {
       console.error("Failed to delete role:", error);
@@ -357,12 +357,12 @@ export default function UserManagement() {
             </TabsContent>
 
             <TabsContent value="users">
-              {isUsersLoading ? (
+              {isUsersLoading  ? (
                 <div className="text-center py-12">Loading users...</div>
               ) : (
                 <UserDataTable
                   onBan={handleBanUser}
-                  users={users}
+                  users={users as User[]}
                   onDelete={handleDeleteUser}
                 />
               )}
