@@ -10,12 +10,14 @@ import { getAllCatalogItems, CatalogItem } from "@/app/action/catalog.action";
 import { getSuppliersByCatalogItem, SupplierMaterial } from "@/app/action/supplier-material.action";
 import { useAuthStore } from "../../store/authStore";
 import { canEdit } from "../../utils/permissions";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 export default function MaterialSupplierListPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const userRole = user?.role || { name: "super_admin" as const };
   const canManage = user && canEdit(userRole.name, "materials");
+  const { t } = useTranslation();
 
   const [materials, setMaterials] = useState<CatalogItem[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
@@ -62,22 +64,38 @@ export default function MaterialSupplierListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Material Supplier List</h1>
-          <p className="text-gray-500 mt-1">View all suppliers for a given material</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t(
+              "supplierMaterials.materialSupplierListTitle",
+              "Material Supplier List",
+            )}
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {t(
+              "supplierMaterials.materialSupplierListSubtitle",
+              "View all suppliers for a given material",
+            )}
+          </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />Select Material
+            <Package className="h-5 w-5" />
+            {t("supplierMaterials.selectMaterial", "Select Material")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-4">
             <Select value={selectedMaterial} onValueChange={handleMaterialChange}>
               <SelectTrigger className="w-[300px]">
-                <SelectValue placeholder="Select a material..." />
+                <SelectValue
+                  placeholder={t(
+                    "supplierMaterials.selectMaterialPlaceholder",
+                    "Select a material...",
+                  )}
+                />
               </SelectTrigger>
               <SelectContent>
                 {materials.map(m => (
@@ -89,7 +107,10 @@ export default function MaterialSupplierListPage() {
             </Select>
             {selectedMaterial && (
               <Button variant="outline" onClick={() => navigate(`/catalog/${selectedMaterial}`)}>
-                View Material Details
+                {t(
+                  "supplierMaterials.viewMaterialDetails",
+                  "View Material Details",
+                )}
               </Button>
             )}
           </div>
@@ -101,7 +122,10 @@ export default function MaterialSupplierListPage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search suppliers..."
+                      placeholder={t(
+                        "supplierMaterials.searchSuppliersPlaceholder",
+                        "Search suppliers...",
+                      )}
                       className="pl-10"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
@@ -111,10 +135,15 @@ export default function MaterialSupplierListPage() {
               </div>
 
               {loading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">
+                  {t("supplierMaterials.loading", "Loading...")}
+                </div>
               ) : filteredSuppliers.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No suppliers found for this material
+                  {t(
+                    "supplierMaterials.noSuppliersFound",
+                    "No suppliers found for this material",
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -128,7 +157,9 @@ export default function MaterialSupplierListPage() {
                               ({item.supplierId?.supplierCode})
                             </span>
                             {item.isPreferred && (
-                              <Badge className="bg-blue-100 text-blue-800">Preferred</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">
+                                {t("supplierMaterials.preferred", "Preferred")}
+                              </Badge>
                             )}
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-sm">
@@ -136,17 +167,28 @@ export default function MaterialSupplierListPage() {
                               {item.unitPrice} {item.currency}
                             </span>
                             <span className="text-gray-500">
-                              {item.deliveryDays ? `${item.deliveryDays} days` : "-"}
+                              {item.deliveryDays
+                                ? `${item.deliveryDays} ${t(
+                                    "supplierMaterials.days",
+                                    "days",
+                                  )}`
+                                : "-"}
                             </span>
                             <Badge className={getAvailabilityColor(item.availability)}>
                               {item.availability}
                             </Badge>
                             {item.qualityScore !== undefined && (
-                              <span className="text-gray-500">Quality: {item.qualityScore}/10</span>
+                              <span className="text-gray-500">
+                                {t("supplierMaterials.quality", "Quality")}:{" "}
+                                {item.qualityScore}/10
+                              </span>
                             )}
                           </div>
                           {item.supplierRef && (
-                            <p className="text-sm text-gray-400 mt-1">Ref: {item.supplierRef}</p>
+                            <p className="text-sm text-gray-400 mt-1">
+                              {t("supplierMaterials.ref", "Ref")}:{" "}
+                              {item.supplierRef}
+                            </p>
                           )}
                         </div>
                         <div className="flex gap-2">
@@ -155,14 +197,17 @@ export default function MaterialSupplierListPage() {
                             size="sm"
                             onClick={() => navigate(`/supplier-materials/${item._id}`)}
                           >
-                            View Details
+                            {t("supplierMaterials.viewDetails", "View Details")}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate(`/suppliers/${item.supplierId?._id}`)}
                           >
-                            Supplier Profile
+                            {t(
+                              "supplierMaterials.supplierProfile",
+                              "Supplier Profile",
+                            )}
                           </Button>
                         </div>
                       </div>

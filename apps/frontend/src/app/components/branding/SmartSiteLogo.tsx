@@ -10,9 +10,9 @@ type SmartSiteLogoProps = {
 };
 
 const sizeClasses = {
-  sm: "h-16 w-auto max-w-[200px]",
-  md: "h-10 md:h-12 w-auto max-w-[200px]",
-  lg: "h-24 md:h-28 w-auto max-w-[280px]",
+  sm: "h-20 w-auto max-w-[240px]",
+  md: "h-14 md:h-16 w-auto max-w-[240px]",
+  lg: "h-32 md:h-40 w-auto max-w-[380px]",
 };
 
 export function SmartSiteLogo({

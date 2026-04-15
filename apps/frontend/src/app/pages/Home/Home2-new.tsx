@@ -1,10 +1,6 @@
-import React, { useState } from 'react';
 import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
 import { Facebook, Github, Instagram, Twitter, Dribbble, Menu } from "lucide-react";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
-import { ThemeButton } from "@/app/components/ThemeButton";
-import { NavbarAccessibilityButton } from "@/app/components/NavbarAccessibilityButton";
-import { DemoModal } from "@/app/components/DemoModal";
 import { useTranslation } from "@/app/hooks/useTranslation";
 import styles from "./Home2.module.css";
 
@@ -111,10 +107,8 @@ export default function Home2() {
     { label: t("buildSmarter.stats.costReduction"), value: "08", trend: "IA active" },
   ];
 
-  const [isDemoOpen, setIsDemoOpen] = useState(false);
-
   return (
-    <div className={`${styles.heroSection} bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100`}>
+    <div className={`${styles.heroSection} bg-gradient-to-br from-slate-50 to-blue-50`}>
       {/* Header */}
       <header className={`${styles.navBar} fixed inset-x-0 top-0 z-50`}>
         <nav
@@ -124,7 +118,7 @@ export default function Home2() {
           <div className="flex lg:flex-1">
             <a href="/" className="-m-1.5 p-1.5 flex items-center gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
               <span className="sr-only">SmartSite</span>
-              <SmartSiteLogo size="md" className={`drop-shadow-sm ${styles.logoAnimated}`} />
+              <SmartSiteLogo size="md" className="drop-shadow-sm" />
             </a>
           </div>
           <div className="flex lg:hidden">
@@ -153,12 +147,10 @@ export default function Home2() {
             ))}
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
-            <NavbarAccessibilityButton />
-            <ThemeButton />
             <LanguageSelector />
             <a
               href="/login"
-              className="text-sm font-semibold leading-6 text-gray-900 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="text-sm font-semibold leading-6 text-gray-900"
             >
               {t("nav.login")} <span aria-hidden="true">&rarr;</span>
             </a>
@@ -204,19 +196,14 @@ export default function Home2() {
             />
           </svg>
           <div
-            className="absolute left-1/2 right-0 top-0 -z-10 -ml-24 transform-gpu overflow-hidden backdrop-blur-xl lg:ml-24 xl:ml-48"
+            className="absolute left-1/2 right-0 top-0 -z-10 -ml-24 transform-gpu overflow-hidden blur-3xl lg:ml-24 xl:ml-48"
             aria-hidden="true"
-            style={{
-              backdropFilter: 'blur(40px)',
-              WebkitBackdropFilter: 'blur(40px)',
-            }}
           >
             <div
-              className="aspect-[801/1036] w-[50.0625rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-40"
+              className="aspect-[801/1036] w-[50.0625rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30"
               style={{
                 clipPath:
                   "polygon(63.1% 29.5%, 100% 17.1%, 76.6% 3%, 48.4% 0%, 44.6% 4.7%, 54.5% 25.3%, 59.8% 49%, 55.2% 57.8%, 44.4% 57.2%, 27.8% 47.9%, 35.1% 81.5%, 0% 97.7%, 39.2% 100%, 35.2% 81.4%, 97.2% 52.8%, 63.1% 29.5%)",
-                filter: 'saturate(120%)',
               }}
             />
           </div>
@@ -226,7 +213,7 @@ export default function Home2() {
               <div className="mx-auto max-w-2xl gap-x-14 lg:mx-0 lg:flex lg:max-w-none lg:items-center">
                 <div className="w-full max-w-xl lg:shrink-0 xl:max-w-2xl">
                   <div className="mb-8">
-                    <SmartSiteLogo size="lg" className={`mx-auto lg:mx-0 ${styles.logoAnimated}`} />
+                    <SmartSiteLogo size="lg" className="mx-auto lg:mx-0" />
                     <p className="mt-3 text-center text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase lg:text-left">
                       {t("hero.subtitle")}
                     </p>
@@ -273,8 +260,8 @@ export default function Home2() {
                   <div className="w-44 flex-none space-y-8 pt-32 sm:pt-0">
                     <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.6s'}}>
                       <img
-                        src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=600&fit=crop&crop=faces"
-                        alt="Project planning dashboard with timeline and scheduling tools"
+                        src="https://assets.marketing.quickbase.com/product/Screenshots/_1320x939_crop_center-center_82_line/product-screenshots-mobile-and-gantt.png"
+                        alt="Mobile dashboard and Gantt chart for SmartSite construction project tracking"
                         className="aspect-[2/3] w-full rounded-xl bg-gray-900/5 object-cover shadow-lg"
                       />
                       <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-900/10" />
@@ -354,12 +341,12 @@ export default function Home2() {
                   {t("cta.startTrial")}
                 </a>
 
-                <button
-                  onClick={() => setIsDemoOpen(true)}
-                  className={`${styles.btnSecondary} rounded-lg px-8 py-4 text-sm font-semibold text-white hover:text-indigo-400 transition`}
+                <a
+                  href="#"
+                  className={`${styles.btnSecondary} rounded-lg px-8 py-4 text-sm font-semibold text-white hover:text-indigo-400`}
                 >
                   {t("cta.requestDemo")} <span aria-hidden="true">→</span>
-                </button>
+                </a>
               </div>
             </div>
           </div>
@@ -435,10 +422,7 @@ export default function Home2() {
                   {t("cta.startTrial")}
                 </button>
 
-                <button 
-                  onClick={() => setIsDemoOpen(true)}
-                  className="border border-white text-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg transition"
-                >
+                <button className="border border-white text-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg transition">
                   {t("cta.requestDemo")}
                 </button>
               </div>
@@ -517,160 +501,137 @@ export default function Home2() {
           </div>
         </section>
 
-        <footer className={`${styles.footer} bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950`} aria-labelledby="footer-heading">
+        <footer className={`${styles.footer} bg-gradient-to-b from-gray-900 to-gray-950`} aria-labelledby="footer-heading">
           <h2 id="footer-heading" className="sr-only">
             Footer
           </h2>
-          <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-20 lg:px-8">
-            {/* Logo & Tagline */}
-            <div className="mb-12 pb-8 border-b border-blue-800/30">
-              <div className="flex items-center gap-3 mb-3">
-                <SmartSiteLogo size="sm" className="drop-shadow-lg" />
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">
-                  SmartSite
-                </h2>
-              </div>
-              <p className="text-gray-400 text-sm max-w-md">
-                {t("hero.subtitle")} - Manage your construction sites with artificial intelligence
-              </p>
-            </div>
-
-            {/* Main Grid */}
-            <div className="xl:grid xl:grid-cols-4 xl:gap-8 mb-12">
-              {/* Solutions & Support */}
-              <div className="grid grid-cols-2 gap-8 xl:col-span-2 mb-8 xl:mb-0">
-                <div>
-                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
-                    {t("footer.solutions")}
-                  </h3>
-                  <ul role="list" className="space-y-3">
-                    {navigationFooter.solutions.map((item: any) => (
-                      <li key={item.name}>
-                        <a
-                          href={item.href}
-                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
-                        >
-                          {item.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+          <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
+            <div className="xl:grid xl:grid-cols-3 xl:gap-8">
+              <div className="grid grid-cols-2 gap-8 xl:col-span-2">
+                <div className="md:grid md:grid-cols-2 md:gap-8">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
+                      {t("footer.solutions")}
+                    </h3>
+                    <ul role="list" className="mt-4 space-y-4">
+                      {navigationFooter.solutions.map((item: any) => (
+                        <li key={item.name}>
+                          <a
+                            href={item.href}
+                            className={`${styles.footerLink} text-base`}
+                          >
+                            {item.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-12 md:mt-0">
+                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
+                      {t("footer.support")}
+                    </h3>
+                    <ul role="list" className="mt-4 space-y-4">
+                      {navigationFooter.support.map((item: any) => (
+                        <li key={item.name}>
+                          <a
+                            href={item.href}
+                            className={`${styles.footerLink} text-base`}
+                          >
+                            {item.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
-                    {t("footer.support")}
-                  </h3>
-                  <ul role="list" className="space-y-3">
-                    {navigationFooter.support.map((item: any) => (
-                      <li key={item.name}>
-                        <a
-                          href={item.href}
-                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
-                        >
-                          {item.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Company & Legal */}
-              <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
-                    {t("footer.company")}
-                  </h3>
-                  <ul role="list" className="space-y-3">
-                    {navigationFooter.company.map((item: any) => (
-                      <li key={item.name}>
-                        <a
-                          href={item.href}
-                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
-                        >
-                          {item.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
-                    {t("footer.legal")}
-                  </h3>
-                  <ul role="list" className="space-y-3">
-                    {navigationFooter.legal.map((item: any) => (
-                      <li key={item.name}>
-                        <a
-                          href={item.href}
-                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
-                        >
-                          {item.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="md:grid md:grid-cols-2 md:gap-8">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
+                      {t("footer.company")}
+                    </h3>
+                    <ul role="list" className="mt-4 space-y-4">
+                      {navigationFooter.company.map((item: any) => (
+                        <li key={item.name}>
+                          <a
+                            href={item.href}
+                            className={`${styles.footerLink} text-base`}
+                          >
+                            {item.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-12 md:mt-0">
+                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
+                      {t("footer.legal")}
+                    </h3>
+                    <ul role="list" className="mt-4 space-y-4">
+                      {navigationFooter.legal.map((item: any) => (
+                        <li key={item.name}>
+                          <a
+                            href={item.href}
+                            className={`${styles.footerLink} text-base`}
+                          >
+                            {item.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
-
-              {/* Newsletter */}
-              <div className="xl:col-span-1 bg-gradient-to-br from-blue-900/40 to-blue-800/30 rounded-lg p-6 border border-blue-700/40 backdrop-blur-sm">
-                <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-3">
+              <div className="mt-8 xl:mt-0">
+                <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
                   {t("footer.newsletter")}
                 </h3>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="mt-4 text-base text-gray-300">
                   {t("footer.newsletterDesc")}
                 </p>
-                <form className="space-y-3">
-                  <label htmlFor="footer-email" className="sr-only">
+                <form className="mt-4 sm:flex sm:max-w-md">
+                  <label htmlFor="email-address" className="sr-only">
                     Email address
                   </label>
                   <input
                     type="email"
-                    name="email"
-                    id="footer-email"
+                    name="email-address"
+                    id="email-address"
                     autoComplete="email"
                     required
-                    className="w-full bg-white/10 border border-blue-600/50 rounded-lg py-2 px-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="your@email.com"
+                    className="appearance-none min-w-0 w-full bg-white border border-transparent rounded-md py-2 px-4 text-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white focus:border-white focus:placeholder-gray-400"
+                    placeholder="Enter your email"
                   />
-                  <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-lg py-2 px-4 text-sm font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
-                  >
-                    Subscribe
-                  </button>
+                  <div className="mt-3 rounded-md sm:mt-0 sm:ml-3 sm:flex-shrink-0">
+                    <button
+                      type="submit"
+                      className="w-full bg-indigo-500 border border-transparent rounded-md py-2 px-4 flex items-center justify-center text-base font-medium text-white hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500"
+                    >
+                      Subscribe
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
-
-            {/* Divider */}
-            <div className="border-t border-blue-800/30 pt-8 mt-8">
-              {/* Social Links & Copyright */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-                <div className="flex space-x-5">
-                  {navigationFooter.social.map((item: any) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      className={`${styles.footerLink} text-gray-400 hover:text-blue-300 transition-colors duration-200`}
-                      aria-label={item.name}
-                    >
-                      <span className="sr-only">{item.name}</span>
-                      <item.icon className="h-5 w-5" aria-hidden="true" />
-                    </a>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {t("footer.copyright")}
-                </p>
+            <div className="mt-8 border-t border-gray-700 pt-8 md:flex md:items-center md:justify-between">
+              <div className="flex space-x-6 md:order-2">
+                {navigationFooter.social.map((item: any) => (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className={`${styles.footerLink}`}
+                  >
+                    <span className="sr-only">{item.name}</span>
+                    <item.icon className="h-6 w-6" aria-hidden="true" />
+                  </a>
+                ))}
               </div>
+              <p className="mt-8 text-base text-gray-400 md:mt-0 md:order-1">
+                {t("footer.copyright")}
+              </p>
             </div>
           </div>
         </footer>
       </main>
-
-      <DemoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </div>
   );
 }

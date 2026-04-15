@@ -138,17 +138,32 @@ export const RecommendationAnalytics: React.FC<AnalyticsProps> = ({ siteId }) =>
 
   return (
     <div className="space-y-6">
-      <Card className="border-primary/20 bg-primary/[0.03]">
-        <CardHeader className="pb-2">
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-blue-600" />
+            📊 Analyse & Courbes
+          </h2>
+          <p className="text-foreground/60 mt-2">
+            Visualisez l'impact réel de vos recommandations à travers des données concrètes
+          </p>
+        </div>
+      </div>
+
+      <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-50/50 shadow-lg">
+        <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Info className="h-5 w-5 text-blue-600" />
+            </div>
             <div>
-              <CardTitle className="text-base">How to read these metrics</CardTitle>
-              <CardDescription className="text-sm leading-relaxed mt-1">
-                Recommendations use your site, planning, and team data. When you <strong>approve</strong> a
-                recommendation, a <strong>baseline snapshot</strong> is stored (budget spent, tasks, overdue work,
-                completion rate). When you mark it <strong>implemented</strong>, a second snapshot unlocks{' '}
-                <strong>before/after</strong> bars and curves for the same site.
+              <CardTitle className="text-lg">📖 Comment lire ces indicateurs?</CardTitle>
+              <CardDescription className="text-sm leading-relaxed mt-2">
+                🔍 <strong>Flux complet:</strong> Soumettez une recommandation → Approuvez-la (snapshot baseline) → Implémentez-la (2ème snapshot) → Visualisez les courbes avant/après.<br/>
+                <br/>
+                📊 <strong>Indicateurs clés:</strong> Budget dépensé, Tâches complétées, Tâches en retard, Taux de complétude, Utilisation du budget<br/>
+                <br/>
+                📈 <strong>Courbes:</strong> Orange = à l'approbation | Vert = après mise en œuvre | Bleu/Violet = Taux de complétude & Budget
               </CardDescription>
             </div>
           </div>
@@ -156,47 +171,59 @@ export const RecommendationAnalytics: React.FC<AnalyticsProps> = ({ siteId }) =>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-transparent">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Recommendations</CardTitle>
+            <CardTitle className="text-sm font-medium">Recommandations</CardTitle>
             <ClipboardList className="h-5 w-5 text-blue-600" />
           </CardHeader>
-          <CardContent className="bg-blue-50/80 p-4 rounded-lg -m-4 mt-2">
-            <div className="text-2xl font-bold text-blue-700">{analytics.totalRecommendations}</div>
-            <p className="text-xs text-blue-900/70 mt-1">Generated for this site</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-700">{analytics.totalRecommendations}</div>
+            <p className="text-xs text-blue-900/70 mt-2">Propositions pour ce chantier</p>
+            <div className="mt-2 p-2 bg-blue-100/50 rounded text-xs text-blue-900">
+              Nombre total de recommandations générées automatiquement
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 border-amber-200 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-amber-50 to-transparent">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <CardTitle className="text-sm font-medium">Approuvées</CardTitle>
             <CheckCircle2 className="h-5 w-5 text-amber-600" />
           </CardHeader>
-          <CardContent className="bg-amber-50/80 p-4 rounded-lg -m-4 mt-2">
-            <div className="text-2xl font-bold text-amber-800">{analytics.approvedRecommendations}</div>
-            <p className="text-xs text-amber-900/70 mt-1">Baseline snapshot stored</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-800">{analytics.approvedRecommendations}</div>
+            <p className="text-xs text-amber-900/70 mt-2">Snapshot baseline capturé</p>
+            <div className="mt-2 p-2 bg-amber-100/50 rounded text-xs text-amber-900">
+              Données de référence enregistrées avant implémentation
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 border-green-200 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-green-50 to-transparent">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Implemented</CardTitle>
+            <CardTitle className="text-sm font-medium">Implémentées</CardTitle>
             <CheckCircle2 className="h-5 w-5 text-green-600" />
           </CardHeader>
-          <CardContent className="bg-green-50/80 p-4 rounded-lg -m-4 mt-2">
-            <div className="text-2xl font-bold text-green-800">{analytics.implementedRecommendations}</div>
-            <p className="text-xs text-green-900/70 mt-1">Tracked through second snapshot</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-800">{analytics.implementedRecommendations}</div>
+            <p className="text-xs text-green-900/70 mt-2">Suivi complété (2 snapshots)</p>
+            <div className="mt-2 p-2 bg-green-100/50 rounded text-xs text-green-900">
+              Avec avant/après pour comparaison complète
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 border-violet-200 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-violet-50 to-transparent">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Implementation rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Taux Implémentation</CardTitle>
             <TrendingUp className="h-5 w-5 text-violet-600" />
           </CardHeader>
-          <CardContent className="bg-violet-50/80 p-4 rounded-lg -m-4 mt-2">
-            <div className="text-2xl font-bold text-violet-800">{conversionPct}%</div>
-            <p className="text-xs text-violet-900/70 mt-1">Implemented / total</p>
+          <CardContent>
+            <div className="text-3xl font-bold text-violet-800">{conversionPct}%</div>
+            <p className="text-xs text-violet-900/70 mt-2">Implémentées / Total</p>
+            <div className="mt-2 p-2 bg-violet-100/50 rounded text-xs text-violet-900">
+              Efficacité de conversion : approuvées → implémentées
+            </div>
           </CardContent>
         </Card>
       </div>

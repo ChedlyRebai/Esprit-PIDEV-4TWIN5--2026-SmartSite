@@ -34,6 +34,7 @@ import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
 import { roleLabels } from "@/app/utils/roleConfig";
+import { useTranslation } from "@/app/hooks/useTranslation";
 import type { RoleType } from "@/app/types";
 
 // Liste des roles disponibles (sauf super_admin)
@@ -145,6 +146,7 @@ const STEP_1_FIELDS: (keyof RegisterFormData)[] = [
 export default function Register() {
   const navigate = useNavigate();
   const register = useAuthStore((state) => state.register);
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = React.useState(false);
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
 
@@ -250,18 +252,18 @@ export default function Register() {
               <SmartSiteLogo size="sm" />
             </a>
             <p className="mt-2 text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase">
-              Intelligent construction platform
+              {t("nav.login")}
             </p>
             <h2 className="mt-6 text-2xl font-bold leading-9 tracking-tight text-gray-900">
-              Create your account
+              {t("auth.register.title")}
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              Already have an account?{" "}
+              {t("auth.register.haveAccount")}{" "}
               <a
                 href="/login"
                 className="font-semibold text-indigo-600 hover:text-indigo-500"
               >
-                Sign in
+                {t("auth.register.signIn")}
               </a>
             </p>
           </div>
@@ -284,26 +286,26 @@ export default function Register() {
                           }`}
                       >
                         {s === 1
-                          ? "1. Information"
+                          ? t("auth.register.step1")
                           : s === 2
-                            ? "2. Criteria"
-                            : "3. Regulations"}
+                            ? t("auth.register.step2")
+                            : t("auth.register.step3")}
                       </span>
                     </React.Fragment>
                   ))}
                 </div>
                 <CardTitle>
-                  {step === 1 && "Registration Form"}
-                  {step === 2 && "Acceptance Criteria"}
-                  {step === 3 && "Platform Regulations"}
+                  {step === 1 && t("auth.register.step1")}
+                  {step === 2 && t("auth.register.step2")}
+                  {step === 3 && t("auth.register.step3")}
                 </CardTitle>
                 <CardDescription>
                   {step === 1 &&
-                    "Fill in your information, then validate to read the conditions one by one."}
+                    t("auth.register.step1Description")}
                   {step === 2 &&
-                    "Read the criteria carefully. Click the button when you accept them."}
+                    t("auth.register.step2Description")}
                   {step === 3 &&
-                    "Final step: read the regulations then send your registration request."}
+                    t("auth.register.step3Description")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -321,11 +323,11 @@ export default function Register() {
                             control={form.control}
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel htmlFor="cin">CIN *</FieldLabel>
+                                <FieldLabel htmlFor="cin">{t("auth.register.cin")}</FieldLabel>
                                 <Input
                                   {...field}
                                   id="cin"
-                                  placeholder="Enter your CIN"
+                                  placeholder={t("auth.register.cinPlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -342,12 +344,12 @@ export default function Register() {
                             control={form.control}
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel htmlFor="email">Email *</FieldLabel>
+                                <FieldLabel htmlFor="email">{t("auth.register.email")}</FieldLabel>
                                 <Input
                                   {...field}
                                   id="email"
                                   type="email"
-                                  placeholder="Enter your email"
+                                  placeholder={t("auth.register.emailPlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -367,12 +369,12 @@ export default function Register() {
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
                                 <FieldLabel htmlFor="firstname">
-                                  First Name *
+                                  {t("auth.register.firstName")}
                                 </FieldLabel>
                                 <Input
                                   {...field}
                                   id="firstName"
-                                  placeholder="Enter your first name"
+                                  placeholder={t("auth.register.firstNamePlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -389,11 +391,11 @@ export default function Register() {
                             control={form.control}
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel htmlFor="lastName">Last Name *</FieldLabel>
+                                <FieldLabel htmlFor="lastName">{t("auth.register.lastName")}</FieldLabel>
                                 <Input
                                   {...field}
                                   id="lastName"
-                                  placeholder="Enter your last name"
+                                  placeholder={t("auth.register.lastNamePlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -413,14 +415,14 @@ export default function Register() {
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
                                 <FieldLabel htmlFor="phoneCountryCode">
-                                  Country (code) *
+                                  {t("auth.register.countryCode")}
                                 </FieldLabel>
                                 <Select
                                   onValueChange={field.onChange}
                                   value={field.value}
                                 >
                                   <SelectTrigger id="phoneCountryCode">
-                                    <SelectValue placeholder="Code" />
+                                    <SelectValue placeholder={t("auth.register.countryCodePlaceholder")} />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {phoneCountryCodes.map((item) => (
@@ -449,16 +451,16 @@ export default function Register() {
                               render={({ field, fieldState }) => (
                                 <Field data-invalid={fieldState.invalid}>
                                   <FieldLabel htmlFor="telephone">
-                                    Phone *
+                                    {t("auth.register.phone")}
                                   </FieldLabel>
                                   <Input
                                     {...field}
                                     id="telephone"
-                                    placeholder="12345678"
+                                    placeholder={t("auth.register.phonePlaceholder")}
                                     aria-invalid={fieldState.invalid}
                                   />
                                   <FieldDescription>
-                                    Enter numbers only, country code is selected on the left.
+                                    {t("auth.register.phoneDescription")}
                                   </FieldDescription>
                                   {fieldState.invalid && (
                                     <FieldError errors={[fieldState.error]} />
@@ -477,11 +479,11 @@ export default function Register() {
                             control={form.control}
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel htmlFor="country">Country *</FieldLabel>
+                                <FieldLabel htmlFor="country">{t("auth.register.country")}</FieldLabel>
                                 <Input
                                   {...field}
                                   id="country"
-                                  placeholder="Tunisia"
+                                  placeholder={t("auth.register.countryPlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -498,11 +500,11 @@ export default function Register() {
                             control={form.control}
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel htmlFor="city">City *</FieldLabel>
+                                <FieldLabel htmlFor="city">{t("auth.register.city")}</FieldLabel>
                                 <Input
                                   {...field}
                                   id="city"
-                                  placeholder="Tunis"
+                                  placeholder={t("auth.register.cityPlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -520,12 +522,12 @@ export default function Register() {
                             render={({ field, fieldState }) => (
                               <Field data-invalid={fieldState.invalid}>
                                 <FieldLabel htmlFor="postalCode">
-                                  Postal Code *
+                                  {t("auth.register.postalCode")}
                                 </FieldLabel>
                                 <Input
                                   {...field}
                                   id="postalCode"
-                                  placeholder="1000"
+                                  placeholder={t("auth.register.postalCodePlaceholder")}
                                   aria-invalid={fieldState.invalid}
                                 />
                                 {fieldState.invalid && (
@@ -544,12 +546,12 @@ export default function Register() {
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
                               <FieldLabel htmlFor="addressLine">
-                                Address (street / number) *
+                                {t("auth.register.address")}
                               </FieldLabel>
                               <Input
                                 {...field}
                                 id="addressLine"
-                                placeholder="Street name..., N 15"
+                                placeholder={t("auth.register.addressPlaceholder")}
                                 aria-invalid={fieldState.invalid}
                               />
                               {fieldState.invalid && (
@@ -566,13 +568,13 @@ export default function Register() {
                           control={form.control}
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel htmlFor="role">Role *</FieldLabel>
+                              <FieldLabel htmlFor="role">{t("auth.register.role")}</FieldLabel>
                               <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
                               >
                                 <SelectTrigger id="role">
-                                  <SelectValue placeholder="Select a role" />
+                                  <SelectValue placeholder={t("auth.register.rolePlaceholder")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {availableRoles.map((roleName) => (
@@ -596,7 +598,7 @@ export default function Register() {
                           onClick={goToStep2}
                           className="flex-1 rounded-md bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
                         >
-                          Continue to acceptance criteria
+                          {t("auth.register.continueButton")}
                         </Button>
                       </div>
                     </>
@@ -606,32 +608,31 @@ export default function Register() {
                     <div className="space-y-5">
                       <div className="max-h-[min(420px,55vh)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700 shadow-inner">
                         <h4 className="font-semibold text-base text-slate-900 mb-3 flex items-center gap-2">
-                          <span aria-hidden>📋</span> Acceptance Criteria
+                          <span aria-hidden>📋</span> {t("auth.register.acceptanceCriteriaTitle")}
                         </h4>
                         <p className="mb-3 text-slate-600">
-                          Before submitting your registration request,
-                          please note that:
+                          {t("auth.register.acceptanceCriteriaIntro")}
                         </p>
                         <ul className="list-disc pl-5 space-y-2 leading-relaxed">
                           <li>
-                            The information provided must be accurate and verifiable
+                            {t("auth.register.acceptanceCriteria1")}
                           </li>
                           <li>
-                            The profile must match the requirements of the requested role
+                            {t("auth.register.acceptanceCriteria2")}
                           </li>
                           <li>
-                            A verification will be performed by our administrative team
+                            {t("auth.register.acceptanceCriteria3")}
                           </li>
                           <li>
-                            The approval process may take 24-48 hours
+                            {t("auth.register.acceptanceCriteria4")}
                           </li>
                           <li>
-                            A confirmation email will be sent after validation
+                            {t("auth.register.acceptanceCriteria5")}
                           </li>
                         </ul>
                       </div>
                       <p className="text-xs text-slate-500">
-                        Scroll the text above if needed, then confirm your agreement.
+                        {t("auth.register.acceptanceCriteriaScroll")}
                       </p>
                       <div className="flex flex-col-reverse sm:flex-row gap-3">
                         <Button
@@ -640,14 +641,14 @@ export default function Register() {
                           onClick={goBackToStep1}
                           className="flex-1"
                         >
-                          Back to form
+                          {t("auth.register.backToForm")}
                         </Button>
                         <Button
                           type="button"
                           onClick={goToStep3}
                           className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white"
                         >
-                          I have read and accept these criteria
+                          {t("auth.register.acceptButton")}
                         </Button>
                       </div>
                     </div>
@@ -657,36 +658,36 @@ export default function Register() {
                     <div className="space-y-5">
                       <div className="max-h-[min(420px,55vh)] overflow-y-auto rounded-xl border border-blue-200 bg-blue-50/80 p-5 text-sm text-slate-800 shadow-inner">
                         <h4 className="font-semibold text-base text-blue-950 mb-3 flex items-center gap-2">
-                          <span aria-hidden>📜</span> Platform Regulations
+                          <span aria-hidden>📜</span> {t("auth.register.platformRegulationsTitle")}
                         </h4>
                         <p className="mb-3 text-blue-950/90">
-                          By using the SmartSite platform, you commit to respecting:
+                          {t("auth.register.platformRegulationsIntro")}
                         </p>
                         <ul className="list-disc pl-5 space-y-2 leading-relaxed text-blue-950/90">
                           <li>
-                            Privacy and security policies
+                            {t("auth.register.regulation1")}
                           </li>
                           <li>
-                            Provide accurate and up-to-date information
+                            {t("auth.register.regulation2")}
                           </li>
                           <li>
-                            Use the platform for professional purposes only
+                            {t("auth.register.regulation3")}
                           </li>
                           <li>
-                            Do not share your credentials with third parties
+                            {t("auth.register.regulation4")}
                           </li>
                           <li>
-                            Respect other users and collaborators
+                            {t("auth.register.regulation5")}
                           </li>
                           <li>
-                            Report any issues or anomalies promptly
+                            {t("auth.register.regulation6")}
                           </li>
                           <li>
-                            Accept final administrative decisions
+                            {t("auth.register.regulation7")}
                           </li>
                         </ul>
                         <p className="mt-4 font-semibold text-blue-950 border-t border-blue-200 pt-4">
-                          Any violation of the regulations may result in the suspension or deletion of your account.
+                          {t("auth.register.regulationWarning")}
                         </p>
                       </div>
                       <div className="flex flex-col-reverse sm:flex-row gap-3">
@@ -697,7 +698,7 @@ export default function Register() {
                           disabled={isLoading}
                           className="flex-1"
                         >
-                          Back to criteria
+                          {t("auth.register.backToCriteria")}
                         </Button>
                         <Button
                           type="button"
@@ -708,10 +709,10 @@ export default function Register() {
                           {isLoading ? (
                             <>
                               <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2 align-middle" />
-                              Sending...
+                              {t("auth.register.sending")}
                             </>
                           ) : (
-                            "I accept the regulations and send my request"
+                            t("auth.register.acceptRegulationButton")
                           )}
                         </Button>
                       </div>

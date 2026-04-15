@@ -23,6 +23,7 @@ import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
 import WelcomeModal from "./WelcomeModalSimple";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 const formSchema = z.object({
   cin: z
@@ -40,6 +41,7 @@ export default function Login() {
   const { user, isFirstLogin } = useAuthStore((state) => state);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(false);
+  const { t } = useTranslation();
 
   // Debug logging
   React.useEffect(() => {
@@ -110,18 +112,18 @@ export default function Login() {
                 <SmartSiteLogo size="sm" />
               </a>
               <p className="mt-2 text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase">
-                Intelligent construction platform
+                {t("nav.login")}
               </p>
               <h2 className="mt-6 text-2xl font-bold leading-9 tracking-tight text-gray-900">
-                Sign in to your account
+                {t("auth.login.title")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-gray-500">
-                Don't have an account?{" "}
+                {t("auth.login.noAccount")}{" "}
                 <a
                   href="/register"
                   className="font-semibold text-indigo-600 hover:text-indigo-500"
                 >
-                  Sign up
+                  {t("auth.login.signUp")}
                 </a>
               </p>
             </div>
@@ -136,13 +138,13 @@ export default function Login() {
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
                           <FieldLabel htmlFor="form-rhf-demo-title">
-                            CIN
+                            {t("auth.login.email")}
                           </FieldLabel>
                           <Input
                             {...field}
                             id="form-rhf-demo-cin"
                             aria-invalid={fieldState.invalid}
-                            placeholder="Enter your CIN"
+                            placeholder={t("auth.login.email")}
                             autoComplete="off"
                           />
                           {fieldState.invalid && (
@@ -157,7 +159,7 @@ export default function Login() {
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
                           <FieldLabel htmlFor="form-rhf-demo-password">
-                            Password
+                            {t("auth.login.password")}
                           </FieldLabel>
 
                           <div className="relative">
@@ -166,7 +168,7 @@ export default function Login() {
                               type={showPassword ? "text" : "password"}
                               id="form-rhf-demo-password"
                               aria-invalid={fieldState.invalid}
-                              placeholder="Enter your password"
+                              placeholder={t("auth.login.password")}
                               autoComplete="off"
                               className="pr-10"
                             />
@@ -197,14 +199,14 @@ export default function Login() {
                   form="form-rhf-demo"
                   className="flex w-full mt-4 justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
-                  Sign in
+                  {t("auth.login.signIn")}
                 </Button>
                 <p className="mt-4 text-center text-sm text-gray-500">
                   <a
                     href="/forgot-password"
                     className="font-semibold text-indigo-600 hover:text-indigo-500"
                   >
-                    Forgot password?
+                    {t("auth.login.forgotPassword")}
                   </a>
                 </p>
 

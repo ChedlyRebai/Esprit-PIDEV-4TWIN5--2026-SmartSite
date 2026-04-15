@@ -2,11 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 function getAllowedOrigins(): string[] {
-  const defaultOrigin = 'http://localhost:5173';
+  const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174'];
   const rawOrigins = process.env.CORS_ORIGIN;
 
   if (!rawOrigins) {
-    return [defaultOrigin];
+    return defaultOrigins;
   }
 
   return rawOrigins

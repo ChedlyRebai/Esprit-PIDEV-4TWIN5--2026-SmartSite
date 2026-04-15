@@ -1,4 +1,4 @@
-import { Building2, Users, Briefcase, DollarSign, AlertTriangle, TrendingUp, Shield, Clock, MapPin, Calendar, Target, Search, Lightbulb } from 'lucide-react';
+import { Building2, Users, Briefcase, DollarSign, AlertTriangle, TrendingUp, Shield, Clock, MapPin, Calendar, Target, Search, Lightbulb, Quote } from 'lucide-react';
 import { StatCard } from '../../components/DashboardStats';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Progress } from '../../components/ui/progress';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useAuthStore } from '../../store/authStore';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   getDashboardStats,
   type Site,
@@ -20,6 +21,7 @@ import { getProverbOfTheDay } from '../../utils/chantier-proverbs';
 
 export default function SuperAdminDashboard() {
   const user = useAuthStore((state) => state.user);
+  const { t } = useTranslation();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [urgentSectionSearch, setUrgentSectionSearch] = useState('');
@@ -72,7 +74,7 @@ export default function SuperAdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement du dashboard...</div>
+        <div className="text-lg">{t("dashboard.loadingDashboard")}</div>
       </div>
     );
   }
@@ -82,8 +84,8 @@ export default function SuperAdminDashboard() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstName}!</h1>
-          <p className="text-gray-500 mt-1">System Overview - Super Administrator Dashboard</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t("dashboard.welcome")}, {user?.firstName}!</h1>
+          <p className="text-gray-500 mt-1">{t("dashboard.superAdminOverview")}</p>
         </div>
         <div className="text-right text-sm text-gray-500">
           <p className="font-medium">{currentTime.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -92,16 +94,27 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Daily Proverb Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <CardContent className="pt-6">
+      <Card className="relative overflow-hidden border-blue-200/70 bg-gradient-to-br from-blue-50 via-white to-indigo-100 shadow-lg">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-blue-300/20 blur-3xl motion-safe:animate-pulse" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-52 w-52 rounded-full bg-indigo-300/20 blur-3xl motion-safe:animate-pulse" />
+        <CardContent className="relative pt-6">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Lightbulb className="h-6 w-6 text-blue-600" />
+            <div className="mt-0.5 p-3 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/25 motion-safe:animate-[pulse_3s_ease-in-out_infinite]">
+              <Lightbulb className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-600 mb-1">Proverb of the Day</p>
-              <p className="text-lg font-semibold text-gray-900 italic">"{dailyProverb.proverb}"</p>
-              <p className="text-sm text-gray-600 mt-2">{dailyProverb.meaning}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700 mb-2">
+                {t("dashboard.proverbOfTheDay")}
+              </p>
+              <div className="rounded-xl border border-white/70 bg-white/70 backdrop-blur-sm px-4 py-3 shadow-sm">
+                <p className="text-lg leading-relaxed font-semibold text-slate-900 italic">
+                  <Quote className="inline-block mr-1 mb-1 h-4 w-4 text-blue-500" />
+                  {dailyProverb.proverb}
+                </p>
+                <p className="text-sm text-slate-600 mt-2">
+                  {dailyProverb.meaning}
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -110,25 +123,25 @@ export default function SuperAdminDashboard() {
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Projects"
+          title={t("dashboard.totalProjects")}
           value={stats.totalProjects}
           icon={Briefcase}
           trend={{ value: 12.5, isPositive: true }}
         />
         <StatCard
-          title="Active Sites"
+          title={t("dashboard.activeSites")}
           value={stats.activeSites}
           icon={Building2}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
-          title="Team Members"
+          title={t("dashboard.teamMembers")}
           value={stats.totalTeamMembers}
           icon={Users}
-          subtitle={`${stats.activeTeamMembers} active`}
+          subtitle={`${stats.activeTeamMembers} ${t("dashboard.total")}`}
         />
         <StatCard
-          title="Total Budget"
+          title={t("dashboard.totalBudget")}
           value={`TND ${(stats.totalBudget / 1000000).toFixed(1)}M`}
           icon={DollarSign}
           trend={{ value: 15.3, isPositive: true }}
@@ -137,25 +150,25 @@ export default function SuperAdminDashboard() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Active Projects"
+          title={t("dashboard.activeProjects")}
           value={stats.activeProjects}
           icon={TrendingUp}
-          subtitle="Currently ongoing"
+          subtitle={t("dashboard.currentlyOngoing")}
         />
         <StatCard
-          title="Critical Incidents"
+          title={t("dashboard.criticalIncidents")}
           value={stats.criticalIncidents}
           icon={AlertTriangle}
           trend={{ value: 25, isPositive: false }}
         />
         <StatCard
-          title="Urgent Tasks"
+          title={t("dashboard.urgentTasksLabel")}
           value={stats.urgentTasks}
           icon={Target}
-          subtitle="Need attention"
+          subtitle={t("dashboard.needAttention")}
         />
         <StatCard
-          title="Avg Progress"
+          title={t("dashboard.avgProgress")}
           value={`${stats.avgProgress}%`}
           icon={Clock}
           trend={{ value: 5, isPositive: true }}
@@ -169,7 +182,7 @@ export default function SuperAdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Recent Sites
+              {t("dashboard.recentSites")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -186,7 +199,7 @@ export default function SuperAdminDashboard() {
                 </div>
               ))}
               {sites.length === 0 && (
-                <div className="text-center py-4 text-gray-500">No sites found</div>
+                <div className="text-center py-4 text-gray-500">{t("dashboard.noSitesFound")}</div>
               )}
             </div>
           </CardContent>
@@ -197,7 +210,7 @@ export default function SuperAdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Briefcase className="h-5 w-5" />
-              Recent Projects
+              {t("dashboard.recentProjectsTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -209,7 +222,7 @@ export default function SuperAdminDashboard() {
                     <p className="text-sm text-gray-600">{project.assignedToName}</p>
                     <div className="mt-2">
                       <div className="flex items-center justify-between text-sm mb-1">
-                        <span>Progress</span>
+                        <span>{t("dashboard.progress")}</span>
                         <span>{project.progress}%</span>
                       </div>
                       <Progress value={project.progress} className="h-2" />
@@ -221,7 +234,7 @@ export default function SuperAdminDashboard() {
                 </div>
               ))}
               {projects.length === 0 && (
-                <div className="text-center py-4 text-gray-500">No projects found</div>
+                <div className="text-center py-4 text-gray-500">{t("dashboard.noProjectsFound")}</div>
               )}
             </div>
           </CardContent>
@@ -235,7 +248,7 @@ export default function SuperAdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Team Members
+              {t("dashboard.teamMembers")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -253,7 +266,7 @@ export default function SuperAdminDashboard() {
                 </div>
               ))}
               {teamMembers.length === 0 && (
-                <div className="text-center py-4 text-gray-500">No team members found</div>
+                <div className="text-center py-4 text-gray-500">{t("dashboard.noTeamMembersFound")}</div>
               )}
             </div>
           </CardContent>
@@ -265,16 +278,16 @@ export default function SuperAdminDashboard() {
             <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
-                <span>Urgent Tasks & Incidents</span>
+                <span>{t("dashboard.urgentTasksAndIncidents")}</span>
               </div>
               <div className="relative w-full sm:max-w-xs">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="Rechercher par nom d'incident, type..."
+                  placeholder={t("dashboard.searchPlaceholder")}
                   value={urgentSectionSearch}
                   onChange={(e) => setUrgentSectionSearch(e.target.value)}
                   className="pl-10"
-                  aria-label="Filtrer tâches et incidents"
+                  aria-label={t("dashboard.filterTasksIncidents")}
                 />
               </div>
             </CardTitle>
@@ -286,7 +299,7 @@ export default function SuperAdminDashboard() {
                   <Target className="h-4 w-4 text-red-600 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm">{task.title}</h4>
-                    <p className="text-xs text-muted-foreground">Due: {new Date(task.deadline).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.dueLabel")} {new Date(task.deadline).toLocaleDateString()}</p>
                   </div>
                   <Badge variant="destructive">{task.priority}</Badge>
                 </div>
@@ -306,8 +319,8 @@ export default function SuperAdminDashboard() {
               {filteredUrgentTasks.length === 0 && filteredIncidentsForCard.length === 0 && (
                 <div className="text-center py-4 text-muted-foreground text-sm">
                   {urgentSectionSearch.trim()
-                    ? 'Aucun incident trouvé pour cette recherche'
-                    : 'No urgent items'}
+                    ? t("dashboard.noResultsFound")
+                    : t("dashboard.noUrgent")}
                 </div>
               )}
             </div>
