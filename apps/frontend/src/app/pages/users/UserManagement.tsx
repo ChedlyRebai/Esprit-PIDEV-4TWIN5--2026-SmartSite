@@ -34,10 +34,12 @@ import Forbidden from "../Error/Forbidden";
 import { usePermissionStore } from "@/app/hooks/permission.store";
 import useAddUserModal from "@/app/hooks/use-user-Modal";
 import useRolePermissionsModal from "@/app/hooks/use-role-permissions-modal";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 export default function UserManagement() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   // Contournement : si le role est null, utiliser un role par défaut
   const userRole = user?.role || { name: "super_admin" as const };
 
@@ -72,7 +74,9 @@ export default function UserManagement() {
 
   useEffect(() => {
     if (isError) {
-      toast.error("Failed to load statics");
+      toast.error(
+        t("userManagement.toast.failedLoadStatics", "Failed to load statistics"),
+      );
     }
   }, [isError, error]);
 
@@ -101,14 +105,21 @@ export default function UserManagement() {
     try {
       const response = await deleteUser(userId);
       if (response?.status === 200) {
-        toast.success("User deleted successfully");
+        toast.success(
+          t("userManagement.toast.userDeleted", "User deleted successfully"),
+        );
         //loadUsers();
       } else {
-        toast.error(response?.data || "Failed to delete user");
+        toast.error(
+          response?.data ||
+            t("userManagement.toast.failedDeleteUser", "Failed to delete user"),
+        );
       }
     } catch (error) {
       console.error("Failed to delete user:", error);
-      toast.error("Failed to delete user");
+      toast.error(
+        t("userManagement.toast.failedDeleteUser", "Failed to delete user"),
+      );
     }
   };
 
@@ -129,14 +140,30 @@ export default function UserManagement() {
     try {
       const response = await deletePermission(permissionId);
       if (response?.status === 200) {
-        toast.success("Permission deleted successfully");
+        toast.success(
+          t(
+            "userManagement.toast.permissionDeleted",
+            "Permission deleted successfully",
+          ),
+        );
         // loadPermissions();
       } else {
-        toast.error(response?.data || "Failed to delete permission");
+        toast.error(
+          response?.data ||
+            t(
+              "userManagement.toast.failedDeletePermission",
+              "Failed to delete permission",
+            ),
+        );
       }
     } catch (error) {
       console.error("Failed to delete permission:", error);
-      toast.error("Failed to delete permission");
+      toast.error(
+        t(
+          "userManagement.toast.failedDeletePermission",
+          "Failed to delete permission",
+        ),
+      );
     }
   };
 
@@ -167,15 +194,31 @@ export default function UserManagement() {
       const response = await banUser(userId, isActif);
       if (response?.status === 200) {
         toast.success(
-          isActif ? "User unbanned successfully" : "User banned successfully",
+          isActif
+            ? t(
+                "userManagement.toast.userUnbanned",
+                "User unbanned successfully",
+              )
+            : t("userManagement.toast.userBanned", "User banned successfully"),
         );
         // loadUsers();
       } else {
-        toast.error(response?.data || "Failed to update user status");
+        toast.error(
+          response?.data ||
+            t(
+              "userManagement.toast.failedUpdateUserStatus",
+              "Failed to update user status",
+            ),
+        );
       }
     } catch (error) {
       console.error("Failed to update user status:", error);
-      toast.error("Failed to update user status");
+      toast.error(
+        t(
+          "userManagement.toast.failedUpdateUserStatus",
+          "Failed to update user status",
+        ),
+      );
     }
   };
   const handleEditRole = (role: Role) => {
@@ -189,14 +232,21 @@ export default function UserManagement() {
     try {
       const response = await deleteRole(roleId);
       if (response?.status === 200) {
-        toast.success("Role deleted successfully");
+        toast.success(
+          t("userManagement.toast.roleDeleted", "Role deleted successfully"),
+        );
         // loadRoles();
       } else {
-        toast.error(response?.data || "Failed to delete role");
+        toast.error(
+          response?.data ||
+            t("userManagement.toast.failedDeleteRole", "Failed to delete role"),
+        );
       }
     } catch (error) {
       console.error("Failed to delete role:", error);
-      toast.error("Failed to delete role");
+      toast.error(
+        t("userManagement.toast.failedDeleteRole", "Failed to delete role"),
+      );
     }
   };
 
@@ -230,11 +280,13 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">
-          User Management
+          {t("userManagement.title", "User Management")}
         </h1>
         <p className="text-gray-500 mt-1">
-          Manage user roles, permissions, and access control settings to ensure
-          secure
+          {t(
+            "userManagement.subtitle",
+            "Manage user roles, permissions, and access control settings to ensure secure access.",
+          )}
         </p>
       </div>
 
@@ -243,7 +295,7 @@ export default function UserManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UsersIcon className="h-5 w-5" />
-              Total Users
+              {t("userManagement.stats.totalUsers", "Total Users")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -251,7 +303,7 @@ export default function UserManagement() {
               {statics.totalUsers || 0}
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              Users assigned to roles
+              {t("userManagement.stats.usersAssigned", "Users assigned to roles")}
             </p>
           </CardContent>
         </Card>
@@ -259,7 +311,7 @@ export default function UserManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Total Roles
+              {t("userManagement.stats.totalRoles", "Total Roles")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -267,7 +319,7 @@ export default function UserManagement() {
               {statics.totalRoles || 0}
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              Active roles in the system
+              {t("userManagement.stats.activeRoles", "Active roles in the system")}
             </p>
           </CardContent>
         </Card>
@@ -276,7 +328,7 @@ export default function UserManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5" />
-              Permissions
+              {t("userManagement.stats.permissions", "Permissions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -284,7 +336,10 @@ export default function UserManagement() {
               {statics.totalPermissions || 0}
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              Total permissions available
+              {t(
+                "userManagement.stats.totalPermissions",
+                "Total permissions available",
+              )}
             </p>
           </CardContent>
         </Card>
@@ -295,17 +350,25 @@ export default function UserManagement() {
           <CardHeader>
             <CardTitle>
               <TabsList>
-                <TabsTrigger value="users">users</TabsTrigger>
-                <TabsTrigger value="role">Roles</TabsTrigger>
+                <TabsTrigger value="users">
+                  {t("userManagement.tabs.users", "Users")}
+                </TabsTrigger>
+                <TabsTrigger value="role">
+                  {t("userManagement.tabs.roles", "Roles")}
+                </TabsTrigger>
 
-                <TabsTrigger value="permissions">permissions</TabsTrigger>
+                <TabsTrigger value="permissions">
+                  {t("userManagement.tabs.permissions", "Permissions")}
+                </TabsTrigger>
               </TabsList>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <TabsContent value="role">
               {isRoleLoading ? (
-                <div className="text-center py-12">Loading roles...</div>
+                <div className="text-center py-12">
+                  {t("userManagement.loadingRoles", "Loading roles...")}
+                </div>
               ) : (
                 <RolesDataTable
                   roles={roles}
@@ -318,7 +381,9 @@ export default function UserManagement() {
 
             <TabsContent value="users">
               {isUsersLoading ? (
-                <div className="text-center py-12">Loading users...</div>
+                <div className="text-center py-12">
+                  {t("userManagement.loadingUsers", "Loading users...")}
+                </div>
               ) : (
                 <UserDataTable
                   onBan={handleBanUser}
@@ -330,7 +395,12 @@ export default function UserManagement() {
 
             <TabsContent value="permissions">
               {isPermissionLoading ? (
-                <div className="text-center py-12">Loading permissions...</div>
+                <div className="text-center py-12">
+                  {t(
+                    "userManagement.loadingPermissions",
+                    "Loading permissions...",
+                  )}
+                </div>
               ) : (
                 <PermissionsDataTable
                   permissions={permissionsList}

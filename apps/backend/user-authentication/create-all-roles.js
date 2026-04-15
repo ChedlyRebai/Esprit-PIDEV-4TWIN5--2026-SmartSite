@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 async function createAllRoles() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/smartsite');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/smartsite';
+    console.log(`📡 Connecting to MongoDB: ${mongoUri.replace(/([^:]*):([^@]*)@/, '$1:***@')}`);
+    await mongoose.connect(mongoUri);
     
     const rolesCollection = mongoose.connection.db.collection('roles');
     

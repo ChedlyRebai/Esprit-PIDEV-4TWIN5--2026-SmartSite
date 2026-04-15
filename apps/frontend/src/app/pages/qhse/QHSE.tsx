@@ -2,13 +2,22 @@ import { Shield, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { mockIncidents } from '../../utils/mockData';
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 export default function QHSE() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">QHSE & Safety</h1>
-        <p className="text-gray-500 mt-1">Quality, Health, Safety & Environment Management</p>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t("qhse.title", "QHSE & Safety")}
+        </h1>
+        <p className="text-gray-500 mt-1">
+          {t(
+            "qhse.subtitle",
+            "Quality, Health, Safety & Environment Management",
+          )}
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -16,7 +25,7 @@ export default function QHSE() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Safety Incidents
+              {t("qhse.incidentsTitle", "Safety Incidents")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -45,21 +54,33 @@ export default function QHSE() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Safety Compliance</CardTitle>
+            <CardTitle>{t("qhse.complianceTitle", "Safety Compliance")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="p-3 border rounded-lg bg-green-50">
-                <h4 className="font-semibold text-sm text-green-900">PPE Compliance</h4>
-                <p className="text-sm text-green-700 mt-1">96% compliance rate</p>
+                <h4 className="font-semibold text-sm text-green-900">
+                  {t("qhse.ppeTitle", "PPE Compliance")}
+                </h4>
+                <p className="text-sm text-green-700 mt-1">
+                  {t("qhse.ppeValue", "96% compliance rate")}
+                </p>
               </div>
               <div className="p-3 border rounded-lg bg-green-50">
-                <h4 className="font-semibold text-sm text-green-900">Safety Training</h4>
-                <p className="text-sm text-green-700 mt-1">All personnel certified</p>
+                <h4 className="font-semibold text-sm text-green-900">
+                  {t("qhse.trainingTitle", "Safety Training")}
+                </h4>
+                <p className="text-sm text-green-700 mt-1">
+                  {t("qhse.trainingValue", "All personnel certified")}
+                </p>
               </div>
               <div className="p-3 border rounded-lg bg-yellow-50">
-                <h4 className="font-semibold text-sm text-yellow-900">Equipment Inspection</h4>
-                <p className="text-sm text-yellow-700 mt-1">2 items pending review</p>
+                <h4 className="font-semibold text-sm text-yellow-900">
+                  {t("qhse.equipmentTitle", "Equipment Inspection")}
+                </h4>
+                <p className="text-sm text-yellow-700 mt-1">
+                  {t("qhse.equipmentValue", "2 items pending review")}
+                </p>
               </div>
             </div>
           </CardContent>

@@ -37,11 +37,16 @@ import { SidebarMenu } from "../components/SidebarMenu";
 import type { RoleType } from "../types";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "../action/auth.action";
+import { ThemeButton } from "../components/ThemeButton";
+import { LanguageSelector } from "../components/LanguageSelector";
+import { NavbarAccessibilityButton } from "../components/NavbarAccessibilityButton";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { t, language } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -52,6 +57,33 @@ export default function DashboardLayout() {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  const locale =
+    language === "fr" ? "fr-FR" : language === "ar" ? "ar-TN" : "en-GB";
+
+  const hrefToSidebarKey = (href: string) => {
+    // "/admin/pending-users" -> "admin.pending_users"
+    // "/supplier-materials"  -> "supplier_materials"
+    // "/projects"            -> "projects"
+    const cleaned = (href || "")
+      .trim()
+      .replace(/^[^a-zA-Z0-9/]+/g, "")
+      .replace(/^\//, "")
+      .replace(/\/+$/, "");
+
+    if (!cleaned) return "dashboard";
+
+    return cleaned
+      .split("/")
+      .filter(Boolean)
+      .join(".")
+      .replace(/-/g, "_");
+  };
+
+  const getSidebarLabel = (item: Permission) => {
+    const key = `sidebar.${hrefToSidebarKey(item.href)}`;
+    return t(key, item.name);
+  };
 
   const handleLogout = () => {
     logout();
@@ -153,7 +185,7 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
+      <header className="bg-card border-b border-border sticky top-0 z-40" role="banner">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <Button
@@ -161,7 +193,9 @@ export default function DashboardLayout() {
               size="icon"
               className="lg:hidden"
               aria-label={
-                sidebarOpen ? "Close sidebar menu" : "Open sidebar menu"
+                sidebarOpen
+                  ? t("accessibility.closeSidebar", "Close sidebar menu")
+                  : t("accessibility.openSidebar", "Open sidebar menu")
               }
               aria-controls="primary-sidebar"
               aria-expanded={sidebarOpen}
@@ -173,20 +207,24 @@ export default function DashboardLayout() {
                 <Menu aria-hidden="true" className="h-5 w-5" />
               )}
             </Button>
-            <Link to="/" className="flex items-center gap-2">
-              <div className="bg-card p-2 rounded-lg border border-border">
+            <Link
+              to="/"
+              className="group flex items-center gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              <div className="relative bg-card p-2 rounded-lg border border-border transition-all duration-300 shadow-sm group-hover:shadow-md group-hover:border-blue-300/70 group-hover:-translate-y-0.5">
+                <span className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-green-500/0 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-100 group-hover:from-blue-500/20 group-hover:to-green-500/20" />
                 {logoAvailable ? (
                   <img
                     src="/logo.png"
                     alt="SmartSite"
-                    className="h-10 w-10 object-contain"
+                    className="relative h-12 w-12 object-contain transition-transform duration-300 motion-safe:animate-[pulse_5s_ease-in-out_infinite] group-hover:scale-125 group-hover:rotate-2"
                     onError={() => setLogoAvailable(false)}
                   />
                 ) : (
-                  <Building2 className="h-10 w-10 text-blue-600" />
+                  <Building2 className="h-12 w-12 text-blue-600 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-2" />
                 )}
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:inline">
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:inline transition-all duration-300 group-hover:tracking-wide">
                 SmartSite
               </span>
             </Link>
@@ -196,7 +234,7 @@ export default function DashboardLayout() {
             {/* Date & Time */}
             <div className="hidden md:flex flex-col items-end text-sm mr-2">
               <span className="font-medium text-foreground">
-                {currentTime.toLocaleDateString("en-GB", {
+                {currentTime.toLocaleDateString(locale, {
                   weekday: "short",
                   day: "numeric",
                   month: "short",
@@ -204,19 +242,27 @@ export default function DashboardLayout() {
                 })}
               </span>
               <span className="text-muted-foreground text-xs">
-                {currentTime.toLocaleTimeString("en-GB", {
+                {currentTime.toLocaleTimeString(locale, {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
               </span>
             </div>
 
+            {/* Accessibility, Theme & Language Selectors */}
+            <NavbarAccessibilityButton />
+            <ThemeButton />
+            <LanguageSelector />
+
             {/* Notifications */}
             <Button
               variant="ghost"
               size="icon"
               className="relative"
-              aria-label="Open notifications"
+              aria-label={t(
+                "accessibility.openNotifications",
+                "Open notifications",
+              )}
               onClick={() => navigate("/notifications")}
             >
               <Bell aria-hidden="true" className="h-5 w-5" />
@@ -264,7 +310,7 @@ export default function DashboardLayout() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" />
-                  Profile
+                  {t("userMenu.profile", "Profile")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -272,7 +318,7 @@ export default function DashboardLayout() {
                   className="text-red-600"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                  {t("userMenu.logout", "Logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -312,7 +358,7 @@ export default function DashboardLayout() {
                         }
                       `}
                   >
-                    <span className="font-medium">{item.name}</span>
+                    <span className="font-medium">{getSidebarLabel(item)}</span>
                   </Link>
                 );
               })}
@@ -324,7 +370,7 @@ export default function DashboardLayout() {
               className="w-full justify-center gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              Log out
+              {t("userMenu.logout", "Logout")}
             </Button>
           </div>
         </aside>
@@ -333,7 +379,10 @@ export default function DashboardLayout() {
         {sidebarOpen && (
           <button
             type="button"
-            aria-label="Close sidebar overlay"
+            aria-label={t(
+              "accessibility.closeSidebarOverlay",
+              "Close sidebar overlay",
+            )}
             className="fixed inset-0  bg-opacity-10 z-20 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
