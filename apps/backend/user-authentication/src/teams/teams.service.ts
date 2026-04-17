@@ -2,10 +2,14 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Team } from './entities/team.entity';
+import { SitesService } from '../sites/sites.service';
 
 @Injectable()
 export class TeamsService {
-  constructor(@InjectModel(Team.name) private teamModel: Model<Team>) {}
+  constructor(
+    @InjectModel(Team.name) private teamModel: Model<Team>,
+    private sitesService: SitesService,
+  ) {}
 
   async create(createTeamDto: any) {
     const createdTeam = new this.teamModel(createTeamDto);
@@ -143,6 +147,8 @@ export class TeamsService {
     if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(siteId)) {
       throw new BadRequestException('Identifiant invalide');
     }
+
+    // Assigner le site à l'équipe
     const updated = await this.teamModel
       .findByIdAndUpdate(
         teamId,
@@ -155,15 +161,29 @@ export class TeamsService {
       })
       .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
       .exec();
+
     if (!updated) {
       throw new NotFoundException('Équipe introuvable');
     }
+
+    // Ajouter l'équipe au site (synchro inverse)
+    try {
+      await this.sitesService.addTeamToSite(siteId, teamId);
+    } catch (siteError) {
+      console.error('Error adding team to site:', siteError);
+      // On ne bloque pas si le site n'existe pas ou autre
+    }
+
     return updated;
   }
 
   // Remove site assignment from team
   async removeSite(teamId: string) {
-    return this.teamModel.findByIdAndUpdate(
+    // D'abord récupérer le siteId avant de le déassigner
+    const team = await this.teamModel.findById(teamId).exec();
+    const siteId = team?.site?.toString();
+
+    const result = await this.teamModel.findByIdAndUpdate(
       teamId,
       { $unset: { site: 1 } },
       { new: true }
@@ -174,5 +194,16 @@ export class TeamsService {
       })
       .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
       .exec();
+
+    // Retirer l'équipe du site (synchro inverse)
+    if (siteId) {
+      try {
+        await this.sitesService.removeTeamFromSite(siteId, teamId);
+      } catch (siteError) {
+        console.error('Error removing team from site:', siteError);
+      }
+    }
+
+    return result;
   }
 }

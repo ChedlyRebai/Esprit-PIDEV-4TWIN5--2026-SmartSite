@@ -5,7 +5,8 @@ import axios from "axios";
 import { trackLogout } from "../action/audit.action";
 import { AUTH_API_URL } from "@/lib/auth-api-url";
 
-const api = axios.create({
+// Instance axios partagée avec le token automatiquement injecté après rehydratation
+export const authApi = axios.create({
   baseURL: AUTH_API_URL,
 });
 
@@ -18,14 +19,14 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (cin: string, password: string) => {
         try {
-          const res = await api.post("/auth/login", {
+          const res = await authApi.post("/auth/login", {
             cin,
             password,
           });
 
           const token = res.data.access_token;
           // attach token globally
-          api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+          authApi.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           console.log("Login successful, token:", token);
 
           const userData = {
@@ -82,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
         preferredLanguage?: string,
         certifications?: string[],
       ) => {
-        const res = await api.post("/auth/register", {
+        const res = await authApi.post("/auth/register", {
           cin,
           password,
           firstName,
@@ -101,13 +102,13 @@ export const useAuthStore = create<AuthState>()(
 
       // Récupérer les utilisateurs en attente (admin)
       getPendingUsers: async () => {
-        const res = await api.get("/users/pending");
+        const res = await authApi.get("/users/pending");
         return res.data;
       },
 
       // Approuver un utilisateur (admin)
       approveUser: async (userId: string, password: string) => {
-        const res = await api.post(`/auth/approve-user/${userId}`, {
+        const res = await authApi.post(`/auth/approve-user/${userId}`, {
           password,
         });
         return res.data;
@@ -115,7 +116,7 @@ export const useAuthStore = create<AuthState>()(
 
       // Rejeter un utilisateur (admin)
       rejectUser: async (userId: string, reason?: string) => {
-        const res = await api.post(`/auth/reject-user/${userId}`, {
+        const res = await authApi.post(`/auth/reject-user/${userId}`, {
           reason,
         });
         return res.data;
@@ -126,7 +127,7 @@ export const useAuthStore = create<AuthState>()(
         await trackLogout(sessionId);
         localStorage.removeItem("session_id");
         // Clear authorization header
-        delete api.defaults.headers.common["Authorization"];
+        delete authApi.defaults.headers.common["Authorization"];
         set({ user: null, isAuthenticated: false, isFirstLogin: false });
       },
 
@@ -138,7 +139,7 @@ export const useAuthStore = create<AuthState>()(
       name: "smartsite-auth",
       onRehydrateStorage: () => (state) => {
         if (state?.user?.access_token) {
-          api.defaults.headers.common["Authorization"] =
+          authApi.defaults.headers.common["Authorization"] =
             `Bearer ${state.user.access_token}`;
         }
       },

@@ -246,35 +246,33 @@ export default function Sites() {
     }
   };
 
-  const loadSites = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Load both sites and sites with teams in parallel
-      const [response, sitesWithTeamsData] = await Promise.all([
-        fetchSites({ 
-          limit: 100,
-          status: selectedStatus === 'all' ? undefined : selectedStatus
-        }),
-        getAllSitesWithTeams()
-      ]);
-      
-      console.log('Sites loaded from API:', response.data);
-      console.log('Sites with teams:', sitesWithTeamsData);
-      setSites(response.data);
-      setSitesWithTeams(sitesWithTeamsData as Site[]);
-      setUseMockData(false);
-    } catch (err) {
-      console.error('Error loading sites, using mock data:', err);
-      setError('Backend not available, using mock data');
-      setSites(mockSites);
-      setUseMockData(true);
-      toast.warning('Offline mode - demo data');
-    } finally {
-      setLoading(false);
-    }
-  };
+   const loadSites = async () => {
+     try {
+       setLoading(true);
+       setError(null);
+
+       // Load both sites and sites with teams in parallel
+       const [sitesData, sitesWithTeamsData] = await Promise.all([
+         fetchSites(),
+         getAllSitesWithTeams()
+       ]);
+
+       console.log('Sites loaded from API:', sitesData);
+       console.log('Sites data length:', sitesData?.length);
+       console.log('Sites with teams:', sitesWithTeamsData);
+       setSites(Array.isArray(sitesData) ? sitesData : []);
+       setSitesWithTeams(sitesWithTeamsData as Site[]);
+       setUseMockData(false);
+     } catch (err) {
+       console.error('Error loading sites, using mock data:', err);
+       setError('Backend not available, using mock data');
+       setSites(Array.isArray(mockSites) ? mockSites : []);
+       setUseMockData(true);
+       toast.warning('Offline mode - demo data');
+     } finally {
+       setLoading(false);
+     }
+   };
 
   const searchAddressOnMap = async (address: string) => {
     if (!address.trim() || address.length < 5) {
@@ -314,26 +312,29 @@ export default function Sites() {
     }
   };
 
-  // Search for nearby fournisseurs based on coordinates
-  const searchNearbyFournisseurs = async (position: { lat: number; lng: number }) => {
-    try {
-      // Get all active fournisseurs from API
-      const response = await fetch('/gestion-fournisseurs/fournisseurs?actif=true');
-      let fournisseurs = [];
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          fournisseurs = data;
-        } else if (data?.data) {
-          fournisseurs = data.data;
-        }
-      }
-      
-      // Filter fournisseurs that have coordinates and calculate distance
-      const fournisseursWithDistance = fournisseurs
-        .filter((f: any) => f.coordinates?.lat && f.coordinates?.lng)
-        .map((f: any) => {
+   // Search for nearby fournisseurs based on coordinates
+   const searchNearbyFournisseurs = async (position: { lat: number; lng: number }) => {
+     try {
+       // Get all active fournisseurs from API (temporairement désactivé - fournisseurs gérés dans supplier-management)
+       // const response = await fetch('/gestion-fournisseurs/fournisseurs?actif=true');
+       // let fournisseurs = [];
+       
+       // if (response.ok) {
+       //   const data = await response.json();
+       //   if (Array.isArray(data)) {
+       //     fournisseurs = data;
+       //   } else if (data?.data) {
+       //     fournisseurs = data.data;
+       //   }
+       // }
+       
+       // Pour l'instant, pas de recherche de fournisseurs proximité
+       const fournisseurs = [];
+       
+       // Filter fournisseurs that have coordinates and calculate distance
+       const fournisseursWithDistance = (fournisseurs || [])
+         .filter((f: any) => f.coordinates?.lat && f.coordinates?.lng)
+         .map((f: any) => {
           const fLat = f.coordinates.lat;
           const fLng = f.coordinates.lng;
           // Simple distance calculation (approximate)
@@ -367,23 +368,16 @@ export default function Sites() {
     setNewSite({ ...newSite, address: value });
   };
 
-  const filteredAndSortedSites = sites
-    .filter(site => {
-      const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        site.address.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Check priority filter
-      const matchesPriority = selectedPriority === 'all' || site.priority === selectedPriority;
-      
-      // Check for problems (issues or delays)
-      const hasIssues = siteIssues[site.id]?.some(issue => !issue.resolved) || false;
-      const isOverdue = site.status !== 'completed' && new Date(site.workEndDate || site.workStartDate) < new Date();
-      const hasProblems = hasIssues || isOverdue;
-      
-      if (showProblemsOnly && !hasProblems) return false;
-      if (!matchesPriority) return false;
-      return matchesSearch;
-    })
+   const filteredAndSortedSites = (sites || [])
+     .filter(site => {
+       const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         site.address.toLowerCase().includes(searchTerm.toLowerCase());
+
+       // Check priority filter (handle undefined priority)
+       const matchesPriority = selectedPriority === 'all' || site.priority === selectedPriority;
+
+       return matchesSearch && matchesPriority;
+     })
     .sort((a, b) => {
       let comparison = 0;
       
@@ -628,7 +622,7 @@ export default function Sites() {
     try {
       if (useMockData) {
         const site: Site = {
-          id: String(sites.length + 1),
+          id: String((sites || []).length + 1),
           name: newSite.name,
           address: newSite.address,
           status: 'planning',
@@ -636,29 +630,29 @@ export default function Sites() {
           budget: parseInt(newSite.budget),
           progress: 0,
           workStartDate: new Date().toISOString(),
-          projectId: String(sites.length + 1),
+          projectId: String((sites || []).length + 1),
           coordinates: mapPosition || { lat: 0, lng: 0 },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        setSites([...sites, site]);
+        setSites([...(sites || []), site]);
         resetAddForm();
         toast.success('Site added successfully!');
       } else {
-        const site: Partial<Site> = {
-          name: newSite.name,
-          address: newSite.address,
-          area: parseInt(newSite.area),
-          budget: parseInt(newSite.budget),
-          status: 'planning',
-          progress: 0,
-          workStartDate: new Date().toISOString(),
-          projectId: String(sites.length + 1),
-          coordinates: mapPosition || { lat: 0, lng: 0 },
-        };
-        
-        const createdSite = await createSite(site);
-        setSites([...sites, createdSite]);
+         const site: Partial<Site> = {
+           name: newSite.name,
+           address: newSite.address,
+           area: parseInt(newSite.area),
+           budget: parseInt(newSite.budget),
+           status: 'planning',
+           progress: 0,
+           workStartDate: new Date().toISOString(),
+           projectId: String((sites || []).length + 1),
+           coordinates: mapPosition || { lat: 0, lng: 0 },
+         };
+         
+         const createdSite = await createSite(site);
+         setSites([...(sites || []), createdSite]);
         
         // Assign team to site if selected
         if (selectedTeam && createdSite.id) {
@@ -718,15 +712,15 @@ export default function Sites() {
   const confirmDelete = async () => {
     if (!selectedSite) return;
     
-    try {
-      if (useMockData) {
-        setSites(sites.filter(s => s.id !== selectedSite.id));
-        toast.success('Site deleted successfully!');
-      } else {
-        await deleteSite(selectedSite.id);
-        setSites(sites.filter(s => s.id !== selectedSite.id));
-        toast.success('Site deleted successfully!');
-      }
+     try {
+       if (useMockData) {
+         setSites((sites || []).filter(s => s.id !== selectedSite.id));
+         toast.success('Site deleted successfully!');
+       } else {
+         await deleteSite(selectedSite.id);
+         setSites((sites || []).filter(s => s.id !== selectedSite.id));
+         toast.success('Site deleted successfully!');
+       }
     } catch (error) {
       console.error('Error deleting site:', error);
       toast.error('Error deleting site');
@@ -742,23 +736,23 @@ export default function Sites() {
       return;
     }
     
-    try {
-      if (useMockData) {
-        setSites(sites.map(s => 
-          s.id === selectedSite.id 
-            ? { 
-                ...s, 
-                status: manageData.status as 'planning' | 'in_progress' | 'on_hold' | 'completed', 
-                progress: manageData.progress,
-                name: manageData.name,
-                address: manageData.address,
-                area: manageData.area,
-                budget: manageData.budget,
-                coordinates: editMapPosition || s.coordinates
-              }
-            : s
-        ));
-        setManageDialogOpen(false);
+     try {
+       if (useMockData) {
+         setSites((sites || []).map(s => 
+           s.id === selectedSite.id 
+             ? { 
+                 ...s, 
+                 status: manageData.status as 'planning' | 'in_progress' | 'on_hold' | 'completed', 
+                 progress: manageData.progress,
+                 name: manageData.name,
+                 address: manageData.address,
+                 area: manageData.area,
+                 budget: manageData.budget,
+                 coordinates: editMapPosition || s.coordinates
+               }
+             : s
+         ));
+         setManageDialogOpen(false);
         toast.success('Site updated successfully!');
       } else {
         const updatedSite = await updateSite(selectedSite!.id, {
@@ -771,13 +765,13 @@ export default function Sites() {
           coordinates: editMapPosition || undefined,
         });
         
-        setSites(sites.map(s => 
-          s.id === selectedSite.id 
-            ? updatedSite
-            : s
-        ));
-        setManageDialogOpen(false);
-        toast.success('Site updated successfully!');
+         setSites((sites || []).map(s => 
+           s.id === selectedSite.id 
+             ? updatedSite
+             : s
+         ));
+         setManageDialogOpen(false);
+         toast.success('Site updated successfully!');
       }
     } catch (error) {
       console.error('Error updating site:', error);
@@ -878,10 +872,10 @@ export default function Sites() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sites</h1>
           <p className="text-sm sm:text-base text-gray-500 mt-1">
-            {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
-            <span className="ml-1">
-              {sites.filter(s => s.status === 'in_progress').length} in progress
-            </span>
+             {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
+             <span className="ml-1">
+               {(sites || []).filter(s => s.status === 'in_progress').length} in progress
+             </span>
             {siteIssues && Object.keys(siteIssues).length > 0 && (
               <span className="ml-1 text-amber-600">
                 {' • '}{Object.values(siteIssues).flat().filter(i => !i.resolved).length} issues
