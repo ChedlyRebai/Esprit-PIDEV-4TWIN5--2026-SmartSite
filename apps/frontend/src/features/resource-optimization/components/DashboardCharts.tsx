@@ -44,7 +44,7 @@ export const SummaryStats: React.FC<DashboardStatsProps> = ({ dashboard }) => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Économies réalisées</CardTitle>
+            <CardTitle className="text-sm font-medium">Realized Savings</CardTitle>
             <DollarSign className="h-5 w-5 text-emerald-600" />
           </CardHeader>
           <CardContent className="bg-emerald-50 p-4 rounded-lg -m-4 mt-2">
@@ -53,7 +53,7 @@ export const SummaryStats: React.FC<DashboardStatsProps> = ({ dashboard }) => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Reco. mises en œuvre</CardTitle>
+            <CardTitle className="text-sm font-medium">Recommendations Implemented</CardTitle>
             <Leaf className="h-5 w-5 text-green-600" />
           </CardHeader>
           <CardContent className="bg-green-50 p-4 rounded-lg -m-4 mt-2">
@@ -62,7 +62,7 @@ export const SummaryStats: React.FC<DashboardStatsProps> = ({ dashboard }) => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Efficacité</CardTitle>
+            <CardTitle className="text-sm font-medium">Overall Effectiveness</CardTitle>
             <TrendingDown className="h-5 w-5 text-blue-600" />
           </CardHeader>
           <CardContent className="bg-blue-50 p-4 rounded-lg -m-4 mt-2">
@@ -76,21 +76,21 @@ export const SummaryStats: React.FC<DashboardStatsProps> = ({ dashboard }) => {
   const stats = [
     {
       icon: DollarSign,
-      label: 'Économies réalisées',
+      label: 'Realized Savings',
       value: `${(dashboard.financial?.realizedSavings && isFinite(Number(dashboard.financial.realizedSavings)) ? Number(dashboard.financial.realizedSavings) : 0).toLocaleString()} TND`,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
     {
       icon: Leaf,
-      label: 'Reco. mises en œuvre',
+      label: 'Recommendations Implemented',
       value: `${dashboard.recommendations?.implemented || 0}`,
       color: 'text-green-600',
       bg: 'bg-green-50',
     },
     {
       icon: TrendingDown,
-      label: 'Efficacité globale',
+      label: 'Overall Effectiveness',
       value: `${(dashboard.financial?.roi && isFinite(Number(dashboard.financial.roi)) ? Math.round(Number(dashboard.financial.roi) * 100) : 0)}%`,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
@@ -136,15 +136,15 @@ export const SavingsChart: React.FC<SavingsChartProps> = ({ data }) => {
   }));
 
   const colorMap: Record<string, string> = {
-    'Budget & matériaux': '#3b82f6',
-    'Équipes & exécution': '#f59e0b',
-    'Planning & délais': '#8b5cf6',
+    'Budget & Materials': '#3b82f6',
+    'Teams & Execution': '#f59e0b',
+    'Planning & Deadlines': '#8b5cf6',
   };
 
   const descriptionMap: Record<string, string> = {
-    'Budget & matériaux': '💰 Économies sur les coûts des matériaux et logistique',
-    'Équipes & exécution': '👥 Gains de productivité et optimisation des horaires',
-    'Planning & délais': '📅 Réduction des délais et meilleure planification',
+    'Budget & Materials': '💰 Savings on material costs and logistics',
+    'Teams & Execution': '👥 Productivity gains and schedule optimization',
+    'Planning & Deadlines': '📅 Deadline reduction and better planning',
   };
 
   return (
@@ -155,21 +155,21 @@ export const SavingsChart: React.FC<SavingsChartProps> = ({ data }) => {
             <DollarSign className="h-5 w-5 text-emerald-600" />
           </div>
           <div className="flex-1">
-            <CardTitle className="text-lg">💰 Répartition des Gains (Chantier)</CardTitle>
+            <CardTitle className="text-lg">💰 Distribution of Gains (Site)</CardTitle>
             <CardDescription className="mt-2">
-              📊 <strong>Estimation par grand poste:</strong> Budget & matériaux, Équipes & exécution, Planning & délais — en TND<br/>
-              💡 <strong>Interprétation:</strong> Plus haute la barre, plus grand le gain économique estimé pour ce domaine
+              📊 <strong>Estimation by category:</strong> Budget & Materials, Teams & Execution, Planning & Deadlines — in TND<br/>
+              💡 <strong>Interpretation:</strong> The higher the bar, the greater the estimated economic gain for this area
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="h-auto space-y-4">
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-emerald-200/50 p-3 rounded-lg text-sm text-foreground/80">
-          <p><strong>🎯 À quoi correspond chaque poste?</strong></p>
+          <p><strong>🎯 What does each category mean?</strong></p>
           <ul className="mt-2 space-y-1 text-xs ml-2">
-            <li>• <strong>Budget & matériaux:</strong> Réduction des coûts d'achat et gaspillage</li>
-            <li>• <strong>Équipes:</strong> Productivité accrue et optimisation RH</li>
-            <li>• <strong>Planning:</strong> Respect des délais et réduction des retards coûteux</li>
+            <li>• <strong>Budget & Materials:</strong> Reduction of purchase costs and waste</li>
+            <li>• <strong>Teams:</strong> Increased productivity and HR optimization</li>
+            <li>• <strong>Planning:</strong> Respect of deadlines and reduction of costly delays</li>
           </ul>
         </div>
         <div className="h-80">
@@ -232,9 +232,9 @@ export const CO2ImpactChart: React.FC<CO2ImpactChartProps> = ({
   realized,
 }) => {
   const data = [
-    { name: 'Émissions (réf.)', value: isFinite(current) ? Number(current) : 0, color: '#ef4444' },
-    { name: 'Réduction potentielle', value: isFinite(potential) ? Number(potential) : 0, color: '#f59e0b' },
-    { name: 'Réduction réalisée', value: isFinite(realized) ? Number(realized) : 0, color: '#10b981' },
+    { name: 'Emissions (baseline)', value: isFinite(current) ? Number(current) : 0, color: '#ef4444' },
+    { name: 'Potential Reduction', value: isFinite(potential) ? Number(potential) : 0, color: '#f59e0b' },
+    { name: 'Realized Reduction', value: isFinite(realized) ? Number(realized) : 0, color: '#10b981' },
   ];
 
   const potentialReduction = current > 0 ? ((potential / current) * 100).toFixed(1) : 0;
@@ -248,11 +248,11 @@ export const CO2ImpactChart: React.FC<CO2ImpactChartProps> = ({
             <Leaf className="h-5 w-5 text-green-600" />
           </div>
           <div className="flex-1">
-            <CardTitle className="text-lg">♻️ Indicateurs Environnementaux (CO₂)</CardTitle>
+            <CardTitle className="text-lg">♥️ Environmental Indicators (CO₂)</CardTitle>
             <CardDescription className="mt-2">
-              📊 <strong>Émissions CO₂:</strong> Baseline (réf.), Réduction potentielle, Réduction réalisée<br/>
-              🌍 <strong>Unités:</strong> Kilogrammes CO₂ (ou selon rapport chantier)<br/>
-              ✅ <strong>Objectif:</strong> Minimiser les émissions via recommandations implémentées
+              📊 <strong>CO₂ Emissions:</strong> Baseline (reference), Potential Reduction, Realized Reduction<br/>
+              🌍 <strong>Units:</strong> Kilograms CO₂ (or per site report)<br/>
+              ✅ <strong>Objective:</strong> Minimize emissions through implemented recommendations
             </CardDescription>
           </div>
         </div>
@@ -261,12 +261,12 @@ export const CO2ImpactChart: React.FC<CO2ImpactChartProps> = ({
         <div className="grid grid-cols-3 gap-2">
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-center">
             <p className="text-xs text-red-900 font-semibold mb-1">🔴 Baseline</p>
-            <p className="text-2xl font-bold text-red-700">{Number(current).toLocaleString('fr-FR')}</p>
-            <p className="text-xs text-red-600 mt-1">Émissions de référence</p>
+            <p className="text-2xl font-bold text-red-700">{Number(current).toLocaleString('en-US')}</p>
+            <p className="text-xs text-red-600 mt-1">Reference emissions</p>
           </div>
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-center">
-            <p className="text-xs text-amber-900 font-semibold mb-1">🟡 Potentielle</p>
-            <p className="text-2xl font-bold text-amber-700">{Number(potential).toLocaleString('fr-FR')}</p>
+            <p className="text-xs text-amber-900 font-semibold mb-1">🟡 Potential</p>
+            <p className="text-2xl font-bold text-amber-700">{Number(potential).toLocaleString('en-US')}</p>
             <p className="text-xs text-amber-600 mt-1">-{potentialReduction}% possible</p>
           </div>
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">

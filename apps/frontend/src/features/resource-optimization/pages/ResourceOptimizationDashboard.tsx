@@ -122,18 +122,18 @@ export const ResourceOptimizationDashboard: React.FC = () => {
     const realized = Number(dashboard?.financial?.realizedSavings) || 0;
     if (!realized || !Number.isFinite(realized)) {
       return [
-        { name: 'Budget & matériaux', value: 0 },
-        { name: 'Équipes & exécution', value: 0 },
-        { name: 'Planning & délais', value: 0 },
+        { name: 'Budget & Materials', value: 0 },
+        { name: 'Teams & Execution', value: 0 },
+        { name: 'Planning & Deadlines', value: 0 },
       ];
     }
     const mat = Math.round(realized * 0.42);
     const equ = Math.round(realized * 0.35);
     const plan = Math.max(0, realized - mat - equ);
     return [
-      { name: 'Budget & matériaux', value: mat },
-      { name: 'Équipes & exécution', value: equ },
-      { name: 'Planning & délais', value: plan },
+      { name: 'Budget & Materials', value: mat },
+      { name: 'Teams & Execution', value: equ },
+      { name: 'Planning & Deadlines', value: plan },
     ];
   }, [dashboard]);
 
@@ -504,10 +504,10 @@ export const ResourceOptimizationDashboard: React.FC = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Recommandations pour ce chantier</CardTitle>
+                  <CardTitle>Site Recommendations</CardTitle>
                   <CardDescription>
-                    {recommendations.length} proposition(s) — approuvez pour figer un relevé ; mettez en œuvre pour
-                    comparer les indicateurs dans Analytique.
+                    {recommendations.length} proposal(s) — approve to freeze a reading; implement to
+                    compare indicators in Analytics.
                   </CardDescription>
                 </div>
               </div>

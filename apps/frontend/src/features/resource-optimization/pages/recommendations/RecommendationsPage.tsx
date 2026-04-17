@@ -47,25 +47,25 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({ siteId
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="pt-4">
-              <p className="text-sm text-gray-600">Économies Potentielles</p>
+              <p className="text-sm text-gray-600">Potential Savings</p>
               <p className="text-2xl font-bold">{summary.totalPotentialSavings}€</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-sm text-gray-600">Approuvées</p>
+              <p className="text-sm text-gray-600">Approved</p>
               <p className="text-2xl font-bold">{summary.approvedSavings}€</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-sm text-gray-600">Réalisées</p>
+              <p className="text-sm text-gray-600">Realized</p>
               <p className="text-2xl font-bold">{summary.realizedSavings}€</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-sm text-gray-600">Réduction CO2</p>
+              <p className="text-sm text-gray-600">CO2 Reduction</p>
               <p className="text-2xl font-bold">{summary.totalCO2Reduction} kg</p>
             </CardContent>
           </Card>
@@ -74,18 +74,18 @@ export const RecommendationsPage: React.FC<RecommendationsPageProps> = ({ siteId
 
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all" onClick={() => setFilter(undefined)}>Tous</TabsTrigger>
-          <TabsTrigger value="energy" onClick={() => setFilter('energy')}>Énergie</TabsTrigger>
-          <TabsTrigger value="equipment" onClick={() => setFilter('equipment')}>Équipements</TabsTrigger>
-          <TabsTrigger value="workforce" onClick={() => setFilter('workforce')}>Travailleurs</TabsTrigger>
-          <TabsTrigger value="scheduling" onClick={() => setFilter('scheduling')}>Planification</TabsTrigger>
-          <TabsTrigger value="environmental" onClick={() => setFilter('environmental')}>Environnement</TabsTrigger>
+          <TabsTrigger value="all" onClick={() => setFilter(undefined)}>All</TabsTrigger>
+          <TabsTrigger value="energy" onClick={() => setFilter('energy')}>Energy</TabsTrigger>
+          <TabsTrigger value="equipment" onClick={() => setFilter('equipment')}>Equipment</TabsTrigger>
+          <TabsTrigger value="workforce" onClick={() => setFilter('workforce')}>Workforce</TabsTrigger>
+          <TabsTrigger value="scheduling" onClick={() => setFilter('scheduling')}>Planning</TabsTrigger>
+          <TabsTrigger value="environmental" onClick={() => setFilter('environmental')}>Environment</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
           <Card>
             <CardHeader>
-              <CardTitle>Toutes les Recommandations ({recommendations?.length || 0})</CardTitle>
+              <CardTitle>All Recommendations ({recommendations?.length || 0})</CardTitle>
             </CardHeader>
             <CardContent>
               <RecommendationsList 
