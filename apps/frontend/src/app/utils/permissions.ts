@@ -7,6 +7,7 @@ export type Permission =
   | 'manage_team'
   | 'manage_clients'
   | 'manage_materials'
+  | 'manage_suppliers'
   | 'manage_finance'
   | 'manage_qhse'
   | 'manage_incidents'
@@ -15,20 +16,21 @@ export type Permission =
   | 'view_reports';
 
 const rolePermissions: Record<RoleType, Permission[]> = {
-  super_admin: [
-    'view_dashboard',
-    'manage_sites',
-    'manage_projects',
-    'manage_team',
-    'manage_clients',
-    'manage_materials',
-    'manage_finance',
-    'manage_qhse',
-    'manage_incidents',
-    'manage_users',
-    'view_analytics',
-    'view_reports',
-  ],
+   super_admin: [
+     'view_dashboard',
+     'manage_sites',
+     'manage_projects',
+     'manage_team',
+     'manage_clients',
+     'manage_materials',
+     'manage_suppliers',
+     'manage_finance',
+     'manage_qhse',
+     'manage_incidents',
+     'manage_users',
+     'view_analytics',
+     'view_reports',
+   ],
   director: [
     'view_dashboard',
     'manage_sites',
@@ -49,34 +51,38 @@ const rolePermissions: Record<RoleType, Permission[]> = {
     'view_analytics',
     'view_reports',
   ],
-  site_manager: [
-    'view_dashboard',
-    'manage_sites',
-    'manage_materials',
-    'manage_team',
-    'manage_qhse',
-    'manage_incidents',
-  ],
-  works_manager: [
-    'view_dashboard',
-    'manage_sites',
-    'manage_projects',
-    'manage_team',
-    'manage_materials',
-    'manage_qhse',
-    'manage_incidents',
-    'view_analytics',
-  ],
-  accountant: [
-    'view_dashboard',
-    'manage_clients',
-    'manage_finance',
-    'view_analytics',
-  ],
-  procurement_manager: [
-    'view_dashboard',
-    'manage_materials',
-  ],
+   site_manager: [
+     'view_dashboard',
+     'manage_sites',
+     'manage_materials',
+     'manage_team',
+     'manage_qhse',
+     'manage_incidents',
+     'manage_suppliers',
+   ],
+   works_manager: [
+     'view_dashboard',
+     'manage_sites',
+     'manage_projects',
+     'manage_team',
+     'manage_materials',
+     'manage_qhse',
+     'manage_incidents',
+     'view_analytics',
+     'manage_suppliers',
+   ],
+   accountant: [
+     'view_dashboard',
+     'manage_clients',
+     'manage_finance',
+     'view_analytics',
+     'manage_suppliers',
+   ],
+   procurement_manager: [
+     'view_dashboard',
+     'manage_materials',
+     'manage_suppliers',
+   ],
   qhse_manager: [
     'view_dashboard',
     'manage_qhse',
@@ -99,13 +105,14 @@ export const hasPermission = (role: RoleType, permission: Permission): boolean =
   return rolePermissions[role]?.includes(permission) ?? false;
 };
 
-export const canEdit = (role: RoleType, resource: 'sites' | 'projects' | 'team' | 'clients' | 'materials' | 'finance' | 'qhse' | 'incidents' | 'users'): boolean => {
+export const canEdit = (role: RoleType, resource: 'sites' | 'projects' | 'team' | 'clients' | 'materials' | 'suppliers' | 'finance' | 'qhse' | 'incidents' | 'users'): boolean => {
   const permissionMap: Record<string, Permission> = {
     sites: 'manage_sites',
     projects: 'manage_projects',
     team: 'manage_team',
     clients: 'manage_clients',
     materials: 'manage_materials',
+    suppliers: 'manage_suppliers',
     finance: 'manage_finance',
     qhse: 'manage_qhse',
     incidents: 'manage_incidents',

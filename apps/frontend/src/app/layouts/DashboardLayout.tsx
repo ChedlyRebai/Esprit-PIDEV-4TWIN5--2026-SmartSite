@@ -29,14 +29,13 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Badge } from "../components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { getMynavigationAccess } from "../action/permission.action";
-import { Permission } from "../types";
 import { getUnreadNotificationCount } from "../action/notification.action";
 import ChatbotWidget from "../components/Chatbot";
 import { SidebarMenu } from "../components/SidebarMenu";
 import type { RoleType } from "../types";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "../action/auth.action";
+import { getNavigationForRole } from "../utils/roleConfig";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -57,44 +56,20 @@ export default function DashboardLayout() {
     logout();
     navigate("/login");
   };
-  // console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 
-  const {
-    data: navigationItems,
-    isError: navigItemsError,
-    isLoading,
-  } = useQuery({
-    queryKey: ["getMynavigationAccess"],
-    queryFn: () => getMynavigationAccess(),
-  });
+  // Contournement : si le role est null, utiliser un role par défaut
+  const roleName = (
+    typeof user.role === "object" && user.role?.name
+      ? user.role.name
+      : "user"
+  ) as RoleType;
 
-  console.log(navigationItems, "navigationItems in DashboardLayout");
+  // Navigation statique basée sur le rôle
+  const navigationItems = getNavigationForRole(roleName);
 
-  // Utiliser useEffect pour la redirection
-  useEffect(() => {
-    if (!user) {
-      console.log("Redirection vers login - user est null");
-      navigate("/login");
-    } else if (!user.role) {
-      console.log("Role est null, utilisation du role par défaut");
-      // Contournement : si le role est null, on considère que c'est un admin
-      //   TODO: Résoudre le problème de populate dans le backend
-    } else {
-      // Redirection automatique pour les Project Managers
-      //  const userRole = user.role?.name || user.role;
-      //  if (userRole === "project_manager") {
-      //    console.log("Redirection automatique vers dashboard Project Manager");
-      //    navigate("/project-manager-dashboard");
-      //  }
-    }
-  }, [user, navigate]);
-
-  if (!user) {
-    return null; // Afficher rien pendant la redirection
-  }
   const { data: currentUser } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => getCurrentUser(user), // Simuler une requête pour obtenir les données de l'utilisateur
+    queryFn: () => getCurrentUser(user),
   });
 
   const isInactiveAccount =
@@ -104,51 +79,19 @@ export default function DashboardLayout() {
     return redirect("/banned");
   }
 
-  // if(currentUser?.data.firstLogin == true){
-  //   redirect("/reset-password-first-login");
-  // }
-
-  // if(currentUser?.data.isActif == false){
-  //   redirect("/account-banned");
-  // }
-
-  console.log(currentUser, "currentUser in DashboardLayout");
-  //const unreadNotifications = mockNotifications.filter(👎 => !n.read).length;
   const { data: unredDataLength, isError: UnreadError } = useQuery({
     queryKey: ["unreadNotificationsLength"],
     queryFn: () => getUnreadNotificationCount(),
   });
 
-  // Contournement : si le role est null, utiliser un role par défaut
-  const roleName = (
-    typeof user.role === "object" && user.role?.name
-      ? user.role.name
-      : "super_admin"
-  ) as RoleType;
-
-  // Navigation statique en fonction du rôle
-  // const navigationItems = getNavigationForRole(userRole.name);
-  // const navigationItems = getNavigationForRole(roleName);
-  const unreadNotifications = 0; // Placeholder - will be implemented with real notifications
+  const unreadNotifications = 0;
 
   const getInitials = (nom: string, lastName: string) => {
     return `${nom.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  // if(navigItemsError || UnreadError){
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center">
-  //       <p className="text-red-500 text-lg">Error loading data. Please try again later.</p>
-  //     </div>
-  //   );
-  // }
-
-  if (navigItemsError || UnreadError) {
-    console.error(
-      navigItemsError,
-      UnreadError,
-      "errrrrrrrrrrrrrrrrrrrrrrrrrrrr",
-    );
+  if (UnreadError) {
+    console.error("Error fetching notifications", UnreadError);
   }
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors">
@@ -294,14 +237,52 @@ export default function DashboardLayout() {
           )}
         >
           <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-            {!isLoading &&
-              navigationItems &&
-              navigationItems.map((item: Permission) => {
-                const isActive = location.pathname.startsWith(item.href);
+            {navigationItems &&
+              navigationItems.map((item) => {
+                const isActive = location.pathname.startsWith(
+                  item.href || item.children?.[0]?.href || "",
+                );
+
+                // Si l'item a des enfants, afficher le parent comme section
+                if (item.children && item.children.length > 0) {
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {item.label}
+                      </div>
+                      {item.children.map((child) => {
+                        const isChildActive = location.pathname.startsWith(
+                          child.href,
+                        );
+                        return (
+                          <Link
+                            key={child.href}
+                            to={child.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`
+                                flex items-center gap-3 px-4 py-2 rounded-lg transition-all ml-4
+                                ${
+                                  isChildActive
+                                    ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
+                                    : "text-muted-foreground hover:bg-muted"
+                                }
+                              `}
+                          >
+                            <span className="text-sm font-medium">
+                              {child.label}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                // Item sans enfants
                 return (
                   <Link
                     key={item.href}
-                    to={item.href}
+                    to={item.href!}
                     onClick={() => setSidebarOpen(false)}
                     className={`
                         flex items-center gap-3 px-4 py-3 rounded-lg transition-all
@@ -312,7 +293,7 @@ export default function DashboardLayout() {
                         }
                       `}
                   >
-                    <span className="font-medium">{item.name}</span>
+                    <span className="font-medium">{item.label}</span>
                   </Link>
                 );
               })}

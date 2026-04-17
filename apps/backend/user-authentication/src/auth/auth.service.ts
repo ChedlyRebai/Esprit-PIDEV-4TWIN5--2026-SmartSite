@@ -53,15 +53,30 @@ export class AuthService {
       roles: user.role ? [user.role] : [],
     };
 
-    const userData = user.toObject ? user.toObject() : user;
+    // Récupérer l'utilisateur avec rôle peuplé (le user passé peut ne pas avoir le rôle peuplé selon le contexte)
+    const userFromDb = await this.usersService.findById(user._id);
+    
+    const userData = userFromDb ? userFromDb.toObject() : user.toObject();
     const sessionId = randomUUID();
+    
+    // Récupérer le nom du rôle (récupéré depuis le document peuplé)
+    const roleDoc = userData.role && typeof userData.role === 'object' 
+      ? userData.role 
+      : null;
+    const roleName = roleDoc ? (roleDoc.name || 'user') : 'user';
+    const roleId = roleDoc ? roleDoc._id : userData.role;
+    
     return {
       access_token: this.jwtService.sign(payload),
       id: userData._id,
       cin: userData.cin,
       firstName: userData.firstName,
       lastName: userData.lastName,
-      role: userData.role || null,
+      role: {
+        _id: roleId,
+        name: roleName,
+        permissions: roleDoc?.permissions || [],
+      },
       firstLogin: userData.firstLogin,
       session_id: sessionId,
     };

@@ -42,6 +42,7 @@ import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
 import { PermissionLoader } from "./components/shared/PermissionLoader";
 import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
+import Suppliers from "./pages/suppliers/Suppliers";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = true;
@@ -195,7 +196,11 @@ export const router = createBrowserRouter([
         path: "resource-optimization/:siteId",
         element: <ResourceOptimizationDashboard />,
       },
-    ],
+      {
+        path: "suppliers",
+        element: <Suppliers />,
+      },
+     ],
   },
   {
     path: "/user-guide/:role",

@@ -22,6 +22,7 @@ import {
   Clock,
   Check,
   TrendingUp,
+  Truck,
 } from "lucide-react";
 
 export interface NavItem {
@@ -105,33 +106,30 @@ export const navigationItems: NavItem[] = [
     ],
   },
 
-  {
-    label: "Resources & operations",
-    icon: Package,
-    roles: ["super_admin", "director", "site_manager", "works_manager", "procurement_manager"],
-    children: [
-      {
-        label: "Sites",
-        href: "/sites",
-        roles: ["super_admin", "director", "project_manager", "site_manager", "works_manager", "qhse_manager"],
-      },
-      {
-        label: "Team",
-        href: "/team",
-        roles: ["super_admin", "director", "project_manager", "site_manager", "works_manager"],
-      },
-      {
-        label: "Material Catalog",
-        href: "/catalog",
-        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
-      },
-      {
-        label: "Materials",
-        href: "/materials",
-        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
-      },
-    ],
-  },
+   {
+     label: "Resources & operations",
+     icon: Package,
+     roles: ["super_admin", "director", "site_manager", "works_manager", "procurement_manager"],
+     children: [
+       {
+         label: "Sites",
+         href: "/sites",
+         roles: ["super_admin", "director", "project_manager", "site_manager", "works_manager", "qhse_manager"],
+       },
+       {
+         label: "Team",
+         href: "/team",
+         roles: ["super_admin", "director", "project_manager", "site_manager", "works_manager"],
+       },
+      
+       
+       {
+         label: "Suppliers",
+         href: "/suppliers",
+         roles: ["super_admin", "procurement_manager", "site_manager", "works_manager", "accountant"],
+       },
+     ],
+   },
 
   {
     label: "Finance & clients",
