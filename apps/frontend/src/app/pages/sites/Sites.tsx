@@ -23,9 +23,9 @@ import { useAuthStore } from '../../store/authStore';
 import { mockSites, mockTeamMembers } from '../../utils/mockData';
 import { toast } from 'sonner';
 import type { Site } from '../../types';
-import { fetchSites, createSite, updateSite, deleteSite } from '../../action/site.action';
-import { getAllUsers } from '../../action/user.action';
-import { getAllTeams } from '../../action/team.action';
+import { fetchSites, createSite, updateSite, deleteSite, assignTeamToSite, removeTeamFromSite, getTeamsAssignedToSite, getAllSitesWithTeams } from '../../action/site.action';
+import { getAllUsers, assignUserToSite } from '../../action/user.action';
+import { getAllTeams, getTeamById, assignSiteToTeam } from '../../action/team.action';
 import { exportSitesToPDF, exportSingleSiteToPDF } from '../../utils/pdfExport';
 import { exportSitesToCSV, exportSitesToExcel, exportSitesToJSON } from '../../utils/exportUtils';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -120,27 +120,32 @@ export default function Sites() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showProblemsOnly, setShowProblemsOnly] = useState(false);
   
-   // Sites data
-   const [sites, setSites] = useState<Site[]>([]);
-   const [loading, setLoading] = useState(true);
-   const [error, setError] = useState<string | null>(null);
-   const [useMockData, setUseMockData] = useState(false);
-   
-   // Real-time refresh
-   const [autoRefresh, setAutoRefresh] = useState(false);
-   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-   
-   // Form state
-   const [newSite, setNewSite] = useState({ name: '', address: '', area: '', budget: '' });
-   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
-   const [nearbyFournisseurs, setNearbyFournisseurs] = useState<Array<{_id: string; nom: string; adresse: string; telephone: string; categories: string[]}>>([]);
-   
-   // Dialog state
-   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
-   const [manageDialogOpen, setManageDialogOpen] = useState(false);
-   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-   const [addDialogOpen, setAddDialogOpen] = useState(false);
-   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  // Sites data
+  const [sites, setSites] = useState<Site[]>([]);
+  const [sitesWithTeams, setSitesWithTeams] = useState<Site[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [useMockData, setUseMockData] = useState(false);
+  
+  // Real-time refresh
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Form state
+  const [newSite, setNewSite] = useState({ name: '', address: '', area: '', budget: '' });
+  const [selectedStatusEdit, setSelectedStatusEdit] = useState('all');
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const [nearbyFournisseurs, setNearbyFournisseurs] = useState<Array<{_id: string; nom: string; adresse: string; telephone: string; categories: string[]}>>([]);
+  
+  // Dialog state
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  const [manageDialogOpen, setManageDialogOpen] = useState(false);
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [issuesDialogOpen, setIssuesDialogOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   
   // Manage data
   const [manageData, setManageData] = useState({ 
@@ -155,32 +160,28 @@ export default function Sites() {
   const [mapPosition, setMapPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [editMapPosition, setEditMapPosition] = useState<{ lat: number; lng: number } | null>(null);
 
-   // Validation errors
-   const [errors, setErrors] = useState<{ name?: string; address?: string; area?: string; budget?: string }>({});
-   
-   // Comments state
+  // Validation errors
+  const [errors, setErrors] = useState<{ name?: string; address?: string; area?: string; budget?: string }>({});
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
+  const [availableTeams, setAvailableTeams] = useState<Array<{_id: string; name: string}>>([]);
+  
+  // Comments state
   const [newComment, setNewComment] = useState('');
-   const [siteComments, setSiteComments] = useState<Record<string, Array<{id: string; text: string; author: string; createdAt: string}>>>(() => {
-     // Load comments from localStorage on initial render
-     const saved = localStorage.getItem('siteComments');
-     return saved ? JSON.parse(saved) : {};
-   });
-
-   // Comments dialog state
-   const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
-
-   // Issues state
+  const [siteComments, setSiteComments] = useState<Record<string, Array<{id: string; text: string; author: string; createdAt: string}>>>(() => {
+    // Load comments from localStorage on initial render
+    const saved = localStorage.getItem('siteComments');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  // Issues state
   const [newIssue, setNewIssue] = useState({ type: 'other', severity: 'medium', description: '' });
-   const [siteIssues, setSiteIssues] = useState<Record<string, Array<{id: string; type: string; severity: string; description: string; createdAt: string; resolved: boolean}>>>(() => {
-     // Load issues from localStorage on initial render
-     const saved = localStorage.getItem('siteIssues');
-     return saved ? JSON.parse(saved) : {};
-   });
-
-   // Issues dialog state
-   const [issuesDialogOpen, setIssuesDialogOpen] = useState(false);
-
-   // Export history state
+  const [siteIssues, setSiteIssues] = useState<Record<string, Array<{id: string; type: string; severity: string; description: string; createdAt: string; resolved: boolean}>>>(() => {
+    // Load issues from localStorage on initial render
+    const saved = localStorage.getItem('siteIssues');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  // Export history state
   const [exportHistoryOpen, setExportHistoryOpen] = useState(false);
   const [exportHistory, setExportHistory] = useState<Array<{id: string; format: string; filename: string; siteCount: number; downloadedAt: string; downloadedBy: string}>>(() => {
     // Load export history from localStorage on initial render
@@ -188,7 +189,12 @@ export default function Sites() {
     return saved ? JSON.parse(saved) : [];
   });
   
-   // Auto-refresh for real-time updates
+  // Team management state
+  const [siteTeams, setSiteTeams] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [loadingTeams, setLoadingTeams] = useState(false);
+
+  // Auto-refresh for real-time updates
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
@@ -198,32 +204,77 @@ export default function Sites() {
     }
   }, [autoRefresh]);
 
-   // Load sites from API
-   useEffect(() => {
-     loadSites();
-   }, [selectedStatus, selectedPriority]);
+  // Load sites from API
+  useEffect(() => {
+    loadSites();
+  }, [selectedStatus, selectedPriority]);
 
-const loadSites = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // Load available teams when add dialog opens
+  useEffect(() => {
+    if (addDialogOpen) {
+      loadAvailableTeams();
+    }
+  }, [addDialogOpen]);
 
-        const sitesData = await fetchSites();
-
-        console.log('Sites loaded from API:', sitesData);
-        console.log('Sites data length:', sitesData?.length);
-        setSites(Array.isArray(sitesData) ? sitesData : []);
-        setUseMockData(false);
-      } catch (err) {
-        console.error('Error loading sites, using mock data:', err);
-        setError('Backend not available, using mock data');
-        setSites(Array.isArray(mockSites) ? mockSites : []);
-        setUseMockData(true);
-        toast.warning('Offline mode - demo data');
-      } finally {
-        setLoading(false);
+  const loadAvailableTeams = async () => {
+    try {
+      const response = await getAllTeams();
+      // Check if response is successful and data is an array
+      if (!response || response.status !== 200 || !Array.isArray(response.data)) {
+        console.error('Invalid response:', response);
+        // Fallback to mock data
+        setAvailableTeams(mockTeamMembers.map(user => ({
+          _id: user._id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email
+        })));
+        return;
       }
-    };
+      // Load all teams from the database
+      const teams = response.data
+        .map((team: any) => ({ 
+          _id: team._id, 
+          name: team.name
+        }));
+      setAvailableTeams(teams);
+    } catch (err) {
+      console.error('Error loading teams, using mock data:', err);
+      // Fallback to mock data
+      setAvailableTeams(mockTeamMembers.map(user => ({
+        _id: user._id,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email
+      })));
+    }
+  };
+
+  const loadSites = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Load both sites and sites with teams in parallel
+      const [response, sitesWithTeamsData] = await Promise.all([
+        fetchSites({ 
+          limit: 100,
+          status: selectedStatus === 'all' ? undefined : selectedStatus
+        }),
+        getAllSitesWithTeams()
+      ]);
+      
+      console.log('Sites loaded from API:', response.data);
+      console.log('Sites with teams:', sitesWithTeamsData);
+      setSites(response.data);
+      setSitesWithTeams(sitesWithTeamsData as Site[]);
+      setUseMockData(false);
+    } catch (err) {
+      console.error('Error loading sites, using mock data:', err);
+      setError('Backend not available, using mock data');
+      setSites(mockSites);
+      setUseMockData(true);
+      toast.warning('Offline mode - demo data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const searchAddressOnMap = async (address: string) => {
     if (!address.trim() || address.length < 5) {
@@ -263,29 +314,26 @@ const loadSites = async () => {
     }
   };
 
-   // Search for nearby fournisseurs based on coordinates
-   const searchNearbyFournisseurs = async (position: { lat: number; lng: number }) => {
-     try {
-       // Get all active fournisseurs from API (temporairement désactivé - fournisseurs gérés dans supplier-management)
-       // const response = await fetch('/gestion-fournisseurs/fournisseurs?actif=true');
-       // let fournisseurs = [];
-       
-       // if (response.ok) {
-       //   const data = await response.json();
-       //   if (Array.isArray(data)) {
-       //     fournisseurs = data;
-       //   } else if (data?.data) {
-       //     fournisseurs = data.data;
-       //   }
-       // }
-       
-       // Pour l'instant, pas de recherche de fournisseurs proximité
-       const fournisseurs = [];
-       
-       // Filter fournisseurs that have coordinates and calculate distance
-       const fournisseursWithDistance = (fournisseurs || [])
-         .filter((f: any) => f.coordinates?.lat && f.coordinates?.lng)
-         .map((f: any) => {
+  // Search for nearby fournisseurs based on coordinates
+  const searchNearbyFournisseurs = async (position: { lat: number; lng: number }) => {
+    try {
+      // Get all active fournisseurs from API
+      const response = await fetch('/gestion-fournisseurs/fournisseurs?actif=true');
+      let fournisseurs = [];
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          fournisseurs = data;
+        } else if (data?.data) {
+          fournisseurs = data.data;
+        }
+      }
+      
+      // Filter fournisseurs that have coordinates and calculate distance
+      const fournisseursWithDistance = fournisseurs
+        .filter((f: any) => f.coordinates?.lat && f.coordinates?.lng)
+        .map((f: any) => {
           const fLat = f.coordinates.lat;
           const fLng = f.coordinates.lng;
           // Simple distance calculation (approximate)
@@ -319,16 +367,23 @@ const loadSites = async () => {
     setNewSite({ ...newSite, address: value });
   };
 
-   const filteredAndSortedSites = (sites || [])
-     .filter(site => {
-       const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         site.address.toLowerCase().includes(searchTerm.toLowerCase());
-
-       // Check priority filter (handle undefined priority)
-       const matchesPriority = selectedPriority === 'all' || site.priority === selectedPriority;
-
-       return matchesSearch && matchesPriority;
-     })
+  const filteredAndSortedSites = sites
+    .filter(site => {
+      const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        site.address.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Check priority filter
+      const matchesPriority = selectedPriority === 'all' || site.priority === selectedPriority;
+      
+      // Check for problems (issues or delays)
+      const hasIssues = siteIssues[site.id]?.some(issue => !issue.resolved) || false;
+      const isOverdue = site.status !== 'completed' && new Date(site.workEndDate || site.workStartDate) < new Date();
+      const hasProblems = hasIssues || isOverdue;
+      
+      if (showProblemsOnly && !hasProblems) return false;
+      if (!matchesPriority) return false;
+      return matchesSearch;
+    })
     .sort((a, b) => {
       let comparison = 0;
       
@@ -495,7 +550,76 @@ const loadSites = async () => {
     return Object.keys(newErrors).length === 0;
   };
 
-   const handleAddSite = async () => {
+  // Handle open team dialog
+  const handleOpenTeamDialog = async (site: Site) => {
+    setSelectedSite(site);
+    setLoadingTeams(true);
+    try {
+      const teams = await getTeamsAssignedToSite(site.id);
+      setSiteTeams(teams || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      setSiteTeams([]);
+    }
+    setLoadingTeams(false);
+    setTeamDialogOpen(true);
+  };
+
+  // Handle assign team to site
+  const handleAssignTeam = async () => {
+    if (!selectedSite || !selectedUserId) {
+      toast.error('Please select a team to assign');
+      return;
+    }
+    
+    // Get the team details to check if it has members
+    const team = availableTeams.find((t: any) => t._id === selectedUserId);
+    if (!team) {
+      toast.error('Team not found');
+      return;
+    }
+    
+    // Check if team has members - this is a requirement
+    // We need to fetch the team details to check members count
+    try {
+      const teamDetails = await getTeamById(selectedUserId);
+      if (teamDetails && teamDetails.data && teamDetails.data.members) {
+        const memberCount = teamDetails.data.members.length;
+        if (memberCount === 0) {
+          toast.error('This team has no members. Please add members to the team before assigning it to a site.');
+          return;
+        }
+      }
+      
+      // First, assign team to site in gestion-sites (site knows about the team)
+      await assignTeamToSite(selectedSite.id, selectedUserId);
+      
+      // Also update the team to record which site it's assigned to (team knows about the site)
+      await assignSiteToTeam(selectedUserId, selectedSite.id);
+      
+      toast.success('Team assigned successfully');
+      const teams = await getTeamsAssignedToSite(selectedSite.id);
+      setSiteTeams(teams || []);
+      setSelectedUserId('');
+    } catch (error: any) {
+      toast.error(error?.message || 'Error assigning team');
+    }
+  };
+
+  // Handle remove team from site
+  const handleRemoveTeam = async (userId: string) => {
+    if (!selectedSite) return;
+    try {
+      await removeTeamFromSite(selectedSite.id, userId);
+      toast.success('Team removed successfully');
+      const teams = await getTeamsAssignedToSite(selectedSite.id);
+      setSiteTeams(teams || []);
+    } catch (error: any) {
+      toast.error(error?.message || 'Error removing team');
+    }
+  };
+
+  const handleAddSite = async () => {
     if (!validateForm()) {
       toast.error('Please correct the form errors');
       return;
@@ -504,7 +628,7 @@ const loadSites = async () => {
     try {
       if (useMockData) {
         const site: Site = {
-          id: String((sites || []).length + 1),
+          id: String(sites.length + 1),
           name: newSite.name,
           address: newSite.address,
           status: 'planning',
@@ -512,31 +636,43 @@ const loadSites = async () => {
           budget: parseInt(newSite.budget),
           progress: 0,
           workStartDate: new Date().toISOString(),
-          projectId: String((sites || []).length + 1),
+          projectId: String(sites.length + 1),
           coordinates: mapPosition || { lat: 0, lng: 0 },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        setSites([...(sites || []), site]);
+        setSites([...sites, site]);
         resetAddForm();
         toast.success('Site added successfully!');
       } else {
-         const site: Partial<Site> = {
-           name: newSite.name,
-           address: newSite.address,
-           area: parseInt(newSite.area),
-           budget: parseInt(newSite.budget),
-           status: 'planning',
-           progress: 0,
-           workStartDate: new Date().toISOString(),
-           projectId: String((sites || []).length + 1),
-           coordinates: mapPosition || { lat: 0, lng: 0 },
-         };
-         
-          const createdSite = await createSite(site);
-          setSites([...(sites || []), createdSite]);
+        const site: Partial<Site> = {
+          name: newSite.name,
+          address: newSite.address,
+          area: parseInt(newSite.area),
+          budget: parseInt(newSite.budget),
+          status: 'planning',
+          progress: 0,
+          workStartDate: new Date().toISOString(),
+          projectId: String(sites.length + 1),
+          coordinates: mapPosition || { lat: 0, lng: 0 },
+        };
+        
+        const createdSite = await createSite(site);
+        setSites([...sites, createdSite]);
+        
+        // Assign team to site if selected
+        if (selectedTeam && createdSite.id) {
+          try {
+            await assignTeamToSite(createdSite.id, selectedTeam);
+            toast.success('Site created and team assigned successfully!');
+          } catch (teamError) {
+            console.error('Error assigning team to site:', teamError);
+            toast.warning('Site created but team assignment failed');
+          }
+        } else {
           toast.success('Site added successfully!');
-          resetAddForm();
+        }
+        resetAddForm();
       }
     } catch (error) {
       console.error('Error creating site:', error);
@@ -544,13 +680,14 @@ const loadSites = async () => {
     }
   };
 
-   const resetAddForm = () => {
-     setNewSite({ name: '', address: '', area: '', budget: '' });
-     setMapPosition(null);
-     setErrors({});
-     setNearbyFournisseurs([]);
-     setAddDialogOpen(false);
-   };
+  const resetAddForm = () => {
+    setNewSite({ name: '', address: '', area: '', budget: '' });
+    setMapPosition(null);
+    setErrors({});
+    setSelectedTeam('');
+    setNearbyFournisseurs([]);
+    setAddDialogOpen(false);
+  };
 
   const handleViewDetails = (site: Site) => {
     setSelectedSite(site);
@@ -581,15 +718,15 @@ const loadSites = async () => {
   const confirmDelete = async () => {
     if (!selectedSite) return;
     
-     try {
-       if (useMockData) {
-         setSites((sites || []).filter(s => s.id !== selectedSite.id));
-         toast.success('Site deleted successfully!');
-       } else {
-         await deleteSite(selectedSite.id);
-         setSites((sites || []).filter(s => s.id !== selectedSite.id));
-         toast.success('Site deleted successfully!');
-       }
+    try {
+      if (useMockData) {
+        setSites(sites.filter(s => s.id !== selectedSite.id));
+        toast.success('Site deleted successfully!');
+      } else {
+        await deleteSite(selectedSite.id);
+        setSites(sites.filter(s => s.id !== selectedSite.id));
+        toast.success('Site deleted successfully!');
+      }
     } catch (error) {
       console.error('Error deleting site:', error);
       toast.error('Error deleting site');
@@ -605,23 +742,23 @@ const loadSites = async () => {
       return;
     }
     
-     try {
-       if (useMockData) {
-         setSites((sites || []).map(s => 
-           s.id === selectedSite.id 
-             ? { 
-                 ...s, 
-                 status: manageData.status as 'planning' | 'in_progress' | 'on_hold' | 'completed', 
-                 progress: manageData.progress,
-                 name: manageData.name,
-                 address: manageData.address,
-                 area: manageData.area,
-                 budget: manageData.budget,
-                 coordinates: editMapPosition || s.coordinates
-               }
-             : s
-         ));
-         setManageDialogOpen(false);
+    try {
+      if (useMockData) {
+        setSites(sites.map(s => 
+          s.id === selectedSite.id 
+            ? { 
+                ...s, 
+                status: manageData.status as 'planning' | 'in_progress' | 'on_hold' | 'completed', 
+                progress: manageData.progress,
+                name: manageData.name,
+                address: manageData.address,
+                area: manageData.area,
+                budget: manageData.budget,
+                coordinates: editMapPosition || s.coordinates
+              }
+            : s
+        ));
+        setManageDialogOpen(false);
         toast.success('Site updated successfully!');
       } else {
         const updatedSite = await updateSite(selectedSite!.id, {
@@ -634,13 +771,13 @@ const loadSites = async () => {
           coordinates: editMapPosition || undefined,
         });
         
-         setSites((sites || []).map(s => 
-           s.id === selectedSite.id 
-             ? updatedSite
-             : s
-         ));
-         setManageDialogOpen(false);
-         toast.success('Site updated successfully!');
+        setSites(sites.map(s => 
+          s.id === selectedSite.id 
+            ? updatedSite
+            : s
+        ));
+        setManageDialogOpen(false);
+        toast.success('Site updated successfully!');
       }
     } catch (error) {
       console.error('Error updating site:', error);
@@ -655,31 +792,31 @@ const loadSites = async () => {
     return <Icon className={`h-4 w-4 ${config.color.split(' ')[0]}`} />;
   };
 
-   // Handle PDF export - always fetch fresh data from MongoDB
-   const handleExportPDF = async () => {
-     try {
-       // Fetch fresh data directly from the API
-       const sitesData = await fetchSites();
-       
-       if (sitesData && sitesData.length > 0) {
-         exportSitesToPDF(sitesData as Site[], `smartsite-sites-${new Date().toISOString().split('T')[0]}.pdf`);
-         toast.success('PDF exported successfully with ' + sitesData.length + ' sites!');
-       } else {
-         toast.error('No sites found in database');
-       }
-     } catch (error) {
-       console.error('Error exporting PDF:', error);
-       toast.error('Failed to export PDF - please ensure backend is running');
-     }
-   };
+  // Handle PDF export - always fetch fresh data from MongoDB
+  const handleExportPDF = async () => {
+    try {
+      // Fetch fresh data directly from the API
+      const sitesData = await getAllSitesWithTeams();
+      
+      if (sitesData && sitesData.length > 0) {
+        exportSitesToPDF(sitesData as Site[], `smartsite-sites-${new Date().toISOString().split('T')[0]}.pdf`);
+        toast.success('PDF exported successfully with ' + sitesData.length + ' sites!');
+      } else {
+        toast.error('No sites found in database');
+      }
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF - please ensure backend is running');
+    }
+  };
 
-   // Handle export in different formats
-   const handleExport = async (format: 'pdf' | 'csv' | 'excel' | 'json') => {
-     try {
-       const sitesData = await fetchSites();
-       
-       console.log('Sites data for export:', sitesData);
-       console.log('First site teams:', sitesData[0]?.teams);
+  // Handle export in different formats
+  const handleExport = async (format: 'pdf' | 'csv' | 'excel' | 'json') => {
+    try {
+      const sitesData = await getAllSitesWithTeams();
+      
+      console.log('Sites data for export:', sitesData);
+      console.log('First site teams:', sitesData[0]?.teams);
       
       if (!sitesData || sitesData.length === 0) {
         toast.error('No sites found in database');
@@ -739,12 +876,12 @@ const loadSites = async () => {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sites</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Sites</h1>
           <p className="text-sm sm:text-base text-gray-500 mt-1">
-             {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
-             <span className="ml-1">
-               {(sites || []).filter(s => s.status === 'in_progress').length} in progress
-             </span>
+            {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
+            <span className="ml-1">
+              {sites.filter(s => s.status === 'in_progress').length} in progress
+            </span>
             {siteIssues && Object.keys(siteIssues).length > 0 && (
               <span className="ml-1 text-amber-600">
                 {' • '}{Object.values(siteIssues).flat().filter(i => !i.resolved).length} issues
@@ -926,10 +1063,37 @@ const loadSites = async () => {
                     </div>
                   </div>
 
-                   <div className="space-y-2">
-                     <Label className="text-sm font-medium">
-                       Location on Map <span className="text-red-500">*</span>
-                     </Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="team" className="text-sm font-medium">
+                      Team <span className="text-gray-500">(Optional)</span>
+                    </Label>
+                    <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                      <SelectTrigger id="team" className="w-full">
+                        <SelectValue placeholder="Select a team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTeams.length > 0 ? (
+                          availableTeams.map((team) => (
+                            <SelectItem key={team._id} value={team._id}>
+                              {team.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-teams" disabled>
+                            No teams available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      Assign a team to this site (Workers / Team Leader)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Location on Map <span className="text-red-500">*</span>
+                    </Label>
                     <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors">
                       <MapContainer
                         center={mapPosition ? [mapPosition.lat, mapPosition.lng] : TUNISIA_CENTER}
@@ -1246,7 +1410,7 @@ const loadSites = async () => {
               <div className="bg-gray-50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                 <MapPin className="h-8 w-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No sites found</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No sites found</h3>
               <p className="text-gray-500 mb-6">
                 {searchTerm || selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly
                   ? 'No results match your criteria'
@@ -1323,7 +1487,7 @@ const loadSites = async () => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                          <CardTitle className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">
                             {site.name}
                           </CardTitle>
                           {/* Priority Badge */}
@@ -1364,13 +1528,13 @@ const loadSites = async () => {
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Area</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {site.area.toLocaleString()} <span className="text-xs font-normal text-gray-500">m²</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Budget</p>
-                      <p className="font-semibold text-gray-900">{formatBudget(site.budget)}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{formatBudget(site.budget)}</p>
                     </div>
                   </div>
 
@@ -1378,7 +1542,7 @@ const loadSites = async () => {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Progress</span>
-                      <span className="font-semibold text-gray-900">{site.progress}%</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{site.progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                       <div 
@@ -1444,10 +1608,19 @@ const loadSites = async () => {
                       )}
                     </Button>
 
-                     <Button 
-                       size="sm" 
-                       variant="destructive"
-                       className="hover:bg-red-600 transition-colors"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                      onClick={() => handleOpenTeamDialog(site)}
+                    >
+                      <Users className="h-4 w-4 mr-1" />
+                    </Button>
+                    
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      className="hover:bg-red-600 transition-colors"
                       onClick={() => handleDeleteSite(site)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1645,24 +1818,24 @@ const loadSites = async () => {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Site Name</p>
-                    <p className="font-semibold text-gray-900 text-lg">{selectedSite.name}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg">{selectedSite.name}</p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Address</p>
-                    <p className="text-gray-900">{selectedSite.address}</p>
+                    <p className="text-gray-900 dark:text-white">{selectedSite.address}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Area</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {selectedSite.area.toLocaleString()} m²
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Budget</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {formatBudget(selectedSite.budget)}
                       </p>
                     </div>
@@ -1687,7 +1860,7 @@ const loadSites = async () => {
                           style={{ width: `${selectedSite.progress}%` }}
                         />
                       </div>
-                      <span className="font-semibold text-gray-900 min-w-[3rem]">
+                      <span className="font-semibold text-gray-900 dark:text-white min-w-[3rem]">
                         {selectedSite.progress}%
                       </span>
                     </div>
@@ -1695,7 +1868,7 @@ const loadSites = async () => {
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Start Date</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       {formatDate(selectedSite.workStartDate)}
                     </p>
                   </div>
@@ -1756,7 +1929,7 @@ const loadSites = async () => {
           {selectedSite && (
             <div className="space-y-4 py-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="font-medium text-gray-900 mb-2">Site to delete:</p>
+                <p className="font-medium text-gray-900 dark:text-white mb-2">Site to delete:</p>
                 <p className="text-gray-700"><span className="font-medium">Name:</span> {selectedSite.name}</p>
                 <p className="text-gray-700"><span className="font-medium">Address:</span> {selectedSite.address}</p>
                 <p className="text-gray-700"><span className="font-medium">Budget:</span> {formatBudget(selectedSite.budget)}</p>
@@ -1785,6 +1958,54 @@ const loadSites = async () => {
       </Dialog>
 
       {/* Team Dialog */}
+      <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Team Management</DialogTitle>
+            <DialogDescription>
+              Site: {selectedSite?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-lg">Assigned Teams</h3>
+              {loadingTeams ? (
+                <p className="text-gray-500">Chargement...</p>
+              ) : siteTeams.length === 0 ? (
+                <p className="text-gray-500">No team assigned</p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {siteTeams.map((team: any) => (
+                    <div key={team._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        {/* Handle both old format (UserSimple) and new format (Team) */}
+                        {team.name ? (
+                          <>
+                            <p className="font-medium">{team.name}</p>
+                            <p className="text-sm text-gray-500">{team.description || 'Équipe'}</p>
+                            {team.members && team.members.length > 0 && (
+                              <p className="text-xs text-gray-400">{team.members.length} membre(s)</p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-medium">{team.firstName} {team.lastName}</p>
+                            <p className="text-sm text-gray-500">{team.email}</p>
+                          </>
+                        )}
+                      </div>
+                      <Button size="sm" variant="destructive" onClick={() => handleRemoveTeam(team._id)}>
+                        Retirer
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Comments Dialog */}
       <Dialog open={commentsDialogOpen} onOpenChange={setCommentsDialogOpen}>
         <DialogContent className="max-w-2xl">

@@ -1,61 +1,129 @@
-import axios from 'axios';
 import type { Site } from '../types';
-import { authApi } from '../store/authStore';
-import { getAllTeams } from './team.action';
+import axios from 'axios';
+import { GESTION_SITE_API_URL } from '@/lib/gestion-site-api-url';
 
-// Ensure token is attached to every request (fallback if authApi defaults not set)
-authApi.interceptors.request.use((config) => {
-  try {
-    const persisted = localStorage.getItem('smartsite-auth');
-    if (persisted) {
-      const parsed = JSON.parse(persisted);
-      const token = parsed?.state?.user?.access_token;
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+const api = axios.create({
+  baseURL: GESTION_SITE_API_URL,
+});
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  // Try to get token from auth store persist
+  const authData = localStorage.getItem('smartsite-auth');
+  if (authData) {
+    try {
+      const parsed = JSON.parse(authData);
+      if (parsed.state?.user?.access_token) {
+        config.headers.Authorization = `Bearer ${parsed.state.user.access_token}`;
       }
+    } catch (e) {
+      // Ignore parse errors
     }
-  } catch (e) {
-    // ignore
   }
   return config;
 });
 
+
+export const getSiteWIthTEAmId = async (teamId: string) => {
+  if (!teamId) {
+    return [];
+  }
+
+  const { data } = await api.get(`/gestion-sites/teams/${teamId}/sites`);
+  return data;
+}
+
+export const fetchMyAffectedSites= () =>{
+  
+}
 // Map backend site data to frontend site format
 const mapBackendSiteToFrontend = (backendSite: any): Site => {
   return {
-    id: backendSite._id?.toString() || backendSite.id?.toString() || '',
-    name: backendSite.name || backendSite.nom || '',
-    address: backendSite.address || backendSite.adresse || '',
+    id: backendSite.id || backendSite._id?.toString(),
+    name: backendSite.nom || backendSite.name || '',
+    address: backendSite.adresse || backendSite.address || '',
     coordinates: backendSite.coordinates || { lat: 0, lng: 0 },
     area: backendSite.area || 0,
     status: backendSite.status || 'planning',
-    workStartDate: backendSite.workStartDate || backendSite.work_start_date || new Date().toISOString(),
-    workEndDate: backendSite.workEndDate || backendSite.work_end_date,
-    projectId: backendSite.projectId || backendSite.project_id?.toString() || '',
+    workStartDate: backendSite.workStartDate || new Date().toISOString(),
+    workEndDate: backendSite.workEndDate,
+    projectId: backendSite.projectId || '',
     budget: backendSite.budget || 0,
     progress: backendSite.progress || 0,
-    createdAt: backendSite.createdAt || backendSite.created_at || new Date().toISOString(),
-    updatedAt: backendSite.updatedAt || backendSite.updated_at || new Date().toISOString(),
-    teams: backendSite.teams || backendSite.teamIds || [],
-    is_active: backendSite.is_active ?? true,
+    createdAt: backendSite.createdAt || new Date().toISOString(),
+    updatedAt: backendSite.updatedAt || new Date().toISOString(),
+    teams: backendSite.teamIds || [],
   };
 };
 
-export const fetchSites = async (): Promise<Site[]> => {
+// Create site data format for backend
+const mapFrontendSiteToBackend = (site: Partial<Site>): any => {
+  return {
+    nom: site.name,
+    adresse: site.address,
+    localisation: site.address, // Using address as localisation
+    budget: site.budget,
+    area: site.area,
+    status: site.status,
+    progress: site.progress,
+    workStartDate: site.workStartDate,
+    workEndDate: site.workEndDate,
+    projectId: site.projectId,
+    coordinates: site.coordinates,
+    isActif: true, // Required field for backend
+  };
+};
+
+export interface SiteFilters {
+  page?: number;
+  limit?: number;
+  nom?: string;
+  localisation?: string;
+  status?: string;
+  isActif?: boolean;
+  budgetMin?: number;
+  budgetMax?: number;
+}
+
+export interface PaginatedSitesResponse {
+  data: Site[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+// Get all sites with optional filters
+export const fetchSites = async (filters?: SiteFilters): Promise<PaginatedSitesResponse> => {
   try {
-    const response = await authApi.get('/sites');
-    const data = response.data;
-    const sitesArray = Array.isArray(data) ? data : data.data || [];
-    return sitesArray.map(mapBackendSiteToFrontend);
+    const params: Record<string, string> = {};
+
+    if (filters?.page) params.page = filters.page.toString();
+    if (filters?.limit) params.limit = filters.limit.toString();
+    if (filters?.nom) params.nom = filters.nom;
+    if (filters?.localisation) params.localisation = filters.localisation;
+    if (filters?.status && filters.status !== 'all') params.status = filters.status;
+    if (filters?.isActif !== undefined) params.isActif = filters.isActif.toString();
+    if (filters?.budgetMin) params.budgetMin = filters.budgetMin.toString();
+    if (filters?.budgetMax) params.budgetMax = filters.budgetMax.toString();
+
+    const response = await api.get('/gestion-sites', { params });
+
+    // Map backend data to frontend format
+    return {
+      ...response.data,
+      data: response.data.data.map(mapBackendSiteToFrontend),
+    };
   } catch (error) {
     console.error('Error fetching sites:', error);
     throw error;
   }
 };
 
+// Get a single site by ID
 export const fetchSiteById = async (id: string): Promise<Site> => {
   try {
-    const response = await authApi.get(`/sites/${id}`);
+    const response = await api.get(`/gestion-sites/${id}`);
     return mapBackendSiteToFrontend(response.data);
   } catch (error) {
     console.error('Error fetching site:', error);
@@ -63,21 +131,10 @@ export const fetchSiteById = async (id: string): Promise<Site> => {
   }
 };
 
+// Create a new site
 export const createSite = async (site: Partial<Site>): Promise<Site> => {
   try {
-    const backendData = {
-      name: site.name,
-      address: site.address,
-      coordinates: site.coordinates,
-      area: site.area,
-      status: site.status || 'planning',
-      workStartDate: site.workStartDate,
-      workEndDate: site.workEndDate,
-      projectId: site.projectId,
-      budget: site.budget,
-      progress: site.progress || 0,
-    };
-    const response = await authApi.post('/sites', backendData);
+    const response = await api.post('/gestion-sites', mapFrontendSiteToBackend(site));
     return mapBackendSiteToFrontend(response.data);
   } catch (error) {
     console.error('Error creating site:', error);
@@ -85,9 +142,10 @@ export const createSite = async (site: Partial<Site>): Promise<Site> => {
   }
 };
 
-export const updateSite = async (id: string, updateData: Partial<Site>): Promise<Site> => {
+// Update an existing site
+export const updateSite = async (id: string, site: Partial<Site>): Promise<Site> => {
   try {
-    const response = await authApi.patch(`/sites/${id}`, updateData);
+    const response = await api.put(`/gestion-sites/${id}`, mapFrontendSiteToBackend(site));
     return mapBackendSiteToFrontend(response.data);
   } catch (error) {
     console.error('Error updating site:', error);
@@ -95,38 +153,92 @@ export const updateSite = async (id: string, updateData: Partial<Site>): Promise
   }
 };
 
+// Delete a site (hard delete - permanent removal from database)
 export const deleteSite = async (id: string): Promise<void> => {
   try {
-    await authApi.delete(`/sites/${id}`);
+    await api.delete(`/gestion-sites/${id}`);
   } catch (error) {
     console.error('Error deleting site:', error);
     throw error;
   }
 };
 
-// Get mapping of teamId -> site assignment (for Teams page compatibility)
-// In current architecture, each team has a `site` field (ObjectId reference to Site)
-// Returns mapping: teamId -> { siteId, siteName }
+// Get all team IDs that are assigned to any site (for Teams page to check site assignment)
 export const getAssignedTeamIds = async (): Promise<Record<string, { siteId: string; siteName: string }>> => {
   try {
-    const teams = await getAllTeams();
-    const result: Record<string, { siteId: string; siteName: string }> = {};
-
-    // Handle both array and { data: [] } responses
-    const teamsArray = Array.isArray(teams) ? teams : (teams as any)?.data || [];
-
-    for (const team of teamsArray) {
-      if (team.site) {
-        const siteId = typeof team.site === 'object' ? (team.site._id || team.site.id) : team.site;
-        result[team._id] = {
-          siteId: siteId?.toString() || '',
-          siteName: team.name || '',
-        };
-      }
-    }
-    return result;
+    const response = await api.get('/gestion-sites/teams/assigned-ids');
+    return response.data;
   } catch (error) {
-    console.error('Error getting assigned team IDs:', error);
+    console.error('Error fetching assigned team IDs:', error);
+    // Return empty object on error - Teams page will handle gracefully
     return {};
+  }
+};
+
+// Get site statistics
+export const fetchSiteStatistics = async () => {
+  try {
+    const response = await api.get('/gestion-sites/statistics');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    throw error;
+  }
+};
+
+// Get active sites only
+export const fetchActiveSites = async (): Promise<Site[]> => {
+  try {
+    const response = await api.get('/gestion-sites/active');
+    return response.data.map(mapBackendSiteToFrontend);
+  } catch (error) {
+    console.error('Error fetching active sites:', error);
+    throw error;
+  }
+};
+
+// ============ TEAM ASSIGNMENT API ============
+
+// Assign a team to a site
+export const assignTeamToSite = async (siteId: string, userId: string): Promise<Site> => {
+  try {
+    const response = await api.post(`/gestion-sites/${siteId}/teams`, { userId });
+    return mapBackendSiteToFrontend(response.data);
+  } catch (error: any) {
+    console.error('Error assigning team to site:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Remove a team from a site
+export const removeTeamFromSite = async (siteId: string, userId: string): Promise<Site> => {
+  try {
+    const response = await api.delete(`/gestion-sites/${siteId}/teams/${userId}`);
+    return mapBackendSiteToFrontend(response.data);
+  } catch (error: any) {
+    console.error('Error removing team from site:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Get teams assigned to a site
+export const getTeamsAssignedToSite = async (siteId: string): Promise<any[]> => {
+  try {
+    const response = await api.get(`/gestion-sites/${siteId}/teams`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error getting teams:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Get all sites with their teams
+export const getAllSitesWithTeams = async (): Promise<Site[]> => {
+  try {
+    const response = await api.get('/gestion-sites/teams/all');
+    return response.data.map(mapBackendSiteToFrontend);
+  } catch (error: any) {
+    console.error('Error getting sites with teams:', error);
+    throw error.response?.data || error;
   }
 };
