@@ -18,9 +18,9 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-3xl font-bold">🔍 Analyse des Ressources</h1>
+        <h1 className="text-3xl font-bold">🔍 Resource Analysis</h1>
         <p className="text-gray-600 mt-1">
-          Analysez l'utilisation des ressources et détectez les inefficacités
+          Analyze resource usage and detect inefficiencies
         </p>
       </div>
 
@@ -28,23 +28,23 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="gap-2">
             <BarChart3 className="h-4 w-4" />
-            Vue Globale
+            Overview
           </TabsTrigger>
           <TabsTrigger value="idle" className="gap-2">
             <Briefcase className="h-4 w-4" />
-            Équipements
+            Equipment
           </TabsTrigger>
           <TabsTrigger value="energy" className="gap-2">
             <Zap className="h-4 w-4" />
-            Énergie
+            Energy
           </TabsTrigger>
           <TabsTrigger value="workers" className="gap-2">
             <Users className="h-4 w-4" />
-            Travailleurs
+            Workforce
           </TabsTrigger>
           <TabsTrigger value="costs" className="gap-2">
             <DollarSign className="h-4 w-4" />
-            Coûts
+            Costs
           </TabsTrigger>
         </TabsList>
 
@@ -55,19 +55,19 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
             </CardHeader>
             <CardContent>
               {fullLoading ? (
-                <div className="text-center py-8">Chargement...</div>
+                <div className="text-center py-8">Loading...</div>
               ) : fullAnalysis ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <h4 className="font-semibold mb-2">Équipements Inactifs</h4>
+                    <h4 className="font-semibold mb-2">Idle Equipment</h4>
                     <p className="text-3xl font-bold">{fullAnalysis.idleEquipment.length}</p>
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2">Pics de Consommation</h4>
+                    <h4 className="font-semibold mb-2">Peak Consumption Periods</h4>
                     <p className="text-3xl font-bold">{fullAnalysis.peakConsumptionPeriods.length}</p>
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2">Productivité Ouvriers</h4>
+                    <h4 className="font-semibold mb-2">Worker Productivity</h4>
                     <p className="text-3xl font-bold">{fullAnalysis.workerProductivity.length}</p>
                   </div>
                   <div>
@@ -77,7 +77,7 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  Aucune donnée disponible. Ajoutez d'abord des données.
+                  No data available. Add data first.
                 </div>
               )}
             </CardContent>
@@ -87,11 +87,11 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
         <TabsContent value="idle">
           <Card>
             <CardHeader>
-              <CardTitle>Équipements Inactifs (&lt; 20% utilisation)</CardTitle>
+              <CardTitle>Idle Equipment (&lt; 20% usage)</CardTitle>
             </CardHeader>
             <CardContent>
               {idleLoading ? (
-                <div className="text-center py-8">Chargement...</div>
+                <div className="text-center py-8">Loading...</div>
               ) : idleEquipment && idleEquipment.length > 0 ? (
                 <div className="space-y-2">
                   {idleEquipment.map((eq) => (
@@ -156,9 +156,9 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  Aucune donnée disponible
+                  No data available
                 </div>
-              )}
+              )}  
             </CardContent>
           </Card>
         </TabsContent>
@@ -166,18 +166,18 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
         <TabsContent value="workers">
           <Card>
             <CardHeader>
-              <CardTitle>Productivité des Travailleurs</CardTitle>
+              <CardTitle>Worker Productivity</CardTitle>
             </CardHeader>
             <CardContent>
               {workerLoading ? (
-                <div className="text-center py-8">Chargement...</div>
+                <div className="text-center py-8">Loading...</div>
               ) : workerProductivity && workerProductivity.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-3">Nom</th>
-                        <th className="text-left p-3">Rôle</th>
+                        <th className="text-left p-3">Name</th>
+                        <th className="text-left p-3">Role</th>
                         <th className="text-left p-3">Heures</th>
                         <th className="text-left p-3">Coût</th>
                         <th className="text-left p-3">Score</th>
@@ -208,7 +208,7 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  Aucun travailleur trouvé
+                  No workers found
                 </div>
               )}
             </CardContent>
@@ -218,29 +218,29 @@ export const ResourceAnalysisPage: React.FC<ResourceAnalysisPageProps> = ({ site
         <TabsContent value="costs">
           <Card>
             <CardHeader>
-              <CardTitle>Coûts des Ressources</CardTitle>
+              <CardTitle>Resource Costs</CardTitle>
             </CardHeader>
             <CardContent>
               {costsLoading ? (
-                <div className="text-center py-8">Chargement...</div>
+                <div className="text-center py-8">Loading...</div>
               ) : resourceCosts ? (
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="text-center p-4 border rounded">
-                    <p className="text-sm text-gray-600">Coût Équipements</p>
+                    <p className="text-sm text-gray-600">Equipment Cost</p>
                     <p className="text-2xl font-bold">{resourceCosts.equipment}€</p>
                   </div>
                   <div className="text-center p-4 border rounded">
-                    <p className="text-sm text-gray-600">Coût Travailleurs</p>
+                    <p className="text-sm text-gray-600">Worker Cost</p>
                     <p className="text-2xl font-bold">{resourceCosts.workers}€</p>
                   </div>
                   <div className="text-center p-4 border rounded bg-blue-50">
-                    <p className="text-sm text-gray-600">Coût Total</p>
+                    <p className="text-sm text-gray-600">Total Cost</p>
                     <p className="text-2xl font-bold">{resourceCosts.total}€</p>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  Aucune donnée disponible
+                  No data available
                 </div>
               )}
             </CardContent>
