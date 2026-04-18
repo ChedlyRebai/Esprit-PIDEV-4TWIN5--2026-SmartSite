@@ -22,19 +22,15 @@ import axios from "axios";
 
 const formSchema = z
   .object({
-    currentPassword: z
-      .string()
-      .min(1, "Mot de passe actuel requis"),
+    currentPassword: z.string().min(1, "Mot de passe actuel requis"),
     newPassword: z
       .string()
       .min(8, "Le mot de passe doit contenir au moins 8 caractères")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-        "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial"
+        "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial",
       ),
-    confirmPassword: z
-      .string()
-      .min(1, "Confirmation requise"),
+    confirmPassword: z.string().min(1, "Confirmation requise"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
@@ -113,7 +109,8 @@ export default function ChangePasswordFirstLogin() {
             Première Connexion
           </CardTitle>
           <p className="text-sm text-gray-500">
-            Veuillez changer votre mot de passe temporaire pour sécuriser votre compte
+            Veuillez changer votre mot de passe temporaire pour sécuriser votre
+            compte
           </p>
         </CardHeader>
 
@@ -183,7 +180,6 @@ export default function ChangePasswordFirstLogin() {
                   {form.formState.errors.newPassword.message}
                 </p>
               )}
-
             </div>
 
             {/* Confirm Password */}
@@ -232,7 +228,9 @@ export default function ChangePasswordFirstLogin() {
           {/* Info Box */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-gray-600">
-              <strong>Note de sécurité:</strong> Pour protéger votre compte, vous devez changer votre mot de passe temporaire lors de votre première connexion. Utilisez un mot de passe fort et unique.
+              <strong>Note de sécurité:</strong> Pour protéger votre compte,
+              vous devez changer votre mot de passe temporaire lors de votre
+              première connexion. Utilisez un mot de passe fort et unique.
             </p>
           </div>
         </CardContent>

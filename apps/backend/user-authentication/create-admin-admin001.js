@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
 
 async function createSpecificAdminUser() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/smartsite');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/smartsite';
+    console.log(`📡 Connecting to MongoDB: ${mongoUri.replace(/([^:]*):([^@]*)@/, '$1:***@')}`);
+    await mongoose.connect(mongoUri);
     
     const usersCollection = mongoose.connection.db.collection('users');
     const rolesCollection = mongoose.connection.db.collection('roles');

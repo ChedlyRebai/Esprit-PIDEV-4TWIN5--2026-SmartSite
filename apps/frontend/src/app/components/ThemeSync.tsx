@@ -1,13 +1,15 @@
 import { useEffect } from "react";
-import { useThemeStore } from "../store/themeStore";
+import { useTheme } from "../context/ThemeContext";
 
-/** Applique la classe `dark` sur <html> selon le thème persisté. */
+/** Synchronise les thèmes et applique les variables CSS sur <html> */
 export default function ThemeSync() {
-  const theme = useThemeStore((s) => s.theme);
+  const { currentTheme } = useTheme();
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    // Applique la classe CSS pour les thèmes dark
+    const isDark = currentTheme.includes('dark') || currentTheme === 'charcoal' || currentTheme === 'obsidian';
+    document.documentElement.classList.toggle("dark", isDark);
+  }, [currentTheme]);
 
   return null;
 }

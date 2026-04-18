@@ -35,6 +35,7 @@ import {
   markTeamNotificationsAsRead,
 } from "@/app/action/notification.action";
 import { useAuthStore } from "@/app/store/authStore";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 export default function Notifications() {
   const authUser = useAuthStore((state) => state.user);
@@ -53,6 +54,7 @@ export default function Notifications() {
     }
   };
 
+  const { t } = useTranslation();
   const { data: currentUser } = useQuery({
     queryKey: ["currentUser", authUser?.access_token],
     queryFn: () => getCurrentUser(authUser),
@@ -176,7 +178,7 @@ export default function Notifications() {
   console.log("unread notif", unreadNotifs);
   const handleDeleteNotification = async (id: string) => {
     const res = await deleteNotificationById(id);
-    if (res.status === 200) {
+    if (res?.status === 200) {
       myNotificationsQuery.refetch();
       unreadNotificationsQuery.refetch();
       teamNotificationsQuery.refetch();
@@ -191,7 +193,10 @@ export default function Notifications() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Notifications</h1>
           <p className="text-gray-500 mt-1">
-            Stay updated with alerts and announcements
+            {t(
+              "notifications.subtitle",
+              "Stay updated with alerts and announcements",
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -200,7 +205,7 @@ export default function Notifications() {
             onClick={handleMarkAllAsRead}
             disabled={!hasTeamFilter || (teamUnreadCount ?? 0) === 0}
           >
-            Mark All as Read
+            {t("notifications.markAllRead", "Mark All as Read")}
           </Button>
           {/* <Button variant="outline" onClick={handleClearAll} disabled={notifications.length === 0}>
             <X className="h-4 w-4 mr-2" />
@@ -214,7 +219,7 @@ export default function Notifications() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Notification Center
+            {t("notifications.centerTitle", "Notification Center")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -231,7 +236,7 @@ export default function Notifications() {
               {unreadNotifs.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>No unread notifications</p>
+                  <p>{t("notifications.emptyUnread", "No unread notifications")}</p>
                 </div>
               ) : (
                 unreadNotifs.map((notification) => (

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../componen
 import { useAuthStore } from "../../store/authStore";
 import toast from "react-hot-toast";
 import { AUTH_API_URL } from "@/lib/auth-api-url";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 type AuditLog = {
   _id: string;
@@ -62,6 +63,7 @@ function formatSessionDuration(seconds?: number): string {
 
 export default function SystemLogs() {
   const user = useAuthStore((s) => s.user);
+  const { t, language } = useTranslation();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
@@ -69,6 +71,9 @@ export default function SystemLogs() {
   const [archivedLogs, setArchivedLogs] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(10);
+
+  const locale =
+    language === "fr" ? "fr-FR" : language === "ar" ? "ar-TN" : "en-GB";
 
   const [filters, setFilters] = useState({
     userId: "all",
@@ -100,7 +105,9 @@ export default function SystemLogs() {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error("Token manquant, veuillez vous reconnecter.");
+        toast.error(
+          t("systemLogs.toast.missingToken", "Token manquant, veuillez vous reconnecter."),
+        );
         return;
       }
       const params: Record<string, string> = {};
@@ -124,7 +131,10 @@ export default function SystemLogs() {
       });
       setRetentionDays(retention?.data?.retentionDays || 365);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Erreur lors du chargement des logs");
+      toast.error(
+        err?.response?.data?.message ||
+          t("systemLogs.toast.loadError", "Erreur lors du chargement des logs"),
+      );
     } finally {
       setLoading(false);
     }
@@ -133,7 +143,9 @@ export default function SystemLogs() {
   useEffect(() => {
     const roleName = (user as any)?.role?.name || (user as any)?.role;
     if (roleName !== "super_admin") {
-      toast.error("Accès réservé au Super Admin.");
+      toast.error(
+        t("systemLogs.toast.superAdminOnly", "Accès réservé au Super Admin."),
+      );
       return;
     }
     loadLogs();
@@ -143,25 +155,37 @@ export default function SystemLogs() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Journaux système et traçabilité d'audit</h1>
-        <p className="text-gray-500 mt-1">Surveillance des actions et détection d'anomalies</p>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t("systemLogs.title", "Journaux système et traçabilité d'audit")}
+        </h1>
+        <p className="text-gray-500 mt-1">
+          {t(
+            "systemLogs.subtitle",
+            "Surveillance des actions et détection d'anomalies",
+          )}
+        </p>
         <p className="text-xs text-gray-500 mt-1">
-          Rétention automatique : {retentionDays} jours. Suppression manuelle désactivée.
+          {t(
+            "systemLogs.retention",
+            "Rétention automatique : {days} jours. Suppression manuelle désactivée.",
+          ).replace("{days}", String(retentionDays))}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtres</CardTitle>
+          <CardTitle>{t("systemLogs.filters", "Filtres")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <div>
-              <Label>User</Label>
+              <Label>{t("systemLogs.user", "User")}</Label>
               <Select value={filters.userId} onValueChange={(v) => setFilters((f) => ({ ...f, userId: v }))}>
-                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("systemLogs.all", "All")} />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="all">{t("systemLogs.all", "All")}</SelectItem>
                   {users.map((u) => (
                     <SelectItem key={u._id} value={u.userId || ""}>
                       {u.userName || u.userCin || u.userId}
@@ -171,29 +195,33 @@ export default function SystemLogs() {
               </Select>
             </div>
             <div>
-              <Label>CIN</Label>
+              <Label>{t("systemLogs.cin", "CIN")}</Label>
               <Input
-                placeholder="Search by CIN..."
+                placeholder={t("systemLogs.cinPlaceholder", "Search by CIN...")}
                 value={filters.userCin}
                 onChange={(e) => setFilters((f) => ({ ...f, userCin: e.target.value }))}
               />
             </div>
             <div>
-              <Label>Action</Label>
+              <Label>{t("systemLogs.action", "Action")}</Label>
               <Select value={filters.actionType} onValueChange={(v) => setFilters((f) => ({ ...f, actionType: v }))}>
-                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("systemLogs.all", "All")} />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="all">{t("systemLogs.all", "All")}</SelectItem>
                   {actionTypes.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Severity</Label>
+              <Label>{t("systemLogs.severity", "Severity")}</Label>
               <Select value={filters.severity} onValueChange={(v) => setFilters((f) => ({ ...f, severity: v }))}>
-                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("systemLogs.all", "All")} />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="all">{t("systemLogs.all", "All")}</SelectItem>
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="important">Important</SelectItem>
                   <SelectItem value="critical">Critical</SelectItem>
@@ -201,26 +229,32 @@ export default function SystemLogs() {
               </Select>
             </div>
             <div>
-              <Label>Start</Label>
+              <Label>{t("systemLogs.start", "Start")}</Label>
               <Input type="date" value={filters.startDate} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
             </div>
             <div>
-              <Label>End</Label>
+              <Label>{t("systemLogs.end", "End")}</Label>
               <Input type="date" value={filters.endDate} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
             </div>
             <div>
-              <Label>Search</Label>
-              <Input placeholder="keyword..." value={filters.keyword} onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))} />
+              <Label>{t("systemLogs.search", "Search")}</Label>
+              <Input
+                placeholder={t("systemLogs.keywordPlaceholder", "keyword...")}
+                value={filters.keyword}
+                onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))}
+              />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <Button onClick={loadLogs}>Filter</Button>
+            <Button onClick={loadLogs}>{t("systemLogs.filter", "Filter")}</Button>
             <Button
               variant="outline"
               onClick={() => {
                 const logsToArchive = logs.filter(log => !archivedLogs.has(log._id));
                 if (logsToArchive.length === 0) {
-                  toast.error("Aucun nouveau log à archiver");
+                  toast.error(
+                    t("systemLogs.toast.nothingToArchive", "Aucun nouveau log à archiver"),
+                  );
                   return;
                 }
 
@@ -239,17 +273,24 @@ export default function SystemLogs() {
                 logsToArchive.forEach(log => newArchivedLogs.add(log._id));
                 setArchivedLogs(newArchivedLogs);
 
-                toast.success(`${logsToArchive.length} logs archivés avec succès`);
+                toast.success(
+                  t(
+                    "systemLogs.toast.archivedSuccess",
+                    "{count} logs archivés avec succès",
+                  ).replace("{count}", String(logsToArchive.length)),
+                );
               }}
             >
-              Archive JSON
+              {t("systemLogs.archiveJson", "Archive JSON")}
             </Button>
             <Button
               variant="outline"
               onClick={() => {
                 const logsToArchive = logs.filter(log => !archivedLogs.has(log._id));
                 if (logsToArchive.length === 0) {
-                  toast.error("Aucun nouveau log à archiver");
+                  toast.error(
+                    t("systemLogs.toast.nothingToArchive", "Aucun nouveau log à archiver"),
+                  );
                   return;
                 }
 
@@ -285,10 +326,15 @@ export default function SystemLogs() {
                 logsToArchive.forEach(log => newArchivedLogs.add(log._id));
                 setArchivedLogs(newArchivedLogs);
 
-                toast.success(`${logsToArchive.length} logs archivés avec succès`);
+                toast.success(
+                  t(
+                    "systemLogs.toast.archivedSuccess",
+                    "{count} logs archivés avec succès",
+                  ).replace("{count}", String(logsToArchive.length)),
+                );
               }}
             >
-              Archive CSV
+              {t("systemLogs.archiveCsv", "Archive CSV")}
             </Button>
             <Button
               variant="outline"
@@ -298,7 +344,7 @@ export default function SystemLogs() {
                 loadLogs();
               }}
             >
-              Reset
+              {t("systemLogs.reset", "Reset")}
             </Button>
           </div>
         </CardContent>
@@ -306,13 +352,19 @@ export default function SystemLogs() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Logs ({logs.length})</CardTitle>
+          <CardTitle>
+            {t("systemLogs.logs", "Logs")} ({logs.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-gray-500">Loading...</p>
+            <p className="text-sm text-gray-500">
+              {t("systemLogs.loading", "Loading...")}
+            </p>
           ) : logs.length === 0 ? (
-            <p className="text-sm text-gray-500">No logs found.</p>
+            <p className="text-sm text-gray-500">
+              {t("systemLogs.empty", "No logs found.")}
+            </p>
           ) : (
             <div className="space-y-2">
               {currentLogs.map((log) => (
@@ -320,20 +372,29 @@ export default function SystemLogs() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{log.actionLabel}</span>
-                      {archivedLogs.has(log._id) && <Badge variant="secondary">Archived</Badge>}
+                      {archivedLogs.has(log._id) && (
+                        <Badge variant="secondary">
+                          {t("systemLogs.archived", "Archived")}
+                        </Badge>
+                      )}
                       <Badge variant={severityVariant(log.severity)}>{log.severity || "normal"}</Badge>
                       <Badge variant={log.status === "failed" ? "destructive" : "secondary"}>{log.status || "success"}</Badge>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {new Date(log.createdAt).toLocaleString("en-US")} • {log.userName || log.userCin || "System"} • {log.actionType}
+                      {new Date(log.createdAt).toLocaleString(locale)} •{" "}
+                      {log.userName || log.userCin || t("systemLogs.system", "System")} •{" "}
+                      {log.actionType}
                     </p>
                     {log.sessionDurationSec != null && (
                       <p className="text-xs text-gray-500">
-                        Session duration: {formatSessionDuration(log.sessionDurationSec)}
+                        {t("systemLogs.sessionDuration", "Session duration")}:{" "}
+                        {formatSessionDuration(log.sessionDurationSec)}
                       </p>
                     )}
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setSelectedLog(log)}>View Details</Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedLog(log)}>
+                    {t("systemLogs.viewDetails", "View Details")}
+                  </Button>
                 </div>
               ))}
             </div>
@@ -345,7 +406,13 @@ export default function SystemLogs() {
       {logs.length > logsPerPage && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Affichage de {indexOfFirstLog + 1} à {Math.min(indexOfLastLog, logs.length)} sur {logs.length} logs
+            {t(
+              "systemLogs.paginationSummary",
+              "Affichage de {from} à {to} sur {total} logs",
+            )
+              .replace("{from}", String(indexOfFirstLog + 1))
+              .replace("{to}", String(Math.min(indexOfLastLog, logs.length)))
+              .replace("{total}", String(logs.length))}
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -354,7 +421,7 @@ export default function SystemLogs() {
               onClick={() => paginate(currentPage - 1)}
               disabled={currentPage === 1}
             >
-              Précédent
+              {t("systemLogs.previous", "Précédent")}
             </Button>
             <div className="flex space-x-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -375,7 +442,7 @@ export default function SystemLogs() {
               onClick={() => paginate(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
-              Suivant
+              {t("systemLogs.next", "Suivant")}
             </Button>
           </div>
         </div>
@@ -384,20 +451,55 @@ export default function SystemLogs() {
       <Dialog open={!!selectedLog} onOpenChange={(o) => !o && setSelectedLog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Détails du log</DialogTitle>
+            <DialogTitle>{t("systemLogs.detailsTitle", "Détails du log")}</DialogTitle>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-2 text-sm">
-              <p><strong>Action:</strong> {selectedLog.actionLabel}</p>
-              <p><strong>Type:</strong> {selectedLog.actionType}</p>
-              <p><strong>User:</strong> {selectedLog.userName || selectedLog.userCin || "System"}</p>
-              <p><strong>Role:</strong> {selectedLog.userRole || "N/A"}</p>
-              <p><strong>Resource:</strong> {selectedLog.resourceType || "N/A"} {selectedLog.resourceId ? `(${selectedLog.resourceId})` : ""}</p>
-              <p><strong>IP:</strong> {selectedLog.ipAddress || "N/A"}</p>
-              <p><strong>Date:</strong> {new Date(selectedLog.createdAt).toLocaleString("en-US")}</p>
-              <p><strong>Session ID:</strong> {selectedLog.sessionId || "N/A"}</p>
-              <p><strong>Session duration:</strong> {formatSessionDuration(selectedLog.sessionDurationSec)}</p>
-              <p><strong>Details:</strong> {selectedLog.details || "N/A"}</p>
+              <p>
+                <strong>{t("systemLogs.details.action", "Action")}:</strong>{" "}
+                {selectedLog.actionLabel}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.type", "Type")}:</strong>{" "}
+                {selectedLog.actionType}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.user", "User")}:</strong>{" "}
+                {selectedLog.userName ||
+                  selectedLog.userCin ||
+                  t("systemLogs.system", "System")}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.role", "Role")}:</strong>{" "}
+                {selectedLog.userRole || "N/A"}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.resource", "Resource")}:</strong>{" "}
+                {selectedLog.resourceType || "N/A"}{" "}
+                {selectedLog.resourceId ? `(${selectedLog.resourceId})` : ""}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.ip", "IP")}:</strong>{" "}
+                {selectedLog.ipAddress || "N/A"}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.date", "Date")}:</strong>{" "}
+                {new Date(selectedLog.createdAt).toLocaleString(locale)}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.sessionId", "Session ID")}:</strong>{" "}
+                {selectedLog.sessionId || "N/A"}
+              </p>
+              <p>
+                <strong>
+                  {t("systemLogs.details.sessionDuration", "Session duration")}:
+                </strong>{" "}
+                {formatSessionDuration(selectedLog.sessionDurationSec)}
+              </p>
+              <p>
+                <strong>{t("systemLogs.details.details", "Details")}:</strong>{" "}
+                {selectedLog.details || "N/A"}
+              </p>
             </div>
           )}
         </DialogContent>

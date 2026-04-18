@@ -14,14 +14,11 @@ export const getPermissions = async () => {
       });
     }
 
-    const res = await axios.get(
-      `http://localhost:3000/users/mypermissions`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const res = await axios.get(`http://localhost:3000/users/mypermissions`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
+    });
     if (res.status === 200) {
       return Promise.resolve({
         status: res.status,

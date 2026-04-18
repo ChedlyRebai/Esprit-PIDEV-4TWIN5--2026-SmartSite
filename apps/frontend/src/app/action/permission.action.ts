@@ -1,6 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "../store/authStore";
-import { Permission } from "../utils/permissions";
+
+
+import { Permission } from "../types";
 
 const API_URL = "http://localhost:3000/permissions";
 

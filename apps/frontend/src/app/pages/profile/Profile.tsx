@@ -36,6 +36,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { getCurrentUser } from "@/app/action/auth.action";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 const profileSchema = z.object({
   firstName: z
@@ -73,6 +74,7 @@ const API_ME = "http://localhost:3000/users/me";
 
 export default function Profile() {
   const authUser = useAuthStore((state) => state.user);
+  const { t, language } = useTranslation();
 
   const [user, setUser] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -117,9 +119,7 @@ export default function Profile() {
           firstName: String(userData.firstName ?? ""),
           lastName: String(userData.lastName ?? ""),
           email: String(userData.email ?? ""),
-          telephone: String(
-            userData.telephone ?? userData.phoneNumber ?? "",
-          ),
+          telephone: String(userData.telephone ?? userData.phoneNumber ?? ""),
           address: String(userData.address ?? ""),
           departement: String(userData.departement ?? ""),
           companyName: String(userData.companyName ?? ""),
@@ -127,7 +127,9 @@ export default function Profile() {
       }
     } catch (error: unknown) {
       console.error("Error loading user:", error);
-      toast.error("Erreur lors du chargement du profil");
+      toast.error(
+        t("profile.toastLoadError", "Erreur lors du chargement du profil"),
+      );
     } finally {
       setIsLoadingData(false);
     }
@@ -148,7 +150,9 @@ export default function Profile() {
           Authorization: `Bearer ${authUser?.access_token}`,
         },
       });
-      toast.success("Profil mis à jour avec succès!");
+      toast.success(
+        t("profile.toastUpdateSuccess", "Profil mis à jour avec succès!"),
+      );
       setUser((u: any) => ({ ...u, ...data }));
       setIsEditing(false);
       await loadUserData();
@@ -156,7 +160,7 @@ export default function Profile() {
       console.error("Error updating profile:", error);
       toast.error(
         error?.response?.data?.message ||
-          "Erreur lors de la mise à jour du profil",
+          t("profile.toastUpdateError", "Erreur lors de la mise à jour du profil"),
       );
     } finally {
       setIsLoading(false);
@@ -179,14 +183,19 @@ export default function Profile() {
         },
       );
 
-      toast.success("Mot de passe changé avec succès!");
+      toast.success(
+        t("profile.toastPasswordSuccess", "Mot de passe changé avec succès!"),
+      );
       passwordForm.reset();
       setIsEditingPassword(false);
     } catch (error: any) {
       console.error("Error changing password:", error);
       toast.error(
         error?.response?.data?.message ||
-          "Erreur lors du changement de mot de passe",
+          t(
+            "profile.toastPasswordError",
+            "Erreur lors du changement de mot de passe",
+          ),
       );
     } finally {
       setIsLoading(false);
@@ -205,7 +214,7 @@ export default function Profile() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-500">
-          Impossible de charger les données du profil
+          {t("profile.loadError", "Impossible de charger les données du profil")}
         </p>
       </div>
     );
@@ -214,15 +223,19 @@ export default function Profile() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Mon Profil</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t("profile.title", "Mon Profil")}
+        </h1>
         <p className="text-gray-500 mt-1">
-          Gérez vos informations personnelles
+          {t("profile.subtitle", "Gérez vos informations personnelles")}
         </p>
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Informations Personnelles</CardTitle>
+          <CardTitle>
+            {t("profile.personalInfo", "Informations Personnelles")}
+          </CardTitle>
           {!isEditing ? (
             <Button
               onClick={() => setIsEditing(true)}
@@ -231,7 +244,7 @@ export default function Profile() {
               className="gap-2"
             >
               <Edit className="h-4 w-4" />
-              Modifier
+              {t("profile.edit", "Modifier")}
             </Button>
           ) : (
             <div className="flex gap-2">
@@ -245,7 +258,7 @@ export default function Profile() {
                 className="gap-2"
               >
                 <X className="h-4 w-4" />
-                Annuler
+                {t("profile.cancel", "Annuler")}
               </Button>
               <Button
                 onClick={profileForm.handleSubmit(handleSaveProfile)}
@@ -254,7 +267,9 @@ export default function Profile() {
                 className="gap-2 bg-indigo-600 hover:bg-indigo-700"
               >
                 <Save className="h-4 w-4" />
-                {isLoading ? "Enregistrement..." : "Enregistrer"}
+                {isLoading
+                  ? t("profile.saving", "Enregistrement...")
+                  : t("profile.save", "Enregistrer")}
               </Button>
             </div>
           )}
@@ -276,16 +291,21 @@ export default function Profile() {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {user.firstName} {user.lastName}
                   </h2>
-                  <p className="text-gray-500">CIN: {user.cin}</p>
+                  <p className="text-gray-500">
+                    {t("profile.cin", "CIN")}: {user.cin}
+                  </p>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex items-center gap-3 text-gray-600">
                     <Mail className="h-5 w-5 text-indigo-600" />
                     <div>
-                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-xs text-gray-500">
+                        {t("profile.email", "Email")}
+                      </p>
                       <p className="font-medium">
-                        {user.email || "Non renseigné"}
+                        {user.email ||
+                          t("profile.notProvided", "Non renseigné")}
                       </p>
                     </div>
                   </div>
@@ -293,7 +313,9 @@ export default function Profile() {
                     <div className="flex items-center gap-3 text-gray-600">
                       <Phone className="h-5 w-5 text-indigo-600" />
                       <div>
-                        <p className="text-xs text-gray-500">Téléphone</p>
+                        <p className="text-xs text-gray-500">
+                          {t("profile.phone", "Téléphone")}
+                        </p>
                         <p className="font-medium">{user.telephone}</p>
                       </div>
                     </div>
@@ -302,7 +324,9 @@ export default function Profile() {
                     <div className="flex items-center gap-3 text-gray-600">
                       <MapPin className="h-5 w-5 text-indigo-600" />
                       <div>
-                        <p className="text-xs text-gray-500">Adresse</p>
+                        <p className="text-xs text-gray-500">
+                          {t("profile.address", "Adresse")}
+                        </p>
                         <p className="font-medium">{user.address}</p>
                       </div>
                     </div>
@@ -311,7 +335,9 @@ export default function Profile() {
                     <div className="flex items-center gap-3 text-gray-600">
                       <Shield className="h-5 w-5 text-indigo-600" />
                       <div>
-                        <p className="text-xs text-gray-500">Département</p>
+                        <p className="text-xs text-gray-500">
+                          {t("profile.department", "Département")}
+                        </p>
                         <p className="font-medium">{user.departement}</p>
                       </div>
                     </div>
@@ -320,7 +346,9 @@ export default function Profile() {
                     <div className="flex items-center gap-3 text-gray-600">
                       <Building className="h-5 w-5 text-indigo-600" />
                       <div>
-                        <p className="text-xs text-gray-500">Entreprise</p>
+                        <p className="text-xs text-gray-500">
+                          {t("profile.company", "Entreprise")}
+                        </p>
                         <p className="font-medium">{user.companyName}</p>
                       </div>
                     </div>
@@ -328,10 +356,18 @@ export default function Profile() {
                   <div className="flex items-center gap-3 text-gray-600">
                     <Calendar className="h-5 w-5 text-indigo-600" />
                     <div>
-                      <p className="text-xs text-gray-500">Inscrit le</p>
+                      <p className="text-xs text-gray-500">
+                        {t("profile.registeredOn", "Inscrit le")}
+                      </p>
                       <p className="font-medium">
                         {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString("fr-FR")
+                          ? new Date(user.createdAt).toLocaleDateString(
+                              language === "fr"
+                                ? "fr-FR"
+                                : language === "ar"
+                                  ? "ar-TN"
+                                  : "en-GB",
+                            )
                           : "N/A"}
                       </p>
                     </div>
@@ -348,11 +384,13 @@ export default function Profile() {
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {user.certifications.map((cert: string, idx: number) => (
-                          <Badge key={idx} variant="secondary">
-                            {cert}
-                          </Badge>
-                        ))}
+                        {user.certifications.map(
+                          (cert: string, idx: number) => (
+                            <Badge key={idx} variant="secondary">
+                              {cert}
+                            </Badge>
+                          ),
+                        )}
                       </div>
                     </div>
                   )}
@@ -414,9 +452,7 @@ export default function Profile() {
                       control={profileForm.control}
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor="telephone">
-                            Téléphone
-                          </FieldLabel>
+                          <FieldLabel htmlFor="telephone">Téléphone</FieldLabel>
                           <Input {...field} id="telephone" />
                           {fieldState.invalid && (
                             <FieldError errors={[fieldState.error]} />
@@ -486,7 +522,7 @@ export default function Profile() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Sécurité</CardTitle>
+          <CardTitle>{t("profile.security", "Sécurité")}</CardTitle>
           {!isEditingPassword && (
             <Button
               onClick={() => setIsEditingPassword(true)}
@@ -495,7 +531,7 @@ export default function Profile() {
               className="gap-2"
             >
               <Edit className="h-4 w-4" />
-              Changer le mot de passe
+              {t("profile.changePassword", "Changer le mot de passe")}
             </Button>
           )}
         </CardHeader>
@@ -512,7 +548,7 @@ export default function Profile() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="currentPassword">
-                        Mot de passe actuel
+                        {t("profile.currentPassword", "Mot de passe actuel")}
                       </FieldLabel>
                       <Input {...field} id="currentPassword" type="password" />
                       {fieldState.invalid && (
@@ -530,7 +566,7 @@ export default function Profile() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="newPassword">
-                        Nouveau mot de passe
+                        {t("profile.newPassword", "Nouveau mot de passe")}
                       </FieldLabel>
                       <Input {...field} id="newPassword" type="password" />
                       {fieldState.invalid && (
@@ -548,7 +584,10 @@ export default function Profile() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="confirmPassword">
-                        Confirmer le mot de passe
+                        {t(
+                          "profile.confirmPassword",
+                          "Confirmer le mot de passe",
+                        )}
                       </FieldLabel>
                       <Input {...field} id="confirmPassword" type="password" />
                       {fieldState.invalid && (
@@ -570,7 +609,7 @@ export default function Profile() {
                   className="gap-2"
                 >
                   <X className="h-4 w-4" />
-                  Annuler
+                  {t("profile.cancel", "Annuler")}
                 </Button>
                 <Button
                   type="submit"
@@ -578,14 +617,18 @@ export default function Profile() {
                   className="gap-2 bg-indigo-600 hover:bg-indigo-700"
                 >
                   <Save className="h-4 w-4" />
-                  {isLoading ? "Enregistrement..." : "Changer le mot de passe"}
+                  {isLoading
+                    ? t("profile.saving", "Enregistrement...")
+                    : t("profile.changePassword", "Changer le mot de passe")}
                 </Button>
               </div>
             </form>
           ) : (
             <p className="text-gray-600">
-              Cliquez sur « Changer le mot de passe » pour mettre à jour votre
-              mot de passe.
+              {t(
+                "profile.passwordHint",
+                "Cliquez sur « Changer le mot de passe » pour mettre à jour votre mot de passe.",
+              )}
             </p>
           )}
         </CardContent>
@@ -593,39 +636,47 @@ export default function Profile() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Statut du Compte</CardTitle>
+          <CardTitle>{t("profile.accountStatus", "Statut du Compte")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="p-4 border rounded-lg">
-              <p className="text-sm text-gray-500 mb-1">Statut</p>
+              <p className="text-sm text-gray-500 mb-1">
+                {t("profile.status", "Statut")}
+              </p>
               <Badge
                 variant={user.status === "approved" ? "secondary" : "default"}
                 className="text-sm"
               >
                 {user.status === "approved"
-                  ? "Approuvé"
+                  ? t("profile.approved", "Approuvé")
                   : user.status === "pending"
-                    ? "En attente"
-                    : "Actif"}
+                    ? t("profile.pending", "En attente")
+                    : t("profile.active", "Actif")}
               </Badge>
             </div>
             <div className="p-4 border rounded-lg">
-              <p className="text-sm text-gray-500 mb-1">Email vérifié</p>
+              <p className="text-sm text-gray-500 mb-1">
+                {t("profile.emailVerified", "Email vérifié")}
+              </p>
               <Badge
                 variant={user.emailVerified ? "secondary" : "destructive"}
                 className="text-sm"
               >
-                {user.emailVerified ? "Oui" : "Non"}
+                {user.emailVerified
+                  ? t("profile.yes", "Oui")
+                  : t("profile.no", "Non")}
               </Badge>
             </div>
             <div className="p-4 border rounded-lg">
-              <p className="text-sm text-gray-500 mb-1">Compte actif</p>
+              <p className="text-sm text-gray-500 mb-1">
+                {t("profile.accountActive", "Compte actif")}
+              </p>
               <Badge
                 variant={user.isActif ? "secondary" : "destructive"}
                 className="text-sm"
               >
-                {user.isActif ? "Oui" : "Non"}
+                {user.isActif ? t("profile.yes", "Oui") : t("profile.no", "Non")}
               </Badge>
             </div>
           </div>

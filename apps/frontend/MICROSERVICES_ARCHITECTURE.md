@@ -26,38 +26,45 @@
 ## 🏗️ Services Structure
 
 ### 1. **API Gateway** (Port 3000)
+
 - Central entry point for all requests
 - Routes to appropriate microservices
 - Handles authentication/authorization
 - Load balancing
 
 ### 2. **Auth Service** (Port 3001)
+
 - User authentication
 - JWT token management
 - User registration
 - Password reset
 
 ### 3. **Projects Service** (Port 3002)
+
 - Project management
 - Project creation/update/delete
 - Project status tracking
 
 ### 4. **Team Service** (Port 3003)
+
 - Team member management
 - Role assignment
 - Team structure
 
 ### 5. **Finance Service** (Port 3004)
+
 - Financial tracking
 - Budget management
 - Cost analysis
 
 ### 6. **QHSE Service** (Port 3005)
+
 - Quality control
 - Health & Safety
 - Environment compliance
 
 ### 7. **Notifications Service** (Port 3006)
+
 - Email notifications
 - Push notifications
 - In-app notifications
@@ -65,12 +72,15 @@
 ## 🚀 Deployment Options
 
 ### Option 1: Docker Compose (Development)
+
 ```bash
 docker-compose up -d
 ```
+
 Suitable for local development and testing.
 
 ### Option 2: Kubernetes (Production)
+
 ```bash
 kubectl create namespace smartsite
 kubectl apply -f k8s/secrets.yaml
@@ -85,6 +95,7 @@ kubectl apply -f k8s/frontend.yaml
 Create a `.env` file in each service:
 
 **API Gateway (.env):**
+
 ```
 PORT=3000
 AUTH_SERVICE_URL=http://auth-service:3001
@@ -98,21 +109,25 @@ NOTIFICATIONS_SERVICE_URL=http://notifications-service:3006
 ## 🐳 Docker Commands
 
 **Build all services:**
+
 ```bash
 docker-compose build
 ```
 
 **Start all services:**
+
 ```bash
 docker-compose up
 ```
 
 **View logs:**
+
 ```bash
 docker-compose logs -f api-gateway
 ```
 
 **Stop all services:**
+
 ```bash
 docker-compose down
 ```
@@ -120,11 +135,13 @@ docker-compose down
 ## ☸️ Kubernetes Commands
 
 **Deploy services:**
+
 ```bash
 kubectl apply -f k8s/
 ```
 
 **Check deployment status:**
+
 ```bash
 kubectl get deployments -n smartsite
 kubectl get pods -n smartsite
@@ -132,16 +149,19 @@ kubectl get services -n smartsite
 ```
 
 **View logs:**
+
 ```bash
 kubectl logs -n smartsite deployment/api-gateway
 ```
 
 **Scale a service:**
+
 ```bash
 kubectl scale deployment auth-service --replicas=3 -n smartsite
 ```
 
 **Update a service:**
+
 ```bash
 kubectl set image deployment/auth-service auth-service=smartsite/auth-service:v2 -n smartsite
 ```
@@ -151,10 +171,12 @@ kubectl set image deployment/auth-service auth-service=smartsite/auth-service:v2
 **Base URL:** `http://localhost:3000/api` (Development)
 
 ### Auth
+
 - `POST /auth/login` - User login
 - `POST /auth/register` - User registration
 
 ### Projects
+
 - `GET /projects` - List projects
 - `POST /projects` - Create project
 - `GET /projects/:id` - Get project details
@@ -162,19 +184,23 @@ kubectl set image deployment/auth-service auth-service=smartsite/auth-service:v2
 - `DELETE /projects/:id` - Delete project
 
 ### Team
+
 - `GET /team` - List team members
 - `POST /team` - Add team member
 - `PUT /team/:id` - Update team member
 - `DELETE /team/:id` - Remove team member
 
 ### Finance
+
 - `GET /finance` - Get financial data
 - `POST /finance` - Create financial record
 
 ### QHSE
+
 - `GET /qhse` - Get QHSE data
 
 ### Notifications
+
 - `GET /notifications` - Get notifications
 
 ## 🔐 Security
@@ -200,6 +226,7 @@ kubectl scale deployment auth-service --replicas=3 -n smartsite
 ## 🔄 CI/CD Pipeline
 
 Suggested pipeline with GitLab CI or GitHub Actions:
+
 1. Build container images
 2. Push to registry (Docker Hub, AWS ECR, etc.)
 3. Deploy to development environment

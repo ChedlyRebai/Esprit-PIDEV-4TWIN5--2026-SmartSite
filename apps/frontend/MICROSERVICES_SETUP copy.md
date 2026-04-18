@@ -1,10 +1,11 @@
 # 🎯 Microservices Migration - Summary
 
-Your **SmartSite Platform** has been successfully migrated to a **production-ready microservices architecture**! 
+Your **SmartSite Platform** has been successfully migrated to a **production-ready microservices architecture**!
 
 ## 📊 What Was Created
 
 ### ✅ Backend Services (7 microservices)
+
 1. **API Gateway** (Port 3000) - Central routing & authentication
 2. **Auth Service** (Port 3001) - User management & JWT tokens
 3. **Projects Service** (Port 3002) - Project management
@@ -14,16 +15,19 @@ Your **SmartSite Platform** has been successfully migrated to a **production-rea
 7. **Notifications Service** (Port 3006) - Email & notifications
 
 ### ✅ Frontend
+
 - **React Host Application** (Port 5173) - Main application
 - Configured for micro-frontends (ready for Module Federation)
 
 ### ✅ Infrastructure
+
 - **Docker Compose** setup for local development
 - **Kubernetes** manifests for production deployment
 - **PostgreSQL** database with persistent storage
 - **NGINX** reverse proxy configuration
 
 ### ✅ Documentation
+
 - Complete architecture guide ([MICROSERVICES_ARCHITECTURE.md](MICROSERVICES_ARCHITECTURE.md))
 - Deployment scripts for both Docker & Kubernetes
 
@@ -32,6 +36,7 @@ Your **SmartSite Platform** has been successfully migrated to a **production-rea
 ## 🚀 Quick Start
 
 ### Option 1: Docker Compose (Development)
+
 ```bash
 # Navigate to project root
 cd "c:\Users\ASUS\Downloads\SmartSite Platform Development"
@@ -50,6 +55,7 @@ docker-compose down
 ```
 
 **Access:**
+
 - Frontend: http://localhost:5173
 - API: http://localhost:3000/api
 - Database: localhost:5432
@@ -57,6 +63,7 @@ docker-compose down
 ---
 
 ### Option 2: Kubernetes (Production)
+
 ```bash
 # Create namespace and deploy
 kubectl create namespace smartsite
@@ -120,16 +127,19 @@ SmartSite Platform Development/
 ## 📝 Next Steps
 
 ### 1. **Implement Service Logic**
+
 Each service has a basic template. Now implement:
+
 - Database models (schemas)
 - Business logic
 - API endpoints
 - Validation & error handling
 
 Example (Auth Service):
+
 ```javascript
 // services/auth-service/src/server.js
-app.post('/register', async (req, res) => {
+app.post("/register", async (req, res) => {
   // Hash password
   // Store in database
   // Return JWT token
@@ -137,7 +147,9 @@ app.post('/register', async (req, res) => {
 ```
 
 ### 2. **Setup Environment Variables**
+
 Create `.env` files for each service:
+
 ```bash
 # services/auth-service/.env
 DATABASE_URL=postgresql://user:password@postgres:5432/auth_db
@@ -146,7 +158,9 @@ PORT=3001
 ```
 
 ### 3. **Database Setup**
+
 Create service databases:
+
 ```sql
 CREATE DATABASE auth_db;
 CREATE DATABASE projects_db;
@@ -156,10 +170,12 @@ CREATE DATABASE qhse_db;
 ```
 
 ### 4. **Frontend Integration**
+
 Update React components to use API Gateway:
+
 ```typescript
 // src/utils/api.ts
-const API_URL = process.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.VITE_API_URL || "http://localhost:3000/api";
 
 export const fetchProjects = async () => {
   const response = await fetch(`${API_URL}/projects`);
@@ -168,20 +184,24 @@ export const fetchProjects = async () => {
 ```
 
 ### 5. **Micro-Frontends (Optional)**
+
 Set up Module Federation for independent team development:
+
 ```javascript
 // webpack.config.js
 new ModuleFederationPlugin({
-  name: 'auth_mfe',
-  filename: 'remoteEntry.js',
+  name: "auth_mfe",
+  filename: "remoteEntry.js",
   exposes: {
-    './Auth': './src/pages/auth/Login.tsx'
-  }
-})
+    "./Auth": "./src/pages/auth/Login.tsx",
+  },
+});
 ```
 
 ### 6. **CI/CD Pipeline**
+
 Create GitHub Actions or GitLab CI:
+
 ```yaml
 # .github/workflows/deploy.yml
 - Build Docker images
@@ -192,7 +212,9 @@ Create GitHub Actions or GitLab CI:
 ```
 
 ### 7. **Monitoring & Logging**
+
 Add:
+
 - **ELK Stack** (Elasticsearch, Logstash, Kibana)
 - **Prometheus** for metrics
 - **Grafana** for dashboards
@@ -223,6 +245,7 @@ prometheus:
 ## 📚 Useful Commands
 
 ### Docker Compose
+
 ```bash
 # Build
 docker-compose build
@@ -241,6 +264,7 @@ docker-compose down -v
 ```
 
 ### Kubernetes
+
 ```bash
 # Deploy
 kubectl apply -f k8s/
@@ -269,6 +293,7 @@ kubectl get services -n smartsite
 ```
 
 ### PostgreSQL
+
 ```bash
 # Connect to container
 docker exec -it postgres_container psql -U postgres
@@ -291,20 +316,24 @@ docker exec -it postgres_container psql -U postgres
 ## 🆘 Troubleshooting
 
 ### Services not communicating
+
 - Check Docker network: `docker network ls`
 - Verify service URLs in API Gateway
 - Check logs: `docker-compose logs`
 
 ### Database connection errors
+
 - Ensure PostgreSQL is running
 - Check DATABASE_URL format
 - Verify credentials
 
 ### Port conflicts
+
 - Change ports in `.env` files
 - Update `docker-compose.yml` port mappings
 
 ### Kubernetes issues
+
 - Check cluster status: `kubectl cluster-info`
 - Verify namespace: `kubectl get ns`
 - Check secrets: `kubectl get secrets -n smartsite`
@@ -324,6 +353,7 @@ docker exec -it postgres_container psql -U postgres
 ## 📞 Support
 
 For issues or questions:
+
 1. Check the [MICROSERVICES_ARCHITECTURE.md](MICROSERVICES_ARCHITECTURE.md) file
 2. Review service logs
 3. Check Kubernetes events: `kubectl get events -n smartsite`

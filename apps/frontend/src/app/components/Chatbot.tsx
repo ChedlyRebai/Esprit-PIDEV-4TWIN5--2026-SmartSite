@@ -475,13 +475,25 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ className = '' }) => {
 
   if (!isOpen) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 z-50 ${className}`}
-        aria-label="Open chat"
-      >
-        <MessageCircle className="w-7 h-7 text-white" />
-      </button>
+      <div className={`fixed bottom-6 right-6 z-50 ${className}`}>
+        <button
+          onClick={() => setIsOpen(true)}
+          className="group relative w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-blue-500/40 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/40"
+          aria-label="Open chat"
+        >
+          {/* Animated halo */}
+          <span className="pointer-events-none absolute inset-0 rounded-full bg-blue-500/30 blur-md opacity-70 motion-safe:animate-pulse" />
+          {/* Online status dot */}
+          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-400 border-2 border-white shadow-sm" />
+          {/* Icon */}
+          <MessageCircle className="relative w-7 h-7 text-white transition-transform duration-300 group-hover:scale-110" />
+        </button>
+
+        {/* Tooltip */}
+        <div className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 rounded-md bg-slate-900 text-white text-xs px-2 py-1 whitespace-nowrap opacity-0 translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+          SmartSite Assistant
+        </div>
+      </div>
     );
   }
 

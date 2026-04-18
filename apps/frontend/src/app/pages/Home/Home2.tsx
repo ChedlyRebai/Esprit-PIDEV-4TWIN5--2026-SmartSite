@@ -1,117 +1,12 @@
-import {
-  Dribbble,
-  Facebook,
-  Github,
-  Instagram,
-  Menu,
-  Twitter,
-} from "lucide-react";
+import React, { useState } from 'react';
 import { SmartSiteLogo } from "@/app/components/branding/SmartSiteLogo";
-
-const navigation = [
-  { name: "Product", href: "#" },
-  { name: "Features", href: "#" },
-  { name: "Resources", href: "#" },
-  { name: "Company", href: "#" },
-];
-const stats = [
-  { label: "Active construction sites", value: "+150" },
-  { label: "AI alerts sent per month", value: "12,000+" },
-  { label: "Users in Tunisia and Maghreb", value: "2,500+" },
-];
-const values = [
-  {
-    name: "Excellence on site",
-    description:
-      "Control every detail of your construction sites in real-time with reliable and intuitive tools.",
-  },
-  {
-    name: "Share intelligence",
-    description:
-      "Easily collaborate between teams, engineers, site managers, and executives.",
-  },
-  {
-    name: "Continuous learning",
-    description:
-      "AI learns from your projects to improve predictions day by day.",
-  },
-  {
-    name: "Unwavering support",
-    description: "Fast assistance adapted to construction realities in Tunisia.",
-  },
-  {
-    name: "Total accountability",
-    description:
-      "Transparency on costs, deadlines, and security – no more surprises.",
-  },
-  {
-    name: "Balance and efficiency",
-    description:
-      "Reduce daily stress while boosting team productivity.",
-  },
-];
-const team = [
-  {
-    name: "Chedly Ben Ali",
-    role: "Founder & CEO",
-    imageUrl:
-      "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
-  },
-];
-const blogPosts = [
-  {
-    id: 1,
-    title: "How AI predicts delays on your construction sites",
-    href: "#",
-    description:
-      "Discover how SmartSite analyzes real-time data to alert you before problems occur.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1496128858413-b36217c2ce36?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3603&q=80",
-    date: "Jan 15, 2026",
-    datetime: "2026-01-15",
-    author: {
-      name: "Chedly Ben Ali",
-      imageUrl:
-        "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-    },
-  },
-];
-const footerNavigation = {
-  main: [
-    { name: "Blog", href: "#" },
-    { name: "Careers", href: "#" },
-    { name: "Press", href: "#" },
-    { name: "Accessibility", href: "#" },
-    { name: "Partners", href: "#" },
-  ],
-  social: [
-    {
-      name: "Facebook",
-      href: "#",
-      icon: Github,
-    },
-    {
-      name: "Instagram",
-      href: "#",
-      icon: Github,
-    },
-    {
-      name: "X",
-      href: "#",
-      icon: Github,
-    },
-    {
-      name: "GitHub",
-      href: "#",
-      icon: Github,
-    },
-    {
-      name: "YouTube",
-      href: "#",
-      icon: Github,
-    },
-  ],
-};
+import { Facebook, Github, Instagram, Twitter, Dribbble, Menu } from "lucide-react";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { ThemeButton } from "@/app/components/ThemeButton";
+import { NavbarAccessibilityButton } from "@/app/components/NavbarAccessibilityButton";
+import { DemoModal } from "@/app/components/DemoModal";
+import { useTranslation } from "@/app/hooks/useTranslation";
+import styles from "./Home2.module.css";
 
 const navigationFooter: any = {
   solutions: [
@@ -168,10 +63,60 @@ const navigationFooter: any = {
 };
 
 export default function Home2() {
+  const { t, language } = useTranslation();
+
+  const stats = [
+    { label: t("statsDetail.activeSites"), value: "+150" },
+    { label: t("statsDetail.aiAlerts"), value: "12,000+" },
+    { label: t("statsDetail.users"), value: "2,500+" },
+  ];
+
+  const values = [
+    {
+      name: t("values.excellence.title"),
+      description: t("values.excellence.desc"),
+    },
+    {
+      name: t("values.intelligence.title"),
+      description: t("values.intelligence.desc"),
+    },
+    {
+      name: t("values.learning.title"),
+      description: t("values.learning.desc"),
+    },
+    {
+      name: t("values.support.title"),
+      description: t("values.support.desc"),
+    },
+    {
+      name: t("values.accountability.title"),
+      description: t("values.accountability.desc"),
+    },
+    {
+      name: t("values.efficiency.title"),
+      description: t("values.efficiency.desc"),
+    },
+  ];
+
+  const buildSmarterstats = [
+    { label: t("buildSmarter.stats.projects"), value: "250+" },
+    { label: t("buildSmarter.stats.companies"), value: "120+" },
+    { label: t("buildSmarter.stats.costReduction"), value: "30%" },
+    { label: t("buildSmarter.stats.timeSaved"), value: "40%" },
+  ];
+
+  const insights = [
+    { label: t("buildSmarter.stats.projects"), value: "12", trend: "+3 ce mois" },
+    { label: t("buildSmarter.stats.companies"), value: "04", trend: "-27%" },
+    { label: t("buildSmarter.stats.costReduction"), value: "08", trend: "IA active" },
+  ];
+
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
+
   return (
-    <div className="bg-white">
+    <div className={`${styles.heroSection} bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100`}>
       {/* Header */}
-      <header className="absolute inset-x-0 top-0 z-50">
+      <header className={`${styles.navBar} fixed inset-x-0 top-0 z-50`}>
         <nav
           className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8"
           aria-label="Global"
@@ -179,7 +124,7 @@ export default function Home2() {
           <div className="flex lg:flex-1">
             <a href="/" className="-m-1.5 p-1.5 flex items-center gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
               <span className="sr-only">SmartSite</span>
-              <SmartSiteLogo size="md" className="drop-shadow-sm" />
+              <SmartSiteLogo size="md" className={`drop-shadow-sm ${styles.logoAnimated}`} />
             </a>
           </div>
           <div className="flex lg:hidden">
@@ -192,22 +137,30 @@ export default function Home2() {
             </button>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
-            {navigation.map((item) => (
+            {[
+              { name: t("nav.product"), href: "#" },
+              { name: t("nav.features"), href: "#" },
+              { name: t("nav.resources"), href: "#" },
+              { name: t("nav.company"), href: "#" },
+            ].map((item) => (
               <a
                 key={item.name}
                 href={item.href}
-                className="text-sm font-semibold leading-6 text-gray-900 dark:text-white"
+                className={`${styles.navLink} text-sm font-semibold leading-6 text-gray-900`}
               >
                 {item.name}
               </a>
             ))}
           </div>
-          <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+          <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
+            <NavbarAccessibilityButton />
+            <ThemeButton />
+            <LanguageSelector />
             <a
               href="/login"
-              className="text-sm font-semibold leading-6 text-gray-900 dark:text-white"
+              className="text-sm font-semibold leading-6 text-gray-900 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
-              Log in <span aria-hidden="true">&rarr;</span>
+              {t("nav.login")} <span aria-hidden="true">&rarr;</span>
             </a>
           </div>
         </nav>
@@ -251,14 +204,19 @@ export default function Home2() {
             />
           </svg>
           <div
-            className="absolute left-1/2 right-0 top-0 -z-10 -ml-24 transform-gpu overflow-hidden blur-3xl lg:ml-24 xl:ml-48"
+            className="absolute left-1/2 right-0 top-0 -z-10 -ml-24 transform-gpu overflow-hidden backdrop-blur-xl lg:ml-24 xl:ml-48"
             aria-hidden="true"
+            style={{
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
+            }}
           >
             <div
-              className="aspect-[801/1036] w-[50.0625rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30"
+              className="aspect-[801/1036] w-[50.0625rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-40"
               style={{
                 clipPath:
                   "polygon(63.1% 29.5%, 100% 17.1%, 76.6% 3%, 48.4% 0%, 44.6% 4.7%, 54.5% 25.3%, 59.8% 49%, 55.2% 57.8%, 44.4% 57.2%, 27.8% 47.9%, 35.1% 81.5%, 0% 97.7%, 39.2% 100%, 35.2% 81.4%, 97.2% 52.8%, 63.1% 29.5%)",
+                filter: 'saturate(120%)',
               }}
             />
           </div>
@@ -268,24 +226,21 @@ export default function Home2() {
               <div className="mx-auto max-w-2xl gap-x-14 lg:mx-0 lg:flex lg:max-w-none lg:items-center">
                 <div className="w-full max-w-xl lg:shrink-0 xl:max-w-2xl">
                   <div className="mb-8">
-                    <SmartSiteLogo size="lg" className="mx-auto lg:mx-0" />
+                    <SmartSiteLogo size="lg" className={`mx-auto lg:mx-0 ${styles.logoAnimated}`} />
                     <p className="mt-3 text-center text-xs font-semibold tracking-[0.2em] text-slate-600 uppercase lg:text-left">
-                      Intelligent construction platform
+                      {t("hero.subtitle")}
                     </p>
                   </div>
-                  <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-                    SmartSite: Manage your construction sites with artificial
-                    intelligence
+                  <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+                    {t("hero.title")}
                   </h1>
                   <p className="relative mt-6 text-lg leading-8 text-gray-600 sm:max-w-md lg:max-w-none">
-                    Real-time tracking, AI predictions for delays and risks,
-                    automatic alerts, instant reports, mobile app for the field.
-                    Control costs, deadlines, and security like never before.
+                    {t("hero.description")}
                   </p>
                 </div>
                 <div className="mt-14 flex justify-end gap-8 sm:-mt-44 sm:justify-start sm:pl-20 lg:mt-0 lg:pl-0">
                   <div className="ml-auto w-44 flex-none space-y-8 pt-32 sm:ml-0 sm:pt-80 lg:order-last lg:pt-36 xl:order-none xl:pt-80">
-                    <div className="relative">
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`}>
                       <img
                         src="https://www.openspace.ai/wp-content/uploads/2025/02/BIM-Compare-tablet-on-jobsite-scaled.webp"
                         alt="Site manager using a tablet on site for real-time tracking"
@@ -296,7 +251,7 @@ export default function Home2() {
                   </div>
 
                   <div className="mr-auto w-44 flex-none space-y-8 sm:mr-0 sm:pt-52 lg:pt-36">
-                    <div className="relative">
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.2s'}}>
                       <img
                         src="https://www.deltek.com/-/media/deltekblogs/lead-images/2023/construction-supervisor-with-digital-tablet-on-site.ashx"
                         alt="Construction supervisor checking site progress on mobile tablet"
@@ -305,7 +260,7 @@ export default function Home2() {
                       <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-900/10" />
                     </div>
 
-                    <div className="relative">
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.4s'}}>
                       <img
                         src="https://www.deltek.com/-/media/deltekblogs/lead-images/2023/750x500-ae-ipad.ashx"
                         alt="Construction worker capturing photos and data on iPad at construction site"
@@ -316,16 +271,16 @@ export default function Home2() {
                   </div>
 
                   <div className="w-44 flex-none space-y-8 pt-32 sm:pt-0">
-                    <div className="relative">
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.6s'}}>
                       <img
-                        src="https://assets.marketing.quickbase.com/product/Screenshots/_1320x939_crop_center-center_82_line/product-screenshots-mobile-and-gantt.png"
-                        alt="Mobile dashboard and Gantt chart for SmartSite construction project tracking"
+                        src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=600&fit=crop&crop=faces"
+                        alt="Project planning dashboard with timeline and scheduling tools"
                         className="aspect-[2/3] w-full rounded-xl bg-gray-900/5 object-cover shadow-lg"
                       />
                       <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-900/10" />
                     </div>
 
-                    <div className="relative">
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.8s'}}>
                       <img
                         src="https://www.openspace.ai/wp-content/uploads/2025/10/Hero.png"
                         alt="Construction site progress dashboard with AI and SmartSite alerts"
@@ -343,41 +298,31 @@ export default function Home2() {
         {/* Content section */}
         <div className="mx-auto mb-30 mt-12 max-w-7xl px-6 sm:mt-0 lg:px-8 xl:-mt-8">
           <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Our Mission
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              {t("mission.title")}
             </h2>
             <div className="mt-6 flex flex-col gap-x-8 gap-y-20 lg:flex-row">
               <div className="lg:w-full lg:max-w-2xl lg:flex-auto">
                 <p className="text-xl leading-8 text-gray-600">
-                  Transforming construction site management in the Maghreb with
-                  AI: fewer delays, fewer accidents, more profitability.
+                  {t("mission.subtitle")}
                 </p>
                 <div className="mt-10 max-w-xl text-base leading-7 text-gray-700">
                   <p>
-                    SmartSite centralizes all your construction site data
-                    (progress, resources, security, budget) and uses
-                    artificial intelligence to predict risks, optimize
-                    schedules, and generate automatic reports. Adapted for
-                    Tunisian companies, from small construction sites to large
-                    infrastructure.
+                    {t("mission.description")}
                   </p>
                   <p className="mt-10">
-                    Available on web and mobile, even with limited connection
-                    on the field. Try for free and take control today.
+                    {t("mission.footer")}
                   </p>
                 </div>
               </div>
               <div className="lg:flex lg:flex-auto lg:justify-center">
                 <dl className="w-64 space-y-8 xl:w-80">
                   {stats.map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="flex flex-col-reverse gap-y-4"
-                    >
+                    <div key={stat.label} className={`${styles.statCard} flex flex-col-reverse gap-y-4`}>
                       <dt className="text-base leading-7 text-gray-600">
                         {stat.label}
                       </dt>
-                      <dd className="text-5xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                      <dd className={`${styles.statValue} text-5xl font-semibold tracking-tight`}>
                         {stat.value}
                       </dd>
                     </div>
@@ -388,41 +333,37 @@ export default function Home2() {
           </div>
         </div>
 
-        <div className="relative isolate overflow-hidden bg-gray-900">
-          <div className="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
+        <div className={`${styles.ctaSection} ${styles.glowingBox} relative isolate overflow-hidden bg-gray-900 py-24 sm:py-32`}>
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
-                Take Control of Your Construction Projects.
+                {t("cta.title")}
                 <br />
-                Build Smarter Starting Today.
+                {t("cta.subtitle")}
               </h2>
 
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-300">
-                Manage workers, materials, budgets, and deadlines in one
-                powerful platform designed specifically for construction
-                companies. Reduce delays, cut costs, and improve site
-                productivity.
+                {t("cta.description")}
               </p>
 
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 <a
                   href="#"
-                  className="rounded-md bg-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 transition"
+                  className={`${styles.btnPrimary} rounded-lg px-8 py-4 text-sm font-semibold text-white`}
                 >
-                  Start Free Trial
+                  {t("cta.startTrial")}
                 </a>
 
-                <a
-                  href="#"
-                  className="text-sm font-semibold leading-6 text-white hover:text-indigo-400 transition"
+                <button
+                  onClick={() => setIsDemoOpen(true)}
+                  className={`${styles.btnSecondary} rounded-lg px-8 py-4 text-sm font-semibold text-white hover:text-indigo-400 transition`}
                 >
-                  Request Demo <span aria-hidden="true">→</span>
-                </a>
+                  {t("cta.requestDemo")} <span aria-hidden="true">→</span>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Background Gradient Effect */}
           <svg
             viewBox="0 0 1024 1024"
             className="absolute left-1/2 top-1/2 -z-10 h-[64rem] w-[64rem] -translate-x-1/2 [mask-image:radial-gradient(closest-side,white,transparent)]"
@@ -437,8 +378,8 @@ export default function Home2() {
             />
             <defs>
               <radialGradient id="constructionGradient">
-                <stop stopColor="#FACC15" /> {/* indigo */}
-                <stop offset={1} stopColor="#1F2937" /> {/* dark gray */}
+                <stop stopColor="#FACC15" />
+                <stop offset={1} stopColor="#1F2937" />
               </radialGradient>
             </defs>
           </svg>
@@ -448,25 +389,24 @@ export default function Home2() {
           <img
             src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2832&q=80"
             alt=""
-            className="aspect-[5/2] w-full object-cover xl:rounded-3xl"
+            className={`${styles.imageShowcase} aspect-[5/2] w-full object-cover xl:rounded-3xl`}
           />
         </div>
 
         {/* Values section */}
         <div className="mx-auto mb-32 mt-32 max-w-7xl px-6 sm:mt-40 lg:px-8">
           <div className="mx-auto max-w-2xl lg:mx-0">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Our Values
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              {t("values.title")}
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Building the future of construction sites with precision,
-              innovation, and field proximity.
+              {t("values.subtitle")}
             </p>
           </div>
           <dl className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 text-base leading-7 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3">
             {values.map((value) => (
-              <div key={value.name}>
-                <dt className="font-semibold text-gray-900 dark:text-white">{value.name}</dt>
+              <div key={value.name} className={styles.valueCard}>
+                <dt className="font-semibold text-gray-900">{value.name}</dt>
                 <dd className="mt-1 text-gray-600">{value.description}</dd>
               </div>
             ))}
@@ -474,7 +414,6 @@ export default function Home2() {
         </div>
 
         <section className="relative isolate overflow-hidden bg-gray-900 py-24 sm:py-32">
-          {/* Background Image */}
           <img
             src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2000&q=80"
             alt="Construction site background"
@@ -482,140 +421,93 @@ export default function Home2() {
           />
 
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            {/* Main Text */}
             <div className="mx-auto max-w-2xl lg:mx-0">
               <h2 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-                Build Smarter. Deliver Projects On Time.
+                {t("buildSmarter.title")}
               </h2>
 
               <p className="mt-6 text-lg leading-8 text-gray-300">
-                Our construction management platform helps contractors and
-                engineers reduce delays, control costs, and improve productivity
-                across all active sites.
+                {t("buildSmarter.description")}
               </p>
 
               <div className="mt-8 flex gap-4">
                 <button className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-lg transition">
-                  Start Free Trial
+                  {t("cta.startTrial")}
                 </button>
 
-                <button className="border border-white text-white hover:bg-white hover:text-gray-900 dark:text-white px-6 py-3 rounded-lg transition">
-                  Request Demo
+                <button 
+                  onClick={() => setIsDemoOpen(true)}
+                  className="border border-white text-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg transition"
+                >
+                  {t("cta.requestDemo")}
                 </button>
               </div>
             </div>
 
-            {/* Stats */}
             <dl className="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex flex-col-reverse">
-                <dt className="text-base leading-7 text-gray-300">
-                  Active Construction Projects
-                </dt>
-                <dd className="text-3xl font-bold tracking-tight text-white">
-                  250+
-                </dd>
-              </div>
-
-              <div className="flex flex-col-reverse">
-                <dt className="text-base leading-7 text-gray-300">
-                  Companies Using Our Platform
-                </dt>
-                <dd className="text-3xl font-bold tracking-tight text-white">
-                  120+
-                </dd>
-              </div>
-
-              <div className="flex flex-col-reverse">
-                <dt className="text-base leading-7 text-gray-300">
-                  Cost Reduction Achieved
-                </dt>
-                <dd className="text-3xl font-bold tracking-tight text-white">
-                  30%
-                </dd>
-              </div>
-
-              <div className="flex flex-col-reverse">
-                <dt className="text-base leading-7 text-gray-300">
-                  Average Time Saved Per Project
-                </dt>
-                <dd className="text-3xl font-bold tracking-tight text-white">
-                  40%
-                </dd>
-              </div>
+              {buildSmarterstats.map((item) => (
+                <div key={item.label} className="flex flex-col-reverse">
+                  <dt className="text-base leading-7 text-gray-300">
+                    {item.label}
+                  </dt>
+                  <dd className="text-3xl font-bold tracking-tight text-white">
+                    {item.value}
+                  </dd>
+                </div>
+              ))}
             </dl>
           </div>
         </section>
 
-        <section className="overflow-hidden bg-white py-24 sm:py-32">
+        <section className="overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50 py-24 sm:py-32">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:gap-y-20 lg:max-w-none lg:grid-cols-2">
-              {/* Left Content */}
               <div className="lg:pr-8 lg:pt-4">
                 <div className="lg:max-w-lg">
                   <h2 className="text-base font-semibold leading-7 text-indigo-600">
-                    Smart Construction Management
+                    {t("features.title")}
                   </h2>
 
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                    Manage Your Construction Sites Efficiently
+                  <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                    {t("features.subtitle")}
                   </p>
 
                   <p className="mt-6 text-lg leading-8 text-gray-600">
-                    Control projects, workers, materials, and budgets in one
-                    centralized platform designed specifically for construction
-                    teams.
+                    {t("features.description")}
                   </p>
 
                   <dl className="mt-10 space-y-8 text-base leading-7 text-gray-600">
-                    {/* Feature 1 */}
-                    <div className="relative pl-9">
-                      <dt className="inline font-semibold text-gray-900 dark:text-white">
-                        <span className="absolute left-1 top-1 text-indigo-500">
-                          ✔
-                        </span>
-                        Real-Time Project Tracking
-                      </dt>
-                      <dd className="inline">
-                        {" "}
-                        Monitor progress, deadlines, and task completion across
-                        all active construction sites.
-                      </dd>
-                    </div>
-
-                    {/* Feature 2 */}
-                    <div className="relative pl-9">
-                      <dt className="inline font-semibold text-gray-900 dark:text-white">
-                        <span className="absolute left-1 top-1 text-indigo-500">
-                          ✔
-                        </span>
-                        Workforce & Attendance Management
-                      </dt>
-                      <dd className="inline">
-                        {" "}
-                        Track workers, assign roles, and manage attendance with
-                        detailed reporting tools.
-                      </dd>
-                    </div>
-
-                    {/* Feature 3 */}
-                    <div className="relative pl-9">
-                      <dt className="inline font-semibold text-gray-900 dark:text-white">
-                        <span className="absolute left-1 top-1 text-indigo-500">
-                          ✔
-                        </span>
-                        Budget & Material Control
-                      </dt>
-                      <dd className="inline">
-                        {" "}
-                        Manage inventory, suppliers, and expenses to prevent
-                        overspending and reduce material waste.
-                      </dd>
-                    </div>
+                    {[
+                      {
+                        title: t("features.tracking.title"),
+                        desc: t("features.tracking.desc"),
+                      },
+                      {
+                        title: t("features.workforce.title"),
+                        desc: t("features.workforce.desc"),
+                      },
+                      {
+                        title: t("features.budget.title"),
+                        desc: t("features.budget.desc"),
+                      },
+                    ].map((feature) => (
+                      <div key={feature.title} className="relative pl-9">
+                        <dt className="inline font-semibold text-gray-900">
+                          <span className="absolute left-1 top-1 text-indigo-500">
+                            ✔
+                          </span>
+                          {feature.title}
+                        </dt>
+                        <dd className="inline">
+                          {" "}
+                          {feature.desc}
+                        </dd>
+                      </div>
+                    ))}
                   </dl>
                 </div>
               </div>
 
-              {/* Right Image */}
               <img
                 src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2832&q=80"
                 alt="Construction dashboard preview"
@@ -625,138 +517,160 @@ export default function Home2() {
           </div>
         </section>
 
-        <footer className="bg-gray-800" aria-labelledby="footer-heading">
+        <footer className={`${styles.footer} bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950`} aria-labelledby="footer-heading">
           <h2 id="footer-heading" className="sr-only">
             Footer
           </h2>
-          <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
-            <div className="xl:grid xl:grid-cols-3 xl:gap-8">
-              <div className="grid grid-cols-2 gap-8 xl:col-span-2">
-                <div className="md:grid md:grid-cols-2 md:gap-8">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
-                      Solutions
-                    </h3>
-                    <ul role="list" className="mt-4 space-y-4">
-                      {navigationFooter.solutions.map((item: any) => (
-                        <li key={item.name}>
-                          <a
-                            href={item.href}
-                            className="text-base text-gray-300 hover:text-white"
-                          >
-                            {item.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="mt-12 md:mt-0">
-                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
-                      Support
-                    </h3>
-                    <ul role="list" className="mt-4 space-y-4">
-                      {navigationFooter.support.map((item: any) => (
-                        <li key={item.name}>
-                          <a
-                            href={item.href}
-                            className="text-base text-gray-300 hover:text-white"
-                          >
-                            {item.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+          <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-20 lg:px-8">
+            {/* Logo & Tagline */}
+            <div className="mb-12 pb-8 border-b border-blue-800/30">
+              <div className="flex items-center gap-3 mb-3">
+                <SmartSiteLogo size="sm" className="drop-shadow-lg" />
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">
+                  SmartSite
+                </h2>
+              </div>
+              <p className="text-gray-400 text-sm max-w-md">
+                {t("hero.subtitle")} - Manage your construction sites with artificial intelligence
+              </p>
+            </div>
+
+            {/* Main Grid */}
+            <div className="xl:grid xl:grid-cols-4 xl:gap-8 mb-12">
+              {/* Solutions & Support */}
+              <div className="grid grid-cols-2 gap-8 xl:col-span-2 mb-8 xl:mb-0">
+                <div>
+                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
+                    {t("footer.solutions")}
+                  </h3>
+                  <ul role="list" className="space-y-3">
+                    {navigationFooter.solutions.map((item: any) => (
+                      <li key={item.name}>
+                        <a
+                          href={item.href}
+                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
+                        >
+                          {item.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="md:grid md:grid-cols-2 md:gap-8">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
-                      Company
-                    </h3>
-                    <ul role="list" className="mt-4 space-y-4">
-                      {navigationFooter.company.map((item: any) => (
-                        <li key={item.name}>
-                          <a
-                            href={item.href}
-                            className="text-base text-gray-300 hover:text-white"
-                          >
-                            {item.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="mt-12 md:mt-0">
-                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
-                      Legal
-                    </h3>
-                    <ul role="list" className="mt-4 space-y-4">
-                      {navigationFooter.legal.map((item: any) => (
-                        <li key={item.name}>
-                          <a
-                            href={item.href}
-                            className="text-base text-gray-300 hover:text-white"
-                          >
-                            {item.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                <div>
+                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
+                    {t("footer.support")}
+                  </h3>
+                  <ul role="list" className="space-y-3">
+                    {navigationFooter.support.map((item: any) => (
+                      <li key={item.name}>
+                        <a
+                          href={item.href}
+                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
+                        >
+                          {item.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              <div className="mt-8 xl:mt-0">
-                <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">
-                  Subscribe to our newsletter
+
+              {/* Company & Legal */}
+              <div className="grid grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
+                    {t("footer.company")}
+                  </h3>
+                  <ul role="list" className="space-y-3">
+                    {navigationFooter.company.map((item: any) => (
+                      <li key={item.name}>
+                        <a
+                          href={item.href}
+                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
+                        >
+                          {item.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-6">
+                    {t("footer.legal")}
+                  </h3>
+                  <ul role="list" className="space-y-3">
+                    {navigationFooter.legal.map((item: any) => (
+                      <li key={item.name}>
+                        <a
+                          href={item.href}
+                          className={`${styles.footerLink} text-sm text-gray-300 hover:text-blue-300 transition-colors duration-200`}
+                        >
+                          {item.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Newsletter */}
+              <div className="xl:col-span-1 bg-gradient-to-br from-blue-900/40 to-blue-800/30 rounded-lg p-6 border border-blue-700/40 backdrop-blur-sm">
+                <h3 className="text-xs font-bold text-blue-300 tracking-widest uppercase mb-3">
+                  {t("footer.newsletter")}
                 </h3>
-                <p className="mt-4 text-base text-gray-300">
-                  The latest news, articles, and resources, sent to your inbox
-                  weekly.
+                <p className="text-sm text-gray-400 mb-4">
+                  {t("footer.newsletterDesc")}
                 </p>
-                <form className="mt-4 sm:flex sm:max-w-md">
-                  <label htmlFor="email-address" className="sr-only">
+                <form className="space-y-3">
+                  <label htmlFor="footer-email" className="sr-only">
                     Email address
                   </label>
                   <input
                     type="email"
-                    name="email-address"
-                    id="email-address"
+                    name="email"
+                    id="footer-email"
                     autoComplete="email"
                     required
-                    className="appearance-none min-w-0 w-full bg-white border border-transparent rounded-md py-2 px-4 text-base text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white focus:border-white focus:placeholder-gray-400"
-                    placeholder="Enter your email"
+                    className="w-full bg-white/10 border border-blue-600/50 rounded-lg py-2 px-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="your@email.com"
                   />
-                  <div className="mt-3 rounded-md sm:mt-0 sm:ml-3 sm:flex-shrink-0">
-                    <button
-                      type="submit"
-                      className="w-full bg-indigo-500 border border-transparent rounded-md py-2 px-4 flex items-center justify-center text-base font-medium text-white hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500"
-                    >
-                      Subscribe
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-lg py-2 px-4 text-sm font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  >
+                    Subscribe
+                  </button>
                 </form>
               </div>
             </div>
-            <div className="mt-8 border-t border-gray-700 pt-8 md:flex md:items-center md:justify-between">
-              <div className="flex space-x-6 md:order-2">
-                {navigationFooter.social.map((item: any) => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className="text-gray-400 hover:text-gray-300"
-                  >
-                    <span className="sr-only">{item.name}</span>
-                    <item.icon className="h-6 w-6" aria-hidden="true" />
-                  </a>
-                ))}
+
+            {/* Divider */}
+            <div className="border-t border-blue-800/30 pt-8 mt-8">
+              {/* Social Links & Copyright */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <div className="flex space-x-5">
+                  {navigationFooter.social.map((item: any) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className={`${styles.footerLink} text-gray-400 hover:text-blue-300 transition-colors duration-200`}
+                      aria-label={item.name}
+                    >
+                      <span className="sr-only">{item.name}</span>
+                      <item.icon className="h-5 w-5" aria-hidden="true" />
+                    </a>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500">
+                  {t("footer.copyright")}
+                </p>
               </div>
-              <p className="mt-8 text-base text-gray-400 md:mt-0 md:order-1">
-                &copy; 2026 SmartSite. All rights reserved.
-              </p>
             </div>
           </div>
         </footer>
       </main>
+
+      <DemoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </div>
   );
 }

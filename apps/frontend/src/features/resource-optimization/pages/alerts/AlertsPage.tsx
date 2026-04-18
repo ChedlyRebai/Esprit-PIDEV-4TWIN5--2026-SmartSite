@@ -27,14 +27,14 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ siteId }) => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">🚨 Alertes</h1>
+          <h1 className="text-3xl font-bold">🚨 Alerts</h1>
           <p className="text-gray-600 mt-1">
-            Système d'alertes temps réel pour votre site
+            Real-time alert system for your site
           </p>
         </div>
         <Button onClick={handleGenerate} disabled={generateAlerts.isPending} className="gap-2">
           <RefreshCw className={`h-4 w-4 ${generateAlerts.isPending ? 'animate-spin' : ''}`} />
-          Générer Alertes
+          Generate Alerts
         </Button>
       </div>
 
@@ -45,7 +45,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ siteId }) => {
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Critiques</p>
+                  <p className="text-sm text-gray-600">Critical</p>
                   <p className="text-2xl font-bold">{summary.critical}</p>
                 </div>
               </div>
@@ -56,7 +56,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ siteId }) => {
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-orange-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Hautes</p>
+                  <p className="text-sm text-gray-600">High</p>
                   <p className="text-2xl font-bold">{summary.high}</p>
                 </div>
               </div>
@@ -67,7 +67,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ siteId }) => {
               <div className="flex items-center gap-2">
                 <Bell className="h-5 w-5 text-yellow-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Non Lues</p>
+                  <p className="text-sm text-gray-600">Unread</p>
                   <p className="text-2xl font-bold">{summary.unread}</p>
                 </div>
               </div>
@@ -89,7 +89,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ siteId }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Toutes les Alertes ({allAlerts?.length || 0})</CardTitle>
+          <CardTitle>All Alerts ({allAlerts?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           <AlertsList 
