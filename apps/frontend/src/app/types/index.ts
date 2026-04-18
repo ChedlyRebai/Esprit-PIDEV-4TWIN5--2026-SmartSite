@@ -200,7 +200,7 @@ export interface Site {
   status: "planning" | "in_progress" | "on_hold" | "completed";
   workStartDate: string;
   workEndDate?: string;
-  projectId: string;
+  projectId: string | null;
   budget: number;
   progress: number;
   createdAt: string;

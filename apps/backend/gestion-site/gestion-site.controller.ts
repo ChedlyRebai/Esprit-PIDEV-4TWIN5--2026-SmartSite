@@ -45,7 +45,9 @@ export class GestionSiteController {
     @Query('status') status?: string,
     @Query('budgetMin') budgetMin?: string,
     @Query('budgetMax') budgetMax?: string,
+    @Query('projectId') projectId?: string,
   ): Promise<PaginatedResult<any>> {
+    console.log('Controller received projectId:', projectId);
     // Parse optional numeric parameters
     const parsedBudgetMin = budgetMin ? parseInt(budgetMin, 10) : undefined;
     const parsedBudgetMax = budgetMax ? parseInt(budgetMax, 10) : undefined;
@@ -56,6 +58,7 @@ export class GestionSiteController {
       status,
       budgetMin: parsedBudgetMin,
       budgetMax: parsedBudgetMax,
+      projectId,
     };
 
     const pagination: PaginationOptions = {
@@ -197,16 +200,16 @@ export class GestionSiteController {
    * Get all sites with their assigned teams
    */
   @Get('teams/all')
-  async getAllSitesWithTeams() {
-    return this.gestionSiteService.getAllSitesWithTeams();
+  async getAllSitesWithTeams(@Query('projectId') projectId?: string) {
+    return this.gestionSiteService.getAllSitesWithTeams(projectId);
   }
 
   /**
    * Get all team IDs that are assigned to any site (for Teams page to check site assignment)
    */
   @Get('teams/assigned-ids')
-  async getAssignedTeamIds() {
-    const sites = await this.gestionSiteService.getAllSitesWithTeams();
+  async getAssignedTeamIds(@Query('projectId') projectId?: string) {
+    const sites = await this.gestionSiteService.getAllSitesWithTeams(projectId || undefined);
     
     // Create a map of teamId -> site info with status
     const teamToSiteMap: Record<string, { siteId: string; siteName: string; status: string }> = {};

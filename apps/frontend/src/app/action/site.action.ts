@@ -34,7 +34,7 @@ const mapBackendSiteToFrontend = (backendSite: any): Site => {
     status: backendSite.status || 'planning',
     workStartDate: backendSite.workStartDate || new Date().toISOString(),
     workEndDate: backendSite.workEndDate,
-    projectId: backendSite.projectId || '',
+    projectId: backendSite.projectId || null,
     budget: backendSite.budget || 0,
     progress: backendSite.progress || 0,
     createdAt: backendSite.createdAt || new Date().toISOString(),
@@ -46,18 +46,18 @@ const mapBackendSiteToFrontend = (backendSite: any): Site => {
 // Create site data format for backend
 const mapFrontendSiteToBackend = (site: Partial<Site>): any => {
   return {
-    nom: site.name,
-    adresse: site.address,
-    localisation: site.address, // Using address as localisation
-    budget: site.budget,
-    area: site.area,
-    status: site.status,
-    progress: site.progress,
+    nom: site.name || '',
+    adresse: site.address || '',
+    localisation: site.address || '', // Using address as localisation
+    budget: site.budget || 0,
+    area: site.area || 0,
+    status: site.status || 'planning',
+    progress: site.progress || 0,
     workStartDate: site.workStartDate,
     workEndDate: site.workEndDate,
     projectId: site.projectId,
     coordinates: site.coordinates,
-    isActif: true, // Required field for backend
+    isActif: true, // Required field for backend - must be boolean
   };
 };
 
@@ -70,6 +70,7 @@ export interface SiteFilters {
   isActif?: boolean;
   budgetMin?: number;
   budgetMax?: number;
+  projectId?: string;
 }
 
 export interface PaginatedSitesResponse {
@@ -93,7 +94,11 @@ export const fetchSites = async (filters?: SiteFilters): Promise<PaginatedSitesR
     if (filters?.isActif !== undefined) params.isActif = filters.isActif.toString();
     if (filters?.budgetMin) params.budgetMin = filters.budgetMin.toString();
     if (filters?.budgetMax) params.budgetMax = filters.budgetMax.toString();
+    if (filters?.projectId) params.projectId = filters.projectId;
 
+    console.log('fetchSites called with filters:', filters);
+    console.log('Request params:', params);
+    
     const response = await api.get('/gestion-sites', { params });
 
     // Map backend data to frontend format
@@ -120,11 +125,15 @@ export const fetchSiteById = async (id: string): Promise<Site> => {
 
 // Create a new site
 export const createSite = async (site: Partial<Site>): Promise<Site> => {
+  const backendData = mapFrontendSiteToBackend(site);
+  console.log('Full backend data being sent:', JSON.stringify(backendData, null, 2));
   try {
-    const response = await api.post('/gestion-sites', mapFrontendSiteToBackend(site));
+    const response = await api.post('/gestion-sites', backendData);
     return mapBackendSiteToFrontend(response.data);
-  } catch (error) {
-    console.error('Error creating site:', error);
+  } catch (error: any) {
+    console.error('Error creating site - Full error:', error);
+    console.error('Error response data:', error.response?.data);
+    console.error('Error status:', error.response?.status);
     throw error;
   }
 };
@@ -220,9 +229,10 @@ export const getTeamsAssignedToSite = async (siteId: string): Promise<any[]> => 
 };
 
 // Get all sites with their teams
-export const getAllSitesWithTeams = async (): Promise<Site[]> => {
+export const getAllSitesWithTeams = async (projectId?: string): Promise<Site[]> => {
   try {
-    const response = await api.get('/gestion-sites/teams/all');
+    const params = projectId ? { projectId } : {};
+    const response = await api.get('/gestion-sites/teams/all', { params });
     return response.data.map(mapBackendSiteToFrontend);
   } catch (error: any) {
     console.error('Error getting sites with teams:', error);

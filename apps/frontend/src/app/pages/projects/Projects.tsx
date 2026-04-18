@@ -1,5 +1,7 @@
 import { Briefcase } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -25,7 +27,10 @@ import {
   type SyncedProject,
 } from "../../action/synced-project.action";
 
+const API_URL = "http://localhost:3007";
+
 export default function Projects() {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   // Contournement : si le role est null, utiliser un role par défaut
   const userRole = user?.role || { name: "super_admin" as const };
@@ -34,9 +39,11 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [newProject, setNewProject] = useState({
     name: "",
-    client: "",
     budget: "",
+    siteCount: 0,
   });
+  const [sites, setSites] = useState<{_id: string; name: string}[]>([]);
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<SyncedProject | null>(
@@ -44,22 +51,31 @@ export default function Projects() {
   );
   const [editData, setEditData] = useState({
     name: "",
-    client: "",
     budget: "",
+    siteCount: 0,
     status: "",
     progress: 0,
   });
 
-  // Charger les projets synchronisés
+  // Charger les projets depuis l'API
   useEffect(() => {
     const loadProjects = async () => {
       try {
         setLoading(true);
-        const syncedProjects = await getSyncedProjectsWithDetails();
-        setProjects(syncedProjects);
+        const response = await axios.get(`${API_URL}/projects`, {
+          params: { limit: 100, page: 1 }
+        });
+        setProjects(response.data.projects || []);
       } catch (error) {
         console.error("Error loading projects:", error);
-        toast.error("Failed to load projects");
+        // Fallback to synced projects
+        try {
+          const syncedProjects = await getSyncedProjectsWithDetails();
+          setProjects(syncedProjects);
+        } catch (fallbackError) {
+          console.error("Error loading synced projects:", fallbackError);
+          toast.error("Failed to load projects");
+        }
       } finally {
         setLoading(false);
       }
@@ -68,37 +84,32 @@ export default function Projects() {
     loadProjects();
   }, []);
 
-  const handleAddProject = () => {
-    if (!newProject.name || !newProject.client || !newProject.budget) {
-      toast.error("All fields are required");
+  const handleAddProject = async () => {
+    if (!newProject.name || !newProject.budget) {
+      toast.error("Name and budget are required");
       return;
     }
-    const project: SyncedProject = {
-      _id: `temp_${Date.now()}`,
-      name: newProject.name,
-      description: `Project for ${newProject.client}`,
-      status: "planning",
-      progress: 0,
-      priority: "medium",
-      deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      assignedTo: user?._id || "",
-      assignedToName: user?.firstName || "Unknown",
-      assignedToRole: user?.role?.name || "user",
-      tasks: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      projectManagerName: user?.firstName || "Unknown",
-      budget: parseInt(newProject.budget),
-      assignedTeam: [],
-      assignedSites: [],
-      teamSize: 0,
-      siteCount: 0,
-      totalTeamBudget: 0,
-      totalSiteBudget: 0,
-    };
-    setProjects([...projects, project]);
-    setNewProject({ name: "", client: "", budget: "" });
-    toast.success("Project created successfully!");
+    if (newProject.siteCount < 1) {
+      toast.error("Number of sites must be at least 1");
+      return;
+    }
+    try {
+      const response = await axios.post(`${API_URL}/projects`, {
+        name: newProject.name,
+        budget: parseFloat(newProject.budget),
+        siteCount: newProject.siteCount,
+        sites: selectedSites,
+        status: "planning",
+        priority: "medium",
+      });
+      setProjects([...projects, response.data]);
+      setNewProject({ name: "", budget: "", siteCount: 0 });
+      setSelectedSites([]);
+      toast.success("Project created successfully!");
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast.error("Failed to create project");
+    }
   };
 
   const handleViewDetails = (project: SyncedProject) => {
@@ -106,42 +117,79 @@ export default function Projects() {
     setViewDetailsOpen(true);
   };
 
+  const handleDeleteProject = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this project?")) return;
+    try {
+      await axios.delete(`${API_URL}/projects/${id}`);
+      setProjects(projects.filter(p => p._id !== id));
+      toast.success("Project deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast.error("Failed to delete project");
+    }
+  };
+
   const handleEditProject = (project: any) => {
     setSelectedProject(project);
     setEditData({
       name: project.name,
-      client: project.client,
-      budget: project.budget,
+      budget: project.budget?.toString() || "",
+      siteCount: project.siteCount || 0,
       status: project.status,
       progress: project.progress,
     });
     setEditOpen(true);
   };
 
-  const handleSaveEdit = () => {
-    if (!editData.name || !editData.client || !editData.budget) {
-      toast.error("All fields are required");
+  const handleExportPdf = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/projects/export-pdf`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `projects-${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("PDF exported successfully!");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast.error("Failed to export PDF");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editData.name || !editData.budget) {
+      toast.error("Name and budget are required");
       return;
     }
-    setProjects(
-      projects.map((p) =>
-        p.id === selectedProject.id
-          ? {
-              ...p,
-              name: editData.name,
-              client: editData.client,
-              budget:
-                typeof editData.budget === "string"
-                  ? parseInt(editData.budget)
-                  : editData.budget,
-              status: editData.status,
-              progress: editData.progress,
-            }
-          : p,
-      ),
-    );
-    setEditOpen(false);
-    toast.success("Project updated successfully!");
+    if (editData.siteCount < 1) {
+      toast.error("Number of sites must be at least 1");
+      return;
+    }
+    try {
+      const response = await axios.put(`${API_URL}/projects/${selectedProject?._id}`, {
+        name: editData.name,
+        budget: parseFloat(editData.budget),
+        siteCount: editData.siteCount,
+        status: editData.status,
+        progress: editData.progress,
+      });
+      
+      // Reload projects from database to ensure fresh data
+      const reloadResponse = await axios.get(`${API_URL}/projects`, {
+        params: { limit: 100, page: 1 }
+      });
+      setProjects(reloadResponse.data.projects || []);
+      
+      setEditOpen(false);
+      toast.success("Project updated successfully!");
+    } catch (error) {
+      console.error("Error updating project:", error);
+      toast.error("Failed to update project");
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -168,12 +216,19 @@ export default function Projects() {
           <p className="text-gray-500 mt-1">Manage all construction projects</p>
         </div>
         {canManageProjects ? (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                + New Project
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={handleExportPdf}
+            >
+              Export PDF
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
+                  + New Project
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
@@ -194,18 +249,7 @@ export default function Projects() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="client">Client Name</Label>
-                  <Input
-                    id="client"
-                    placeholder="e.g., Acme Corporation"
-                    value={newProject.client}
-                    onChange={(e) =>
-                      setNewProject({ ...newProject, client: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Budget ($)</Label>
+                  <Label htmlFor="budget">Budget (DT)</Label>
                   <Input
                     id="budget"
                     type="number"
@@ -213,6 +257,19 @@ export default function Projects() {
                     value={newProject.budget}
                     onChange={(e) =>
                       setNewProject({ ...newProject, budget: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="site-count">Number of Sites</Label>
+                  <Input
+                    id="site-count"
+                    type="number"
+                    min="1"
+                    placeholder="e.g., 5"
+                    value={newProject.siteCount}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, siteCount: parseInt(e.target.value) || 0 })
                     }
                   />
                 </div>
@@ -225,6 +282,7 @@ export default function Projects() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         ) : (
           <Button disabled className="opacity-50 cursor-not-allowed">
             + New Project (No Permission)
@@ -246,7 +304,8 @@ export default function Projects() {
             <Card key={project._id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 cursor-pointer hover:text-blue-600"
+                    onClick={() => navigate(`/projects/${project._id}/sites`)}>
                     <Briefcase className="h-5 w-5" />
                     {project.name}
                   </CardTitle>
@@ -385,7 +444,7 @@ export default function Projects() {
                             <div>
                               <p className="text-sm text-gray-600">Tasks</p>
                               <p className="font-semibold text-gray-900">
-                                {selectedProject.tasks.length} tasks
+                                {(selectedProject.tasks?.length || 0)} tasks
                               </p>
                             </div>
                           </div>
@@ -423,25 +482,32 @@ export default function Projects() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="edit-client">Client</Label>
+                            <Label htmlFor="edit-budget">Budget (DT)</Label>
                             <Input
-                              id="edit-client"
-                              value={editData.client}
+                              id="edit-budget"
+                              type="number"
+                              value={editData.budget}
                               onChange={(e) =>
                                 setEditData({
                                   ...editData,
-                                  client: e.target.value,
+                                  budget: e.target.value,
                                 })
                               }
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="edit-budget">Budget</Label>
+                            <Label htmlFor="edit-site-count">Number of Sites</Label>
                             <Input
-                              id="edit-budget"
+                              id="edit-site-count"
                               type="number"
-                              value={editData.budget}
-                              //  onChange={(e) => setEditData({ ...editData, budget: parseInt(e.target.value) })}
+                              min="1"
+                              value={editData.siteCount}
+                              onChange={(e) =>
+                                setEditData({
+                                  ...editData,
+                                  siteCount: parseInt(e.target.value) || 0,
+                                })
+                              }
                             />
                           </div>
                           <div className="space-y-2">
@@ -483,6 +549,12 @@ export default function Projects() {
                             onClick={handleSaveEdit}
                           >
                             Save Changes
+                          </Button>
+                          <Button
+                            className="w-full bg-red-600 hover:bg-red-700"
+                            onClick={() => handleDeleteProject(selectedProject?._id)}
+                          >
+                            Delete Project
                           </Button>
                         </div>
                       </DialogContent>

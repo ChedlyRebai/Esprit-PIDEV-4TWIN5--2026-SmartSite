@@ -19,6 +19,7 @@ export interface SiteFilters {
   budgetMin?: number;
   budgetMax?: number;
   status?: string;
+  projectId?: string;
 }
 
 export interface PaginationOptions {
@@ -118,7 +119,13 @@ export class GestionSiteService {
             (query.budget as any).$lte = filters.budgetMax;
           }
         }
+        if (filters.projectId) {
+          console.log('Filtering by projectId:', filters.projectId);
+          query.projectId = filters.projectId;
+        }
       }
+
+      console.log('Final query:', JSON.stringify(query));
 
       // Default pagination
       const page = pagination?.page || 1;
@@ -554,9 +561,10 @@ export class GestionSiteService {
   /**
    * Get all sites with their assigned teams
    */
-  async getAllSitesWithTeams(): Promise<Site[]> {
+  async getAllSitesWithTeams(projectId?: string): Promise<Site[]> {
     try {
-      return await this.siteModel.find()
+      const query = projectId ? { projectId } : {};
+      return await this.siteModel.find(query)
         .populate({
           path: 'teamIds',
           select: 'name description teamCode'

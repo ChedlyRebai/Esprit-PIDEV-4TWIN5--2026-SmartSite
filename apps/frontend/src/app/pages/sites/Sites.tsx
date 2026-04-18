@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router';
+import axios from 'axios';
 import { Plus, MapPin, Search, Filter, Trash2, Edit, ChevronRight, AlertCircle, CheckCircle2, Clock, PauseCircle, Users, FileDown, SortAsc, SortDesc, RefreshCw, MessageSquare, AlertTriangle, Flag, X, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -110,7 +112,27 @@ function MapPicker({ position, setPosition, onLocationSelect }: { position: { la
 
 export default function Sites() {
   const user = useAuthStore((state) => state.user);
-  const canManageSites = true;
+  const { projectId: projectIdFromUrl } = useParams<{ projectId?: string }>();
+  const navigate = useNavigate();
+  const isProjectContext = !!projectIdFromUrl;
+  const currentProjectId = isProjectContext ? projectIdFromUrl : null;
+  
+  const [projectSiteLimit, setProjectSiteLimit] = useState<number | null>(null);
+  const [projectLoading, setProjectLoading] = useState(false);
+  
+  useEffect(() => {
+    if (isProjectContext && currentProjectId) {
+      setProjectLoading(true);
+      axios.get(`http://localhost:3007/projects/${currentProjectId}`)
+        .then(res => {
+          if (res.data?.siteCount !== undefined) {
+            setProjectSiteLimit(res.data.siteCount);
+          }
+        })
+        .catch(err => console.error('Error fetching project:', err))
+        .finally(() => setProjectLoading(false));
+    }
+  }, [isProjectContext, currentProjectId]);
   
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,6 +148,9 @@ export default function Sites() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
+  
+  const canManageSites = true;
+  const isLimitReached = projectSiteLimit !== null && sites.filter(s => s.projectId === currentProjectId).length >= projectSiteLimit;
   
   // Real-time refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -251,12 +276,17 @@ export default function Sites() {
       setLoading(true);
       setError(null);
       
-      // Load both sites and sites with teams in parallel
+      const filters: any = { 
+        limit: 100,
+        status: selectedStatus === 'all' ? undefined : selectedStatus
+      };
+      
+      if (currentProjectId) {
+        filters.projectId = currentProjectId;
+      }
+      
       const [response, sitesWithTeamsData] = await Promise.all([
-        fetchSites({ 
-          limit: 100,
-          status: selectedStatus === 'all' ? undefined : selectedStatus
-        }),
+        fetchSites(filters),
         getAllSitesWithTeams()
       ]);
       
@@ -625,6 +655,11 @@ export default function Sites() {
       return;
     }
     
+    if (isLimitReached) {
+      toast.error(`Site limit (${projectSiteLimit}) reached for this project`);
+      return;
+    }
+    
     try {
       if (useMockData) {
         const site: Site = {
@@ -636,7 +671,7 @@ export default function Sites() {
           budget: parseInt(newSite.budget),
           progress: 0,
           workStartDate: new Date().toISOString(),
-          projectId: String(sites.length + 1),
+          projectId: currentProjectId || String(sites.length + 1),
           coordinates: mapPosition || { lat: 0, lng: 0 },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -653,7 +688,7 @@ export default function Sites() {
           status: 'planning',
           progress: 0,
           workStartDate: new Date().toISOString(),
-          projectId: String(sites.length + 1),
+          projectId: currentProjectId || undefined,
           coordinates: mapPosition || { lat: 0, lng: 0 },
         };
         
@@ -873,15 +908,32 @@ export default function Sites() {
 
   return (
     <div className="space-y-6">
+      {isProjectContext && (
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-2 pl-0 hover:bg-transparent hover:text-blue-600"
+        >
+          <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
+          Back to Projects
+        </Button>
+      )}
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sites</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            {isProjectContext ? `Sites - Project` : 'Sites'}
+          </h1>
           <p className="text-sm sm:text-base text-gray-500 mt-1">
             {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
             <span className="ml-1">
               {sites.filter(s => s.status === 'in_progress').length} in progress
             </span>
+            {projectSiteLimit !== null && (
+              <span className="ml-1 text-blue-600">
+                {' • '}{sites.filter(s => s.projectId === currentProjectId).length} / {projectSiteLimit} limit
+              </span>
+            )}
             {siteIssues && Object.keys(siteIssues).length > 0 && (
               <span className="ml-1 text-amber-600">
                 {' • '}{Object.values(siteIssues).flat().filter(i => !i.resolved).length} issues
@@ -889,7 +941,7 @@ export default function Sites() {
             )}
           </p>
         </div>
-        {canManageSites ? (
+        {canManageSites && isProjectContext ? (
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1179,12 +1231,7 @@ export default function Sites() {
             </DialogContent>
           </Dialog>
           </div>
-        ) : (
-          <Button disabled className="opacity-50 cursor-not-allowed">
-            <Plus className="h-4 w-4 mr-2" />
-            New Site
-          </Button>
-        )}
+        ) : null}
       </div>
 
       {/* Search and Filter Card */}
