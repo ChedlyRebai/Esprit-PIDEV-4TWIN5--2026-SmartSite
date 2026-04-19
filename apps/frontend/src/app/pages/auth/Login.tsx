@@ -1,6 +1,5 @@
 "use client";
-
-import * as React from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 
@@ -35,16 +34,18 @@ const formSchema = z.object({
     .min(5, "Password is required and must be at least 5 characters.")
     .max(100, "Password must be at most 100 characters."),
 });
+
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const [logoAvailable, setLogoAvailable] = useState(true);
   const { user, isFirstLogin } = useAuthStore((state) => state);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(false);
   const { t } = useTranslation();
 
   // Debug logging
-  React.useEffect(() => {
+  useEffect(() => {
     console.log("Login component - user:", user);
     console.log("Login component - isFirstLogin:", isFirstLogin);
     console.log("Login component - showWelcome:", showWelcome);
@@ -66,26 +67,34 @@ export default function Login() {
 
       toast.success("Login successful!");
 
-      // Check if this is the first login - show welcome modal directly
       if (userData.firstLogin) {
         console.log("Login - First login, showing welcome modal");
         setShowWelcome(true);
+        return;
+      }
+
+      const userRole = userData.role?.name || userData.role;
+      if (userRole === "project_manager") {
+        navigate("/project-manager-dashboard");
+      } else if (userRole === "super_admin") {
+        navigate("/super-admin-projects");
       } else {
-        // Not first login - navigate directly to dashboard
-        console.log("Login - Not first login, navigating to dashboard");
         navigate("/dashboard");
       }
     } catch (error: any) {
-      const message =
-        error?.message ||
-        error?.response?.data?.message ||
-        "Invalid credentials. Please try again.";
+      const isNetworkError =
+        error?.message === "Network Error" && !error?.response;
+      const message = isNetworkError
+        ? "Authentication service is unreachable. Start backend user-authentication on http://localhost:3000 (or set VITE_AUTH_API_URL)."
+        : error?.response?.data?.message ||
+          error?.message ||
+          "Invalid credentials. Please try again.";
       toast.error(message);
     } finally {
       setIsLoading(false);
     }
   };
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <>
       <div

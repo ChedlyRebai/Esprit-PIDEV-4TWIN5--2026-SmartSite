@@ -33,6 +33,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createTaskStage,
   getAllTaskStages,
+  getTaskStageById,
+  getTaskStagesByMilestoneId,
+  updateTaskStage,
 } from "@/app/action/taskStage.action";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
 
@@ -62,6 +65,21 @@ const TaskStageForm = ({ type }: { type: "edit" | "add" }) => {
   console.log("milestone from task form", milestoneId);
 
   console.log("milestone id from TAskForm", milestoneId);
+  if (type === "edit" && milestoneId) {
+    const { data: taskStageData } = useQuery({
+      queryKey: ["getTaskStageById", milestoneId],
+      queryFn: () =>
+        getTaskStageById(milestoneId as string).then((data) => {
+          form.reset(data);
+          console.log("task stage data from query", data);
+          return data;
+        }),
+      enabled: !!milestoneId,
+    });
+    console.log("====================================", taskStageData);
+  }
+
+  console.log("task stage data", milestoneId);
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,38 +91,52 @@ const TaskStageForm = ({ type }: { type: "edit" | "add" }) => {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: (task: CreateTaskPayload | UpdateTaskPayload) => {
-      if (type === "add") {
-        return createTask(task, milestoneId, task.status as string);
-      }
-      if (type === "edit" && taskId) {
-        return updateTask(taskId as string, task);
-      }
-    },
+  // const mutation = useMutation({
+  //   mutationFn: (task: CreateTaskPayload | UpdateTaskPayload) => {
+  //     if (type === "add") {
+  //       return createTask(task, milestoneId, task.status as string);
+  //     }
+  //     if (type === "edit" && milestoneId) {
+  //       return updateTaskStage(milestoneId as string, task);
+  //     }
+  //   },
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
-      });
-      toast.success("Task created successfully");
-      onClose();
-    },
-    onError: () => {
-      toast.error("Failed to create task , please try again");
-    },
-  });
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({
+  //       queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
+  //     });
+  //     toast.success("Task created successfully");
+  //     onClose();
+  //   },
+  //   onError: () => {
+  //     toast.error("Failed to create task , please try again");
+  //   },
+  // });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    const reponse = await createTaskStage(data, milestoneId as string);
-    if (reponse.status === 201 || reponse.status === 200) {
-      toast.success("Task stage created successfully");
-      onClose();
-      queryClient.invalidateQueries({
-        queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
-      });
+    if (type === "edit" && milestoneId) {
+      const reponse = await updateTaskStage(milestoneId as string, data);
+      if (reponse.status === 200) {
+        toast.success("Task stage updated successfully");
+        onClose();
+        queryClient.invalidateQueries({
+          queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
+        });
+      } else {
+        toast.error("Failed to update task stage");
+      }
+      return;
     } else {
-      toast.error("Failed to create task stage");
+      const reponse = await createTaskStage(data, milestoneId as string);
+      if (reponse.status === 201 || reponse.status === 200) {
+        toast.success("Task stage created successfully");
+        onClose();
+        queryClient.invalidateQueries({
+          queryKey: ["getTaskSTagesByMilestoneId", milestoneId],
+        });
+      } else {
+        toast.error("Failed to create task stage");
+      }
     }
   };
 
@@ -207,6 +239,7 @@ const TaskStageForm = ({ type }: { type: "edit" | "add" }) => {
                 </FieldLabel>
                 <Input
                   type="number"
+                  max={3}
                   {...field}
                   value={field.value as number}
                   id="form-rhf-TaskStageForm-"

@@ -745,7 +745,7 @@ Pour toute question, veuillez contacter l'administrateur système.
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Incident Management
           </h1>
           <p className="text-gray-500 mt-1">
@@ -1071,7 +1071,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
                         {(incident as any).title?.toUpperCase() ||
                           (incident as any).incidentName?.toUpperCase() ||
                           incident.type.toUpperCase()}
@@ -1536,7 +1536,7 @@ Pour toute question, veuillez contacter l'administrateur système.
               {/* En-tête avec statut et sévérité */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {(selectedIncidentDetails as any).title?.toUpperCase() ||
                       (
                         selectedIncidentDetails as any
@@ -1582,7 +1582,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                     <Label className="text-sm font-medium text-gray-700">
                       Type d'incident
                     </Label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {selectedIncidentDetails.type.toUpperCase()}
                     </p>
                   </div>
@@ -1590,7 +1590,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                     <Label className="text-sm font-medium text-gray-700">
                       Signalé par
                     </Label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {selectedIncidentDetails.reportedBy}
                     </p>
                   </div>
@@ -1598,7 +1598,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                     <Label className="text-sm font-medium text-gray-700">
                       Date de création
                     </Label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {new Date(
                         selectedIncidentDetails.createdAt,
                       ).toLocaleString("fr-FR")}
@@ -1608,7 +1608,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                     <Label className="text-sm font-medium text-gray-700">
                       Dernière mise à jour
                     </Label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {selectedIncidentDetails.updatedAt
                         ? new Date(
                           selectedIncidentDetails.updatedAt,
@@ -1622,7 +1622,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                     <Label className="text-sm font-medium text-gray-700">
                       Site
                     </Label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {(selectedIncidentDetails as any).siteId || "N/A"}
                     </p>
                   </div>
@@ -1633,7 +1633,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                       </Label>
                       <div className="flex items-center gap-2 mt-1">
                         <User className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 dark:text-white">
                           {(selectedIncidentDetails as any).assignedTo}
                         </span>
                         {(selectedIncidentDetails as any).assignedUserRole && (
@@ -1653,7 +1653,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   Description
                 </Label>
                 <div className="mt-1 p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
                     {selectedIncidentDetails.description ||
                       "Aucune description fournie"}
                   </p>

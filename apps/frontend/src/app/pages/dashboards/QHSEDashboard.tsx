@@ -13,7 +13,7 @@ export default function QHSEDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">QHSE & Safety Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">QHSE & Safety Dashboard</h1>
         <p className="text-gray-500 mt-1">Safety monitoring and compliance - {user?.firstName}</p>
       </div>
 
@@ -48,7 +48,7 @@ export default function QHSEDashboard() {
                       }`} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">{incident.type.toUpperCase()}</h4>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">{incident.type.toUpperCase()}</h4>
                       <p className="text-sm text-gray-500">{incident.description}</p>
                     </div>
                   </div>
@@ -89,7 +89,7 @@ export default function QHSEDashboard() {
                   ) : (
                     <AlertTriangle className="h-5 w-5 text-gray-400" />
                   )}
-                  <span className="font-medium text-gray-900">{item.item}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{item.item}</span>
                 </div>
                 <span className="text-sm text-gray-500">{item.date}</span>
               </div>

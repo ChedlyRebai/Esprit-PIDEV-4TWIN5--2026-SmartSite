@@ -9,7 +9,7 @@ export const FACTURE_API_URL = import.meta.env.VITE_PAYMENT_URL
 
 export const planingApi = axios.create({
   baseURL:
-    import.meta.env.VITE_PLANNING_URL || "http://localhost:3002",
+    process.env.VITE_PLANNING_URL || "http://localhost:3002",
   headers: {
     "Content-Type": "application/json",
   },
@@ -22,12 +22,24 @@ export const userApi = axios.create({
 
 export const NotificationApi = axios.create({
   baseURL:
-    import.meta.env.VITE_NOTIFICATION_URL ||
+    process.env.VITE_NOTIFICATION_URL ||
     "http://localhost:3004/notification",
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+
+userApi.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().user.access_token;
+  console.log(token);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 
 NotificationApi.interceptors.request.use((config) => {
   const token = useAuthStore.getState().user.access_token;

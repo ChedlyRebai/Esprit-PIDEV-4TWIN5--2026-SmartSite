@@ -12,7 +12,7 @@ export default function SubcontractorDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Subcontractor Portal</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Subcontractor Portal</h1>
         <p className="text-gray-500 mt-1">Your assigned work - {user?.firstName}</p>
       </div>
 
@@ -33,7 +33,7 @@ export default function SubcontractorDashboard() {
               <div key={task.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{task.title}</h3>
                     <p className="text-sm text-gray-500 mt-1">{task.description}</p>
                   </div>
                   <Badge variant={
@@ -47,11 +47,11 @@ export default function SubcontractorDashboard() {
                 <div className="grid grid-cols-2 gap-4 text-sm mt-3">
                   <div>
                     <p className="text-gray-500">Start Date</p>
-                    <p className="font-semibold text-gray-900">{new Date(task.startDate).toLocaleDateString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{new Date(task.startDate).toLocaleDateString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Deadline</p>
-                    <p className="font-semibold text-gray-900">{new Date(task.plannedEndDate).toLocaleDateString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{new Date(task.plannedEndDate).toLocaleDateString()}</p>
                   </div>
                 </div>
                 <div className="mt-3">

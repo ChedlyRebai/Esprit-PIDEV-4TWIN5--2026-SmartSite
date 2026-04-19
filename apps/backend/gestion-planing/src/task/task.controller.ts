@@ -43,16 +43,34 @@ export class TaskController {
     return this.taskService.updateNew(taskId, colunId);
   }
 
-  @UseGuards(JwtGuard)
-  @Get('/my-tasks')
-  getMytasks(@GetUser() user: any) {
-    const userId = user?.sub || user?.userId || user?.id || user?._id;
-    console.log('Extracted user ID from token payload:', user);
-    if (!userId) {
-      throw new UnauthorizedException('User ID missing in token payload');
-    }
+  // @UseGuards(JwtGuard)
+  // @Get('/my-tasks')
+  // getMytasks(@GetUser() user: any) {
+  //   const userId = user?.sub || user?.userId || user?.id || user?._id;
+  //   console.log('Extracted user ID from token payload:', user);
+  //   if (!userId) {
+  //     throw new UnauthorizedException('User ID missing in token payload');
+  //   }
 
-    return this.taskService.getMyTasks(userId);
+  //   return this.taskService.getMyTask("69bb3f601fa09b37911c44b2");
+  // }
+  
+  @Get('/my-tasks')
+  getMytasks() {
+    // const userId = user?.sub || user?.userId || user?.id || user?._id;
+    // console.log('Extracted user ID from token payload:', user);
+    // if (!userId) {
+    //   throw new UnauthorizedException('User ID missing in token payload');
+    // }
+
+    return this.taskService.getMyTask("69bb3f601fa09b37911c44b2");
+  }
+
+  
+
+  @Get('/team/:teamId')
+  getTasksByTeamId(@Param('teamId') teamId: string) {
+    return this.taskService.getTAsksByTeamId(teamId);
   }
 
   @Get('milestone/:milestoneId')

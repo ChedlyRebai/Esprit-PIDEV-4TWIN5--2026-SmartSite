@@ -56,6 +56,7 @@ export class User extends Document {
   @Prop()
   approvedAt?: Date;
 
+
   @Prop()
   rejectedAt?: Date;
 
@@ -91,9 +92,23 @@ export class User extends Document {
 
   @Prop()
   passwordResetCodeExpiresAt?: Date;
+
+  // Team assignment fields
+  @Prop()
+  assignedSite?: string;
+
+  @Prop({ type: [{type: Types.ObjectId, ref: 'Team'}], default: [] })
+  assignedTeam?: Types.ObjectId[];
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  manager?: Types.ObjectId;
+
+  @Prop({ type: String, default: 'worker' })
+  responsibilities?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
 
 UserSchema.pre('save', async function () {
   if (!this.isModified('password')) {

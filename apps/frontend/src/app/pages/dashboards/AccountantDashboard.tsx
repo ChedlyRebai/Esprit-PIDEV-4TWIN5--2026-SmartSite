@@ -21,7 +21,7 @@ export default function AccountantDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Financial Control Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Financial Control Dashboard</h1>
         <p className="text-gray-500 mt-1">Budget tracking and financial analysis - {user?.firstName}</p>
       </div>
 
@@ -59,11 +59,11 @@ export default function AccountantDashboard() {
             {mockProjects.map((project) => (
               <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
-                  <h4 className="font-semibold text-gray-900">{project.name}</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">{project.name}</h4>
                   <p className="text-sm text-gray-500">{project.code}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">${(project.budget / 1000000).toFixed(1)}M</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">${(project.budget / 1000000).toFixed(1)}M</p>
                   <p className="text-sm text-gray-500">{project.progress}% spent</p>
                 </div>
               </div>

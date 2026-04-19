@@ -19,7 +19,7 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import * as z from "zod";
@@ -36,6 +36,7 @@ import {
 import {
   CreateTaskPayload,
   Task,
+  TaskPriorityEnum,
   TaskStage,
   TaskStatusEnum,
   UpdateTaskPayload,
@@ -47,13 +48,19 @@ import {
   getTaskById,
   updateTask,
 } from "@/app/action/planing.action";
-import { getAllUsers } from "@/app/action/user.action";
+import { getAllUsers, getUsersBySite } from "@/app/action/user.action";
 import { data, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllTaskStages } from "@/app/action/taskStage.action";
-import { getAllTaskStagesByMilestoneId } from "@/app/action/task.actions";
+import {
+  getAllTaskStagesByMilestoneId,
+  getTaskByTeamid,
+} from "@/app/action/task.actions";
 import { PlusIcon } from "lucide-react";
 import useTaskStageModal from "@/app/hooks/use-task-stage-modal";
+import { getMilestoneById } from "@/app/action/milestone.action";
+import { getAllTeams, Team } from "@/app/action/team.action";
+import axios from "axios";
 
 const todayAtMidnight = () => {
   const today = new Date();
@@ -73,7 +80,8 @@ const formSchema = z
       .max(500, "Description must be at most 500 characters.")
       .optional(),
     status: z.string().optional(),
-    assignedUsers: z.array(z.string()).optional(),
+    priority: z.nativeEnum(TaskPriorityEnum),
+    assignedTeams: z.array(z.string()).optional(),
     startDate: z.date(),
     endDate: z.date(),
   })
@@ -99,12 +107,15 @@ const formSchema = z
 const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   const queryClient = useQueryClient();
   // const milestoneId = "69bc78a30912805125e58f72";
-
   const { id: taskId, onClose, onTaskChange, milestoneId } = useTaskModal();
+  console.log(
+    "Milestone ID in TaskForms component:bbbbbbbbbbbbbbbbbbbbbbb",
+    milestoneId,
+  );
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   console.log("milestone from task form", milestoneId);
-  const [openStartDate, setOpenStartDate] = React.useState(false);
-  const [openEndDate, setOpenEndDate] = React.useState(false);
+  const [openStartDate, setOpenStartDate] = useState(false);
+  const [openEndDate, setOpenEndDate] = useState(false);
   console.log("milestone id from TAskForm", milestoneId);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -113,23 +124,25 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
       title: "",
       description: "",
       status: undefined,
-      assignedUsers: [],
+      priority: TaskPriorityEnum.MEDIUM,
+      assignedTeams: [],
       startDate: new Date(),
       endDate: new Date(),
     },
   });
 
   const mutation = useMutation({
-    mutationFn: (task: CreateTaskPayload | UpdateTaskPayload) => {
+    mutationFn: async (task: CreateTaskPayload | UpdateTaskPayload) => {
       if (type === "add") {
         console.log("Creating task with data:", task);
-        //  console.log();
         return createTask(task, milestoneId, task.status as string);
       }
 
       if (type === "edit" && taskId) {
         return updateTask(taskId as string, task);
       }
+
+      throw new Error("Invalid task mutation state");
     },
 
     onSuccess: () => {
@@ -147,17 +160,6 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   const onSubmit = async (data: z.infer<typeof formSchema>) =>
     mutation.mutate(data);
 
-  const loadUsers = async () => {
-    try {
-      const response = await getAllUsers();
-      if (response?.status === 200 && Array.isArray(response.data)) {
-        setAvailableUsers(response.data);
-      }
-    } catch {
-      toast.error("Failed to load users.");
-    }
-  };
-
   const loadTaskData = async () => {
     if (type !== "edit" || !taskId) {
       return;
@@ -171,14 +173,20 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           title: res.data.title ?? "",
           description: res.data.description ?? "",
           status: res.data.status ?? TaskStatusEnum.BACKLOG,
-          assignedUsers: Array.isArray(res.data.assignedUsers)
-            ? res.data.assignedUsers
+          priority:
+            res.data.priority &&
+            Object.values(TaskPriorityEnum).includes(res.data.priority)
+              ? res.data.priority
+              : TaskPriorityEnum.MEDIUM,
+          assignedTeams: Array.isArray(res.data.assignedTeams)
+            ? res.data.assignedTeams
             : [],
           startDate: res.data.startDate
             ? new Date(res.data.startDate)
             : new Date(),
           endDate: res.data.endDate ? new Date(res.data.endDate) : new Date(),
         });
+        console.log("Loaded task data for editing:", res.data);
       }
     } catch {
       toast.error("Failed to load task data. Please try again.");
@@ -186,9 +194,14 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
   };
 
   useEffect(() => {
-    loadUsers();
-   // loadTaskData();
+    //loadUsers();
+    console.log("Task ID from params:sssssssssssssssssssssssssss", taskId);
+    loadTaskData();
   }, [type, taskId]);
+  // useEffect(() => {
+  //   console.log("Milestone ID in TaskForms:", milestoneId);
+  //   loadUsers();
+  // }, []);
 
   const { data: taskStages } = useQuery({
     queryKey: ["getAllTaskStages"],
@@ -198,9 +211,50 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
     onOpen: onOpenTaskStageModal,
     setMilestoneid: setTaskstageMilestoneId,
   } = useTaskStageModal();
+  // console.log("milestoneeeeeeeeeeeeeeeeeeeeeeeeeeeeee",milestoneId)
+  const { data: teams, isLoading: LODINGuSER } = useQuery({
+    queryKey: ["projectUsers", milestoneId],
+    enabled: !!milestoneId,
+    queryFn: async () => {
+      try {
+        if (!milestoneId) return [];
+        const milestone = await getMilestoneById(milestoneId);
+        const siteId = milestone?.projectId;
+        const site=milestone?.projectId;
+        const {data:siteData}= await axios.get(`http://localhost:3001/api/gestion-sites/${site}/teams`)
+        
+        console.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", milestone);
+        console.log("Site ID derived from milestone:", siteId,siteData);
+        if (!siteId) {
+          console.warn("No siteId on milestone; falling back to all users");
+          const all = await getAllUsers();
+          return Array.isArray(all?.data) ? all.data : [];
+        }
+
+        const response = await getAllTeams();
+        console.log("Response from getUsersBySite in TaskForms:", response);
+        console.log(
+          "Milestone data in TaskForms:::::::::::::::::::::::::::::",
+          response,
+        );
+
+        if (response?.status === 200 && Array.isArray(response.data)) {
+          return response.data;
+        }
+        return [];
+      } catch (error) {
+        console.error("Error loading project users", error);
+        toast.error("Failed to load users for this project.");
+        return [];
+      }
+    },
+  });
+  console.log("Teams loaded for TaskForms:................;", teams);
+  console.log("Task stages loaded for TaskForms:.................", taskStages);
 
   return (
     <>
+      
       <form id="form-rhf-TaskForms" onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
           <Controller
@@ -256,49 +310,50 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
           />
 
           <Controller
-            name="assignedUsers"
+            name="assignedTeams"
             control={form.control}
             render={({ field }) => (
               <Field>
-                <FieldLabel>Assigned Users</FieldLabel>
+                <FieldLabel>Assigned team</FieldLabel>
                 <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-3">
-                  {availableUsers.length === 0 ? (
+                  {teams && !LODINGuSER && teams.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No users available.
+                      No teams available.
                     </p>
                   ) : (
-                    availableUsers.map((user) => {
-                      const userId = user._id;
-                      const label =
-                        user.firstName && user.lastName
-                          ? `${user.firstName} ${user.lastName}`
-                          : user.email || user.nom || user.prenom || userId;
-                      const isChecked = (field.value ?? []).includes(userId);
-
+                    teams &&
+                    !LODINGuSER &&
+                    teams.map((team:any) => {
+                      const teamId = team?._id;
+                      const label = team.name;
+                      const isChecked = (field.value ?? []).includes(teamId);
+                      // team.members && team.members.length > 0 && teams.members.map((member) => {
+                      //   console.log("Team member in TaskForms:", member);
+                      // });
                       return (
-                        <div className="flex items-center gap-2" key={userId}>
+                        <div className="flex items-center gap-2" key={teamId}>
                           <Checkbox
                             checked={isChecked}
-                            id={`task-user-${userId}`}
+                            id={`task-team-${teamId}`}
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 field.onChange([
                                   ...(field.value ?? []),
-                                  userId,
+                                  teamId,
                                 ]);
                                 return;
                               }
 
                               field.onChange(
                                 (field.value ?? []).filter(
-                                  (id) => id !== userId,
+                                  (id) => id !== teamId,
                                 ),
                               );
                             }}
                           />
                           <label
                             className="cursor-pointer text-sm"
-                            htmlFor={`task-user-${userId}`}
+                            htmlFor={`task-team-${teamId}`}
                           >
                             {label}
                           </label>
@@ -316,9 +371,14 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="form-rhf-TaskForms-status">Status</FieldLabel>
+                <FieldLabel htmlFor="form-rhf-TaskForms-status">
+                  Status
+                </FieldLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className="w-full" id="form-rhf-TaskForms-status">
+                  <SelectTrigger
+                    className="w-full"
+                    id="form-rhf-TaskForms-status"
+                  >
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -331,7 +391,7 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                     {taskStages &&
                       taskStages.length > 0 &&
                       taskStages.map((taskStage: TaskStage) => (
-                        <SelectItem key={taskStage._id} value={taskStage._id}>
+                        <SelectItem key={taskStage._id} value={taskStage._id as string}>
                           {taskStage.name}
                         </SelectItem>
                       ))}
@@ -346,6 +406,38 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
                     >
                       <PlusIcon /> Add new stage
                     </Button>
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="priority"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="form-rhf-TaskForms-priority">
+                  Priority
+                </FieldLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger
+                    className="w-full"
+                    id="form-rhf-TaskForms-priority"
+                  >
+                    <SelectValue placeholder="Select a priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TaskPriorityEnum.LOW}>Low</SelectItem>
+                    <SelectItem value={TaskPriorityEnum.MEDIUM}>
+                      Medium
+                    </SelectItem>
+                    <SelectItem value={TaskPriorityEnum.HIGH}>High</SelectItem>
+                    <SelectItem value={TaskPriorityEnum.CRITICAL}>
+                      Critical
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {fieldState.invalid && (
@@ -397,8 +489,6 @@ const TaskForms = ({ type }: { type: "edit" | "add" }) => {
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor="task-end-date">End date</FieldLabel>
-
-                
 
                 <Popover
                   open={openEndDate}

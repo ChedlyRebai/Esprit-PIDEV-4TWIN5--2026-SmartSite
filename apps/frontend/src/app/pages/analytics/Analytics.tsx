@@ -88,7 +88,7 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
         <p className="text-gray-500 mt-1">Business insights and performance metrics</p>
       </div>
 
@@ -102,7 +102,7 @@ export default function Analytics() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">{metric.label}</p>
-                    <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metric.value}</p>
                   </div>
                   <div className={`bg-gradient-to-br ${metric.color} p-3 rounded-lg`}>
                     <Icon className="h-6 w-6 text-white" />
@@ -197,7 +197,7 @@ export default function Analytics() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {safetyStats.map((stat, idx) => (
               <div key={idx} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <h3 className="font-semibold text-gray-900 mb-3">{stat.site}</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{stat.site}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Incidents:</span>

@@ -27,7 +27,7 @@ export interface PaginationOptions {
   page: number;
   limit: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResult<T> {
@@ -57,7 +57,7 @@ export class GestionSiteService {
       
       // Check if site with same name exists
       const existingSite = await this.siteModel.findOne({
-        nom: { $regex: new RegExp(`^${createSiteDto.nom}$`, 'i') },
+        nom: { $regex: new RegExp(`^${createSiteDto.nom}$`, "i") },
       });
 
       if (existingSite) {
@@ -117,12 +117,14 @@ export class GestionSiteService {
 
       this.logger.log(`Site créé: ${savedSite.nom} (${savedSite._id})`);
       return savedSite;
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof BadRequestException) {
         throw error;
       }
       this.logger.error(`Erreur lors de la création du site: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la création du site');
+      throw new InternalServerErrorException(
+        "Erreur lors de la création du site",
+      );
     }
   }
 
@@ -139,10 +141,10 @@ export class GestionSiteService {
       // Apply filters
       if (filters) {
         if (filters.nom) {
-          query.nom = { $regex: filters.nom, $options: 'i' };
+          query.nom = { $regex: filters.nom, $options: "i" };
         }
         if (filters.localisation) {
-          query.localisation = { $regex: filters.localisation, $options: 'i' };
+          query.localisation = { $regex: filters.localisation, $options: "i" };
         }
         if (filters.isActif !== undefined) {
           query.isActif = filters.isActif;
@@ -150,7 +152,10 @@ export class GestionSiteService {
         if (filters.status) {
           query.status = filters.status;
         }
-        if (filters.budgetMin !== undefined || filters.budgetMax !== undefined) {
+        if (
+          filters.budgetMin !== undefined ||
+          filters.budgetMax !== undefined
+        ) {
           query.budget = {} as any;
           if (filters.budgetMin !== undefined) {
             (query.budget as any).$gte = filters.budgetMin;
@@ -175,7 +180,7 @@ export class GestionSiteService {
       // Sort
       const sort: any = {};
       if (pagination?.sortBy) {
-        sort[pagination.sortBy] = pagination.sortOrder === 'desc' ? -1 : 1;
+        sort[pagination.sortBy] = pagination.sortOrder === "desc" ? -1 : 1;
       } else {
         sort.createdAt = -1;
       }
@@ -192,9 +197,13 @@ export class GestionSiteService {
         limit,
         totalPages: Math.ceil(total / limit),
       };
-    } catch (error) {
-      this.logger.error(`Erreur lors de la récupération des sites: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la récupération des sites');
+    } catch (error:any) {
+      this.logger.error(
+        `Erreur lors de la récupération des sites: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des sites",
+      );
     }
   }
 
@@ -203,17 +212,21 @@ export class GestionSiteService {
    */
   async findById(id: string): Promise<Site> {
     try {
-      const site = await this.siteModel.findById(id).exec();
+      const site = await this.siteModel.findById(id).populate("teamIds");
       if (!site) {
         throw new NotFoundException(`Site avec l'ID "${id}" non trouvé`);
       }
       return site;
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`Erreur lors de la récupération du site: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la récupération du site');
+      this.logger.error(
+        `Erreur lors de la récupération du site: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération du site",
+      );
     }
   }
 
@@ -223,12 +236,16 @@ export class GestionSiteService {
   async findByName(nom: string): Promise<Site[]> {
     try {
       return await this.siteModel
-        .find({ nom: { $regex: nom, $options: 'i' } })
+        .find({ nom: { $regex: nom, $options: "i" } })
         .limit(20)
         .exec();
-    } catch (error) {
-      this.logger.error(`Erreur lors de la recherche de sites: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la recherche de sites');
+    } catch (error:any) {
+      this.logger.error(
+        `Erreur lors de la recherche de sites: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la recherche de sites",
+      );
     }
   }
 
@@ -238,14 +255,14 @@ export class GestionSiteService {
   async findByLocalisation(localisation: string): Promise<Site[]> {
     try {
       return await this.siteModel
-        .find({ localisation: { $regex: localisation, $options: 'i' } })
+        .find({ localisation: { $regex: localisation, $options: "i" } })
         .exec();
-    } catch (error) {
+    } catch (error:any) {
       this.logger.error(
         `Erreur lors de la recherche par localisation: ${error.message}`,
       );
       throw new InternalServerErrorException(
-        'Erreur lors de la recherche par localisation',
+        "Erreur lors de la recherche par localisation",
       );
     }
   }
@@ -256,12 +273,12 @@ export class GestionSiteService {
   async findActiveSites(): Promise<Site[]> {
     try {
       return await this.siteModel.find({ isActif: true }).exec();
-    } catch (error) {
+    } catch (error:any) {
       this.logger.error(
         `Erreur lors de la récupération des sites actifs: ${error.message}`,
       );
       throw new InternalServerErrorException(
-        'Erreur lors de la récupération des sites actifs',
+        "Erreur lors de la récupération des sites actifs",
       );
     }
   }
@@ -284,7 +301,7 @@ export class GestionSiteService {
       // Check for duplicate name if name is being updated
       if (updateSiteDto.nom) {
         const duplicateSite = await this.siteModel.findOne({
-          nom: { $regex: new RegExp(`^${updateSiteDto.nom}$`, 'i') },
+          nom: { $regex: new RegExp(`^${updateSiteDto.nom}$`, "i") },
           _id: { $ne: id },
         });
 
@@ -302,7 +319,8 @@ export class GestionSiteService {
 
       // Auto-complete: If progress is 100%, set status to 'completed'
       if (updateData.progress !== undefined && updateData.progress >= 100) {
-        updateData.status = 'completed';
+        updateData.status = "completed";
+
       }
 
       const updatedSite = await this.siteModel
@@ -315,12 +333,19 @@ export class GestionSiteService {
 
       this.logger.log(`Site mis à jour: ${updatedSite.nom} (${id})`);
       return updatedSite;
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+    } catch (error:any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      this.logger.error(`Erreur lors de la mise à jour du site: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la mise à jour du site');
+      this.logger.error(
+        `Erreur lors de la mise à jour du site: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour du site",
+      );
     }
   }
 
@@ -330,11 +355,7 @@ export class GestionSiteService {
   async softDelete(id: string): Promise<Site> {
     try {
       const site = await this.siteModel
-        .findByIdAndUpdate(
-          id,
-          { isActif: false },
-          { new: true },
-        )
+        .findByIdAndUpdate(id, { isActif: false }, { new: true })
         .exec();
 
       if (!site) {
@@ -343,12 +364,43 @@ export class GestionSiteService {
 
       this.logger.log(`Site soft-deleted: ${site.nom} (${id})`);
       return site;
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`Erreur lors de la suppression du site: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la suppression du site');
+      this.logger.error(
+        `Erreur lors de la suppression du site: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la suppression du site",
+      );
+    }
+  }
+
+  async getSiteByteamId(teamId: string): Promise<Site[]> {
+    try {
+      if (!teamId) {
+        throw new BadRequestException("L'ID de l'équipe est requis");
+      }
+
+      if (!Types.ObjectId.isValid(teamId)) {
+        throw new BadRequestException("L'ID de l'équipe est invalide");
+      }
+
+      const sites = await this.siteModel
+        .find({ teamIds: { $in: [new Types.ObjectId(teamId)] } })
+        .exec();
+      return sites;
+    } catch (error:any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Erreur lors de la récupération des sites par équipe: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des sites par équipe",
+      );
     }
   }
 
@@ -358,7 +410,7 @@ export class GestionSiteService {
   async remove(id: string): Promise<{ message: string; deletedId: string }> {
     try {
       this.logger.log(`Tentative de suppression du site avec l'ID: ${id}`);
-      
+
       // First check if site exists
       const existingSite = await this.siteModel.findById(id).exec();
       if (!existingSite) {
@@ -366,32 +418,41 @@ export class GestionSiteService {
         throw new NotFoundException(`Site avec l'ID "${id}" non trouvé`);
       }
 
-      this.logger.log(`Site trouvé: ${existingSite.nom}, suppression en cours...`);
+      this.logger.log(
+        `Site trouvé: ${existingSite.nom}, suppression en cours...`,
+      );
 
       // Use deleteOne with the _id
       const result = await this.siteModel.deleteOne({ _id: id }).exec();
-      
+
       this.logger.log(`Résultat de la suppression: ${JSON.stringify(result)}`);
 
       if (result.deletedCount === 0) {
         this.logger.error(`Échec de la suppression - deletedCount: 0`);
-        throw new InternalServerErrorException('Échec de la suppression du site');
+        throw new InternalServerErrorException(
+          "Échec de la suppression du site",
+        );
       }
 
-      this.logger.log(`Site supprimé définitivement: ${existingSite.nom} (${id})`);
-      return { 
+      this.logger.log(
+        `Site supprimé définitivement: ${existingSite.nom} (${id})`,
+      );
+      return {
         message: `Site "${existingSite.nom}" supprimé définitivement`,
-        deletedId: id 
+        deletedId: id,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
+    } catch (error:any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof InternalServerErrorException
+      ) {
         throw error;
       }
       this.logger.error(
         `Erreur lors de la suppression définitive du site: ${error.message}`,
       );
       throw new InternalServerErrorException(
-        'Erreur lors de la suppression définitive du site',
+        "Erreur lors de la suppression définitive du site",
       );
     }
   }
@@ -402,11 +463,7 @@ export class GestionSiteService {
   async restore(id: string): Promise<Site> {
     try {
       const site = await this.siteModel
-        .findByIdAndUpdate(
-          id,
-          { isActif: true },
-          { new: true },
-        )
+        .findByIdAndUpdate(id, { isActif: true }, { new: true })
         .exec();
 
       if (!site) {
@@ -415,12 +472,16 @@ export class GestionSiteService {
 
       this.logger.log(`Site restauré: ${site.nom} (${id})`);
       return site;
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`Erreur lors de la restauration du site: ${error.message}`);
-      throw new InternalServerErrorException('Erreur lors de la restauration du site');
+      this.logger.error(
+        `Erreur lors de la restauration du site: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la restauration du site",
+      );
     }
   }
 
@@ -443,16 +504,19 @@ export class GestionSiteService {
         this.siteModel.aggregate([
           {
             $group: {
-              _id: '$localisation',
+              _id: "$localisation",
               count: { $sum: 1 },
-              totalBudget: { $sum: '$budget' },
+              totalBudget: { $sum: "$budget" },
             },
           },
           { $sort: { count: -1 } },
         ]),
       ]);
 
-      const totalBudget = stats.reduce((sum, item) => sum + item.totalBudget, 0);
+      const totalBudget = stats.reduce(
+        (sum, item) => sum + item.totalBudget,
+        0,
+      );
       const averageBudget = total > 0 ? totalBudget / total : 0;
 
       return {
@@ -466,12 +530,12 @@ export class GestionSiteService {
           count: item.count,
         })),
       };
-    } catch (error) {
+    } catch (error:any) {
       this.logger.error(
         `Erreur lors de la récupération des statistiques: ${error.message}`,
       );
       throw new InternalServerErrorException(
-        'Erreur lors de la récupération des statistiques',
+        "Erreur lors de la récupération des statistiques",
       );
     }
   }
@@ -482,15 +546,15 @@ export class GestionSiteService {
   async getTotalBudget(): Promise<number> {
     try {
       const result = await this.siteModel.aggregate([
-        { $group: { _id: null, total: { $sum: '$budget' } } },
+        { $group: { _id: null, total: { $sum: "$budget" } } },
       ]);
       return result[0]?.total || 0;
-    } catch (error) {
+    } catch (error:any) {
       this.logger.error(
         `Erreur lors de la récupération du budget total: ${error.message}`,
       );
       throw new InternalServerErrorException(
-        'Erreur lors de la récupération du budget total',
+        "Erreur lors de la récupération du budget total",
       );
     }
   }
@@ -501,6 +565,156 @@ export class GestionSiteService {
    * Assign a MongoDB Team to a site (chantier)
    */
   async assignTeamToSite(siteId: string, teamId: string): Promise<Site> {
+    try {
+      // Verify site exists
+      const site = await this.siteModel.findById(siteId).exec();
+      if (!site) {
+        throw new NotFoundException(`Site avec l'ID "${siteId}" non trouvé`);
+      }
+
+      // Check if team is already assigned to this site
+      if (site.teamIds && site.teamIds.some((t) => t.toString() === teamId)) {
+        throw new BadRequestException(
+          "Cette équipe est déjà affectée à ce site",
+        );
+      }
+
+      // Add team to site's teamIds
+      const updatedSite = await this.siteModel
+        .findByIdAndUpdate(
+          siteId,
+          { $addToSet: { teamIds: new Types.ObjectId(teamId) } },
+          { new: true },
+        )
+        .exec();
+
+      this.logger.log(
+        `Équipe MongoDB affectée au site: ${siteId}, équipe: ${teamId}`,
+      );
+      return updatedSite;
+    } catch (error:any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        `Erreur lors de l'affectation de l'équipe: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de l'affectation de l'équipe au site",
+      );
+    }
+  }
+
+  /**
+   * Remove a team from a site
+   */
+  async removeTeamFromSite(siteId: string, teamId: string): Promise<Site> {
+    try {
+      const site = await this.siteModel.findById(siteId).exec();
+      if (!site) {
+        throw new NotFoundException(`Site avec l'ID "${siteId}" non trouvé`);
+      }
+
+      // Check if team is assigned to this site
+      if (!site.teamIds || !site.teamIds.some((t) => t.toString() === teamId)) {
+        throw new BadRequestException(
+          "Cette équipe n'est pas affectée à ce site",
+        );
+      }
+
+      const updatedSite = await this.siteModel
+        .findByIdAndUpdate(
+          siteId,
+          { $pull: { teamIds: new Types.ObjectId(teamId) } },
+          { new: true },
+        )
+        .exec();
+
+      this.logger.log(`Équipe retirée du site: ${siteId}, équipe: ${teamId}`);
+      return updatedSite;
+    } catch (error:any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error(`Erreur lors du retrait de l'équipe: ${error.message}`);
+      throw new InternalServerErrorException(
+        "Erreur lors du retrait de l'équipe du site",
+      );
+    }
+  }
+
+  /**
+   * View teams assigned to a site
+   */
+  async getTeamsAssignedToSite(siteId: string): Promise<any[]> {
+    try {
+      const site = await this.siteModel
+        .findById(siteId)
+        .populate({
+          path: "teamIds",
+          select: "name description teamCode isActive members manager site",
+        })
+        .exec();
+
+      if (!site) {
+        throw new NotFoundException(`Site avec l'ID "${siteId}" non trouvé`);
+      }
+
+      // Return the populated teamIds (renamed to teams for frontend compatibility)
+      return site.teamIds
+        ? site.teamIds.map((team: any) => ({
+            ...team.toObject(),
+            _id: team._id,
+            id: team._id,
+          }))
+        : [];
+    } catch (error:any) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Erreur lors de la récupération des équipes: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des équipes du site",
+      );
+    }
+  }
+
+  /**
+   * Get all sites with their assigned teams
+   */
+  // async getAllSitesWithTeams(): Promise<Site[]> {
+  //   try {
+  //     return await this.siteModel
+  //       .find()
+  //       .populate({
+  //         path: "teamIds",
+  //         select: "name description teamCode",
+  //       })
+  //       .exec();
+  //   } catch (error:Error) {
+  //     this.logger.error(
+  //       `Erreur lors de la récupération des sites avec équipes: ${error.message}`,
+  //     );
+  //     throw new InternalServerErrorException(
+  //       "Erreur lors de la récupération des sites avec équipes",
+  //     );
+  //   }
+  // }
+
+  // ============ TEAM ASSIGNMENT METHODS ============
+
+  /**
+   * Assign a MongoDB Team to a site (chantier)
+   */
+  async assignTeamToSites(siteId: string, teamId: string): Promise<Site> {
     try {
       // Verify site exists
       const site = await this.siteModel.findById(siteId).exec();
@@ -524,7 +738,7 @@ export class GestionSiteService {
 
       this.logger.log(`Équipe MongoDB affectée au site: ${siteId}, équipe: ${teamId}`);
       return updatedSite;
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
@@ -536,7 +750,7 @@ export class GestionSiteService {
   /**
    * Remove a team from a site
    */
-  async removeTeamFromSite(siteId: string, teamId: string): Promise<Site> {
+  async removeTeamFromSites(siteId: string, teamId: string): Promise<Site> {
     try {
       const site = await this.siteModel.findById(siteId).exec();
       if (!site) {
@@ -558,7 +772,7 @@ export class GestionSiteService {
 
       this.logger.log(`Équipe retirée du site: ${siteId}, équipe: ${teamId}`);
       return updatedSite;
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
@@ -570,7 +784,7 @@ export class GestionSiteService {
   /**
    * View teams assigned to a site
    */
-  async getTeamsAssignedToSite(siteId: string): Promise<any[]> {
+  async getTeamsAssignedToSites(siteId: string): Promise<any[]> {
     try {
       const site = await this.siteModel.findById(siteId)
         .populate({
@@ -589,7 +803,7 @@ export class GestionSiteService {
         _id: team._id,
         id: team._id
       })) : [];
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -610,7 +824,7 @@ export class GestionSiteService {
           select: 'name description teamCode'
         })
         .exec();
-    } catch (error) {
+    } catch (error:any) {
       this.logger.error(`Erreur lors de la récupération des sites avec équipes: ${error.message}`);
       throw new InternalServerErrorException('Erreur lors de la récupération des sites avec équipes');
     }

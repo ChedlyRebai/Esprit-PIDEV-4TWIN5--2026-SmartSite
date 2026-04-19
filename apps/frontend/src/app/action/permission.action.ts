@@ -1,5 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "../store/authStore";
+
+
 import { Permission } from "../types";
 
 const API_URL = "http://localhost:3000/permissions";
@@ -27,6 +29,7 @@ export const getPermissionById = async (id: string) => {
 
 export const createPermission = async (permissionData: {
   name: string;
+  module?: string;
   description?: string;
   access?: boolean;
   href?: string;
@@ -52,6 +55,7 @@ export const updatePermission = async (
   id: string,
   permissionData: {
     name?: string;
+    module?: string;
     description?: string;
     access?: boolean;
     create?: boolean;
@@ -113,5 +117,5 @@ export const getMynavigationAccess = async () => {
     },
   );
 
-  return data || ([] as Permission[]);
+  return data || [] as Permission[];
 };

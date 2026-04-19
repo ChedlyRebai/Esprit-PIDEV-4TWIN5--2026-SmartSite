@@ -11,7 +11,7 @@ export default function SiteManagerDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Site Operations Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Site Operations Dashboard</h1>
         <p className="text-gray-500 mt-1">Daily site management - {user?.firstName}</p>
       </div>
 
@@ -31,7 +31,7 @@ export default function SiteManagerDashboard() {
             {mockTasks.map((task) => (
               <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
-                  <h4 className="font-semibold text-gray-900">{task.title}</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">{task.title}</h4>
                   <p className="text-sm text-gray-500 mt-1">{task.description}</p>
                 </div>
                 <Badge variant={task.status === 'completed' ? 'secondary' : 'default'}>

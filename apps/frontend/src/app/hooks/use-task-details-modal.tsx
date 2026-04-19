@@ -3,8 +3,8 @@ import { Task } from "../types";
 
 interface TaskModalStore {
   id?: string | number;
-  task: Task;
-  setTask:(task:Task) => void;
+  task?: Task;
+  setTask: (task?: Task) => void;
   setId: (id: string | number) => void;
   isOpen: boolean;
   onOpen: () => void;

@@ -45,7 +45,7 @@ import {
   getAllClients,
   createClient,
   updateClient,
-  deleteClient,
+  
 } from "@/app/action/user.action";
 import { User } from "@/app/types";
 
@@ -54,10 +54,13 @@ export default function Clients() {
   // Contournement : si le role est null, utiliser un role par défaut
   const userRole = user?.role || { name: "super_admin" as const };
   const canManageClients = user && canEdit(userRole.name, "clients");
-  const [clients, setClients] = useState(mockClients);
+  const [clients, setClients] = useState([] as User[]);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredClients, setFilteredClients] = useState([] as User[]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<User | null>(null);
   const [editData, setEditData] = useState({
@@ -84,23 +87,23 @@ export default function Clients() {
   }, []);
 
   // Filter clients based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredClients(clients);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = clients.filter(
-        (client) =>
-          `${client.firstName} ${client.lastName}`
-            .toLowerCase()
-            .includes(query) ||
-          client.email?.toLowerCase().includes(query) ||
-          client.telephone?.toLowerCase().includes(query) ||
-          client.companyName?.toLowerCase().includes(query),
-      );
-      setFilteredClients(filtered);
-    }
-  }, [searchQuery, clients]);
+  // useEffect(() => {
+  //   if (!searchQuery.trim()) {
+  //     setFilteredClients(clients);
+  //   } else {
+  //     const query = searchQuery.toLowerCase();
+  //     const filtered = clients.filter(
+  //       (client) =>
+  //         `${client.firstName} ${client.lastName}`
+  //           .toLowerCase()
+  //           .includes(query) ||
+  //         client.email?.toLowerCase().includes(query) ||
+  //         client.telephone?.toLowerCase().includes(query) ||
+  //         client.companyName?.toLowerCase().includes(query),
+  //     );
+  //     setFilteredClients(filtered);
+  //   }
+  // }, [searchQuery, clients]);
 
   const loadClients = async () => {
     setIsLoading(true);
@@ -151,12 +154,15 @@ export default function Clients() {
     }
     setClients(
       clients.map((c) =>
-        c.id === selectedClient.id
+        c._id === selectedClient._id
           ? {
               ...c,
-              name: editData.name,
+              firstName: editData.firstName,
+              lastName: editData.lastName,
               email: editData.email,
-              phone: editData.phone,
+              telephone: editData.telephone,
+              address: editData.address,
+              companyName: editData.companyName,
             }
           : c,
       ),
@@ -175,7 +181,7 @@ export default function Clients() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clients</h1>
         <p className="text-gray-500 mt-1">Manage client relationships</p>
       </div>
       <Card>
@@ -194,7 +200,7 @@ export default function Clients() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
                       {client.firstName} {client.lastName}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
@@ -233,20 +239,20 @@ export default function Clients() {
                               <p className="text-sm text-gray-600">
                                 Client Name
                               </p>
-                              <p className="font-semibold text-gray-900">
+                              <p className="font-semibold text-gray-900 dark:text-white">
                                 {selectedClient.firstName}{" "}
                                 {selectedClient.lastName}
                               </p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">Email</p>
-                              <p className="font-semibold text-gray-900">
+                              <p className="font-semibold text-gray-900 dark:text-white">
                                 {selectedClient.email}
                               </p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">Phone</p>
-                              <p className="font-semibold text-gray-900">
+                              <p className="font-semibold text-gray-900 dark:text-white">
                                 {selectedClient.telephone}
                               </p>
                             </div>
@@ -255,7 +261,7 @@ export default function Clients() {
                                 <p className="text-sm text-gray-600">
                                   Active Projects
                                 </p>
-                                <p className="font-semibold text-gray-900">
+                                <p className="font-semibold text-gray-900 dark:text-white">
                                   {selectedClient.projectsCount}
                                 </p>
                               </div>

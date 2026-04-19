@@ -24,7 +24,7 @@ const useTaskModal = create<TaskModalStore>(
     setType: (type) => set({type}),
     setMilestoneid:(id) => set({milestoneId: id}),
     isOpen: false,
-    setId: (id) => set({ id }),
+    setId: (id) => set({ id : id }),
     onOpen: () => set({ isOpen: true }),
     onClose: () => set({ isOpen: false }),
         onTaskChange: () => {},

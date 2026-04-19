@@ -76,7 +76,7 @@ export default function Map() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Map View</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Map View</h1>
         <p className="text-gray-500 mt-1">Interactive map of all construction sites</p>
       </div>
 
@@ -127,7 +127,7 @@ export default function Map() {
 
                   {/* Legend */}
                   <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1">
-                    <p className="font-semibold text-gray-900 mb-2">Status:</p>
+                    <p className="font-semibold text-gray-900 dark:text-white mb-2">Status:</p>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                       <span>In Progress</span>
@@ -152,7 +152,7 @@ export default function Map() {
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold text-gray-900">{selectedSite.name}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{selectedSite.name}</h3>
                       <p className="text-sm text-gray-600 mt-1">{selectedSite.address}</p>
                       <p className="text-xs text-gray-500 mt-2">Area: {selectedSite.area} m²</p>
                     </div>
@@ -237,7 +237,7 @@ export default function Map() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-900">{site.name}</h4>
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{site.name}</h4>
                           <p className="text-xs text-gray-500 mt-1 truncate">{site.address}</p>
                         </div>
                         <Badge

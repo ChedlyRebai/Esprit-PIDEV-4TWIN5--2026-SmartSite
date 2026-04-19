@@ -27,7 +27,7 @@ export class MilestoneController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.milestoneService.findOne(+id);
+    return this.milestoneService.findOne(id);
   }
   @Get('project/:projectId')
   getMilesSToneByProjectId(@Param('projectId') projectId: string) {
@@ -39,11 +39,11 @@ export class MilestoneController {
     @Param('id') id: string,
     @Body() updateMilestoneDto: UpdateMilestoneDto,
   ) {
-    return this.milestoneService.update(+id, updateMilestoneDto);
+    return this.milestoneService.update(id, updateMilestoneDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.milestoneService.remove(+id);
+    return this.milestoneService.remove(id);
   }
 }

@@ -106,7 +106,89 @@ export const navigationItems: NavItem[] = [
   },
 
   {
-    label: "Resources & operations",
+    label: "All Projects",
+    href: "/super-admin-projects",
+    icon: TargetIcon,
+    roles: ["super_admin"],
+  },
+
+  {
+    label: "User Management",
+    href: "/users",
+    icon: Settings,
+    roles: ["super_admin"],
+  },
+  {
+    label: "Sites",
+    href: "/sites",
+    icon: Building2,
+    roles: [
+      "super_admin",
+      "director",
+      "project_manager",
+      "site_manager",
+      "works_manager",
+      "qhse_manager",
+    ],
+  },
+  {
+    label: "Projects",
+    href: "/projects",
+    icon: Briefcase,
+    roles: [
+      "super_admin",
+      "director",
+      "project_manager",
+      "works_manager",
+      "accountant",
+      "client",
+    ],
+  },
+  {
+    label: "Planning",
+    href: "/planning",
+    icon: Calendar,
+    roles: ["super_admin", "project_manager", "site_manager", "works_manager"],
+  },
+  {
+    label: "Team",
+    href: "/team",
+    icon: Users,
+    roles: [
+      "super_admin",
+      "director",
+      "project_manager",
+      "site_manager",
+      "works_manager",
+    ],
+  },
+  {
+    label: "My Team Members",
+    href: "/my-team-members",
+    icon: Users,
+    roles: [
+      "super_admin",
+      "director",
+      "project_manager",
+      "site_manager",
+      "works_manager",
+    ],
+  },
+  {
+    label: "Clients",
+    href: "/clients",
+    icon: UserCog,
+    roles: ["super_admin", "director", "accountant"],
+  },
+  {
+    label: "Suppliers",
+    href: "/suppliers",
+    icon: Warehouse,
+    roles: ["super_admin", "procurement_manager", "accountant"],
+  },
+  {
+    label: "Materials",
+    href: "/materials",
     icon: Package,
     roles: ["super_admin", "director", "site_manager", "works_manager", "procurement_manager"],
     children: [
@@ -264,13 +346,13 @@ export const navigationItems: NavItem[] = [
   },
 ];
 
-export const getNavigationForRole = (role: RoleType): NavItem[] => {
-  return navigationItems.filter((item) => item.roles.includes(role));
-};
+// export const getNavigationForRole = (role: RoleType): NavItem[] => {
+//   return navigationItems.filter((item) => item.roles.includes(role));
+// };
 
 
 
-export const canAccessRoute = (role: RoleType, path: string): boolean => {
-  const navItem = navigationItems.find((item) => path.startsWith(item.href));
-  return navItem ? navItem.roles.includes(role) : false;
-};
+// export const canAccessRoute = (role: RoleType, path: string): boolean => {
+//   const navItem = navigationItems.find((item) => path.startsWith(item.href));
+//   return navItem ? navItem.roles.includes(role) : false;
+// };

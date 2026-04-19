@@ -27,7 +27,7 @@
     "@nestjs/microservices": "^11.1.17",
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.17",
+    "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^11.0.0",
     "@types/passport-local": "^1.0.38",
     "@vercel/node": "^5.6.16",

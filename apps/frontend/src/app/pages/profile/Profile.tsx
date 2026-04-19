@@ -288,7 +288,7 @@ export default function Profile() {
             {!isEditing ? (
               <div className="flex-1 space-y-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {user.firstName} {user.lastName}
                   </h2>
                   <p className="text-gray-500">

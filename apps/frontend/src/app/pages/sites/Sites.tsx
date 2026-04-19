@@ -1478,7 +1478,7 @@ export default function Sites() {
               <div className="bg-gray-50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                 <MapPin className="h-8 w-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No sites found</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No sites found</h3>
               <p className="text-gray-500 mb-6">
                 {searchTerm || selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly
                   ? 'No results match your criteria'
@@ -1555,7 +1555,7 @@ export default function Sites() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                          <CardTitle className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">
                             {site.name}
                           </CardTitle>
                           {/* Priority Badge */}
@@ -1596,13 +1596,13 @@ export default function Sites() {
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Area</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {site.area.toLocaleString()} <span className="text-xs font-normal text-gray-500">m²</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Budget</p>
-                      <p className="font-semibold text-gray-900">{formatBudget(site.budget)}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{formatBudget(site.budget)}</p>
                     </div>
                   </div>
 
@@ -1610,7 +1610,7 @@ export default function Sites() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Progress</span>
-                      <span className="font-semibold text-gray-900">{site.progress}%</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{site.progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                       <div 
@@ -1886,24 +1886,24 @@ export default function Sites() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Site Name</p>
-                    <p className="font-semibold text-gray-900 text-lg">{selectedSite.name}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg">{selectedSite.name}</p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Address</p>
-                    <p className="text-gray-900">{selectedSite.address}</p>
+                    <p className="text-gray-900 dark:text-white">{selectedSite.address}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Area</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {selectedSite.area.toLocaleString()} m²
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Budget</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {formatBudget(selectedSite.budget)}
                       </p>
                     </div>
@@ -1928,7 +1928,7 @@ export default function Sites() {
                           style={{ width: `${selectedSite.progress}%` }}
                         />
                       </div>
-                      <span className="font-semibold text-gray-900 min-w-[3rem]">
+                      <span className="font-semibold text-gray-900 dark:text-white min-w-[3rem]">
                         {selectedSite.progress}%
                       </span>
                     </div>
@@ -1936,7 +1936,7 @@ export default function Sites() {
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Start Date</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       {formatDate(selectedSite.workStartDate)}
                     </p>
                   </div>
@@ -1997,7 +1997,7 @@ export default function Sites() {
           {selectedSite && (
             <div className="space-y-4 py-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="font-medium text-gray-900 mb-2">Site to delete:</p>
+                <p className="font-medium text-gray-900 dark:text-white mb-2">Site to delete:</p>
                 <p className="text-gray-700"><span className="font-medium">Name:</span> {selectedSite.name}</p>
                 <p className="text-gray-700"><span className="font-medium">Address:</span> {selectedSite.address}</p>
                 <p className="text-gray-700"><span className="font-medium">Budget:</span> {formatBudget(selectedSite.budget)}</p>

@@ -1,0 +1,40 @@
+module.exports = {
+  moduleFileExtensions: ['js', 'json', 'ts'],
+  rootDir: 'src',
+  testRegex: '.*\\.spec\\.ts$',
+  transform: {
+    '^.+\\.(t|j)s$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          module: 'nodenext',
+          moduleResolution: 'nodenext',
+          resolvePackageJsonExports: true,
+          esModuleInterop: true,
+          isolatedModules: true,
+          declaration: true,
+          removeComments: true,
+          emitDecoratorMetadata: true,
+          experimentalDecorators: true,
+          allowSyntheticDefaultImports: true,
+          target: 'ES2023',
+          sourceMap: true,
+          baseUrl: './',
+          incremental: true,
+          skipLibCheck: true,
+          strictNullChecks: true,
+          forceConsistentCasingInFileNames: true,
+          noImplicitAny: false,
+          strictBindCallApply: false,
+          noFallthroughCasesInSwitch: false,
+        },
+      },
+    ],
+  },
+  collectCoverageFrom: ['**/*.(t|j)s'],
+  coverageDirectory: '../coverage',
+  testEnvironment: 'node',
+  moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/$1',
+  },
+};

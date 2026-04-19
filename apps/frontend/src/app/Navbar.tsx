@@ -47,14 +47,14 @@ const Navbar = () => {
             <a
               key={item.name}
               href={item.href}
-              className="text-sm font-semibold leading-6 text-gray-900"
+              className="text-sm font-semibold leading-6 text-gray-900 dark:text-white"
             >
               {item.name}
             </a>
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <a href={isAuthenticated ? "/dashboard" : "/login"} className="text-sm font-semibold leading-6 text-gray-900">
+          <a href={isAuthenticated ? "/dashboard" : "/login"} className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">
             Connexion <span aria-hidden="true">&rarr;</span>
           </a>
         </div>

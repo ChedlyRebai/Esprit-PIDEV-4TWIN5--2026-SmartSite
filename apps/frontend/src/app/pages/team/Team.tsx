@@ -135,7 +135,7 @@ export default function Team() {
       console.log("Site assignments:", siteAssignments);
 
       setTeams(teamsResponse.data);
-      setTeamSiteAssignments(siteAssignments);
+     // setTeamSiteAssignments(siteAssignments);
       setUseMockData(false);
     } catch (err) {
       console.error("Error loading teams, using mock data:", err);
@@ -188,26 +188,12 @@ export default function Team() {
         return;
       }
       // API response not valid, use mock data
-      setAvailableUsers(
-        mockTeamMembers.map((u) => ({
-          _id: u._id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          email: u.email,
-        })),
-      );
+      
       setUserLoadingError(true);
     } catch (err) {
       console.error("Error loading users:", err);
       // Use mock data when API fails
-      setAvailableUsers(
-        mockTeamMembers.map((u) => ({
-          _id: u._id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          email: u.email,
-        })),
-      );
+     
       setUserLoadingError(true);
     }
   };
@@ -606,7 +592,7 @@ export default function Team() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Teams
           </h1>
           <p className="text-sm sm:text-base text-gray-500 mt-1">
@@ -964,7 +950,7 @@ export default function Team() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-gray-900 dark:text-white">
                               {team.name}
                             </h3>
                             {team.teamCode && (

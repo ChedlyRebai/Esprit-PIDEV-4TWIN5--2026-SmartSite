@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
+
+
 import {
   Link,
-  Navigate,
   Outlet,
   useNavigate,
   useLocation,
-  redirect,
 } from "react-router";
+
 import {
   Building2,
   LogOut,
@@ -14,6 +15,7 @@ import {
   X,
   Bell,
   User,
+  ChevronDown,
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/button";
@@ -31,15 +33,18 @@ import { getMynavigationAccess } from "../action/permission.action";
 import { Permission } from "../types";
 import { getUnreadNotificationCount } from "../action/notification.action";
 import ChatbotWidget from "../components/Chatbot";
-import { SidebarMenu } from "../components/SidebarMenu";
-import type { RoleType } from "../types";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "../action/auth.action";
+
 import { ThemeButton } from "../components/ThemeButton";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { NavbarAccessibilityButton } from "../components/NavbarAccessibilityButton";
 import { useTranslation } from "../hooks/useTranslation";
 import SiteInfoPanel from "../components/SiteInfoPanel";
+import {
+  groupPermissionsByModule,
+  type PermissionModuleGroup,
+} from "@/app/utils/permissionModules";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -49,6 +54,17 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoAvailable, setLogoAvailable] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  const toggleModuleExpanded = (moduleKey: string) => {
+    const newExpanded = new Set(expandedModules);
+    if (newExpanded.has(moduleKey)) {
+      newExpanded.delete(moduleKey);
+    } else {
+      newExpanded.add(moduleKey);
+    }
+    setExpandedModules(newExpanded);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -123,17 +139,23 @@ export default function DashboardLayout() {
   if (!user) {
     return null; // Afficher rien pendant la redirection
   }
+
+
   const { data: currentUser } = useQuery({
+
     queryKey: ["currentUser"],
     queryFn: () => getCurrentUser(user), // Simuler une requête pour obtenir les données de l'utilisateur
   });
 
-  const isInactiveAccount =
-    currentUser?.status === 200 && currentUser?.data?.isActif === false;
 
-  if (isInactiveAccount) {
-    return redirect("/banned");
-  }
+  // const isInactiveAccount = currentUser?.status === 200 && currentUser?.data?.isActif === false;
+
+  // const isInactiveAccount =
+  //   currentUser?.status === 200 && currentUser?.data?.isActif === false;
+
+  // if (isInactiveAccount) {
+  //   return redirect("/banned");
+  // }
 
   // if(currentUser?.data.firstLogin == true){
   //   redirect("/reset-password-first-login");
@@ -143,24 +165,25 @@ export default function DashboardLayout() {
   //   redirect("/account-banned");
   // }
 
+
   console.log(currentUser, "currentUser in DashboardLayout");
-  //const unreadNotifications = mockNotifications.filter(👎 => !n.read).length;
+  //const unreadNotifications = mockNotifications.filter((n) => !n.read).length;
+
   const { data: unredDataLength, isError: UnreadError } = useQuery({
     queryKey: ["unreadNotificationsLength"],
     queryFn: () => getUnreadNotificationCount(),
   });
 
-  // Contournement : si le role est null, utiliser un role par défaut
-  const roleName = (
-    typeof user.role === "object" && user.role?.name
-      ? user.role.name
-      : "super_admin"
-  ) as RoleType;
-
-  // Navigation statique en fonction du rôle
-  // const navigationItems = getNavigationForRole(userRole.name);
-  // const navigationItems = getNavigationForRole(roleName);
+  const groupedNavigationItems = groupPermissionsByModule(navigationItems ?? []);
   const unreadNotifications = 0; // Placeholder - will be implemented with real notifications
+
+  // if(navigItemsError || UnreadError){
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <p className="text-red-500 text-lg">Error loading data. Please try again later.</p>
+  //     </div>
+  //   );
+  // }
 
   // if(navigItemsError || UnreadError){
   //   return (
@@ -207,7 +230,7 @@ export default function DashboardLayout() {
               className="group flex items-center gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <div className="relative bg-card p-2 rounded-lg border border-border transition-all duration-300 shadow-sm group-hover:shadow-md group-hover:border-blue-300/70 group-hover:-translate-y-0.5">
-                <span className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-green-500/0 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-100 group-hover:from-blue-500/20 group-hover:to-green-500/20" />
+                <span className="pointer-events-none absolute inset-0 rounded-lg bg-linear-to-r from-blue-500/0 via-blue-500/0 to-green-500/0 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-100 group-hover:from-blue-500/20 group-hover:to-green-500/20" />
                 {logoAvailable ? (
                   <img
                     src="/logo.png"
@@ -219,7 +242,7 @@ export default function DashboardLayout() {
                   <Building2 className="h-12 w-12 text-blue-600 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-2" />
                 )}
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:inline transition-all duration-300 group-hover:tracking-wide">
+              <span className="text-xl font-bold bg-linear-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:inline transition-all duration-300 group-hover:tracking-wide">
                 SmartSite
               </span>
             </Link>
@@ -272,6 +295,57 @@ export default function DashboardLayout() {
                 </Badge>
               )}
             </Button>
+
+
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-2">
+                  {/* <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-green-600 text-white">
+                      {getInitials(user?.firstName || "", user?.lastName || "")}
+                    </AvatarFallback>
+                  </Avatar> */}
+                  <div className="hidden md:flex flex-col items-start">
+                    <span className="text-sm font-semibold">
+                      {user?.firstName} {user?.lastName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {/* {roleLabels[user.role]} */}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="h-4 w-4 hidden md:block"
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span>
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {user.cin}
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-600"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -282,37 +356,93 @@ export default function DashboardLayout() {
           id="primary-sidebar"
           aria-label="Sidebar navigation"
           className={cn(
-            "fixed lg:sticky top-0 left-0 z-30 h-screen w-[17rem] flex flex-col",
+            "fixed lg:sticky top-0 left-0 z-30 h-screen w-68 flex flex-col",
             "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
             "transition-transform duration-300 ease-out lg:translate-x-0",
             "pt-16 lg:pt-6 shadow-sm",
             sidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
-          <nav className="p-4 space-y-1 overflow-y-auto flex-1">
+          <nav className="p-3 space-y-2 overflow-y-auto flex-1">
             {!isLoading &&
-              navigationItems &&
-              navigationItems.map((item: Permission) => {
-                const isActive = location.pathname.startsWith(item.href);
+              groupedNavigationItems.map((section: PermissionModuleGroup) => {
+                const isExpanded = expandedModules.has(section.key);
                 return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`
-                        flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                        ${
-                          isActive
-                            ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
-                            : "text-muted-foreground hover:bg-muted"
-                        }
-                      `}
-                  >
-                    <span className="font-medium">{getSidebarLabel(item)}</span>
-                  </Link>
+                  <div key={section.key} className="group">
+                    <button
+                      onClick={() => toggleModuleExpanded(section.key)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-md transition-all duration-200 ease-out text-left group-hover:bg-accent/30  focus:outline-none "
+                      aria-expanded={isExpanded}
+                      aria-controls={`module-${section.key}`}
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/70 group-hover:text-muted-foreground transition-colors duration-200">
+                        {t(`sidebar.modules.${section.key}`, section.label)}
+                      </p>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={`h-4 w-4 text-muted-foreground/50 transition-all duration-300 ease-out shrink-0 ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {isExpanded && (
+                      <div
+                        id={`module-${section.key}`}
+                        className="mt-1.5 space-y-1 pl-2 overflow-hidden animate-in fade-in duration-200"
+                      >
+                        {section.items.map((item: Permission, idx: number) => {
+                          const isActive =
+                            location.pathname === item.href ||
+                            location.pathname.startsWith(`${item.href}/`);
+
+                          return (
+                            <Link
+                              key={item.href}
+                              to={item.href}
+                              onClick={() => setSidebarOpen(false)}
+                              style={{
+                                animation: isExpanded
+                                  ? `fadeInSlide 300ms ease-out ${idx * 30}ms forwards`
+                                  : "none",
+                                opacity: isExpanded ? 1 : 0,
+                                transform: isExpanded ? "translateY(0)" : "translateY(-8px)",
+                              }}
+                              className={`
+                              flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200
+                              ${
+                                isActive
+                                  ? "bg-linear-to-r from-blue-500/90 to-green-500/90 text-white shadow-sm hover:shadow-md"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 active:bg-muted"
+                              }
+                            `}
+                            >
+                              <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                isActive ? "bg-white/70" : "bg-muted-foreground/40 group-hover/link:bg-muted-foreground/60"
+                              }`} />
+                              <span className="font-medium text-sm truncate">{getSidebarLabel(item)}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
           </nav>
+
+          <style>{`
+            @keyframes fadeInSlide {
+              from {
+                opacity: 0;
+                transform: translateY(-8px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
           <div className="p-3 mt-auto border-t border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
             <Button
               variant="outline"

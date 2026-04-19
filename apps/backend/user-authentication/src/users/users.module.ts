@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { User, UserSchema } from './entities/user.entity';
+
 import { Role, RoleSchema } from 'src/roles/entities/role.entity';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { EmailModule } from '../email/email.module';
@@ -18,7 +19,7 @@ import { SuperAdminSeedService } from '../bootstrap/super-admin.seed.service';
       { name: Role.name, schema: RoleSchema },
     ]),
     JwtModule.register({
-      secret: 'smartiste',
+      secret: 'smartsite',
       signOptions: { expiresIn: '24h' },
     }),
     AuditLogsModule,

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { userApi } from "@/lib/api-client";
 export const LoginAction = async (cin: string, password: string) => {
   try {
     const res = await axios.post(`${process.env.LOGIN_API_URL}/login`, {
@@ -17,7 +18,8 @@ export const LoginAction = async (cin: string, password: string) => {
     if (res.status === 200) {
       const expires = new Date(Date.now() + 1000 * 1000 * 1000);
 
-      cookieStore.set("session", res.data.token);
+      cookieStore.set("jwt2", res.data.token);
+      console.log("Login successful, token stored in cookie",res);
       return Promise.resolve({ status: res.status, data: res.data.message });
     }
   } catch (error: any) {
@@ -31,7 +33,8 @@ export const LoginAction = async (cin: string, password: string) => {
 
 export const getCurrentUser = async (authUser: any) => {
   try {
-    const res = await axios.get("http://localhost:3000/users/me", {
+    const authApiUrl = import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000";
+    const res = await axios.get(`${authApiUrl}/users/me`, {
       headers: {
         Authorization: `Bearer ${authUser?.access_token}`,
       },

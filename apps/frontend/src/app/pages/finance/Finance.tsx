@@ -117,7 +117,7 @@ export default function Finance() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Financial Management
           </h1>
           <p className="text-gray-500 mt-1">
@@ -253,7 +253,7 @@ export default function Finance() {
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
                     {transaction.description}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
@@ -313,29 +313,29 @@ export default function Finance() {
               <div className="border-t pt-4 space-y-3">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Description</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 dark:text-white">
                     {selectedTransaction.description}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Reference</p>
-                  <p className="font-mono text-sm text-gray-900">
+                  <p className="font-mono text-sm text-gray-900 dark:text-white">
                     {selectedTransaction.reference}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Category</p>
-                  <p className="text-gray-900">
+                  <p className="text-gray-900 dark:text-white">
                     {selectedTransaction.category}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Vendor/Source</p>
-                  <p className="text-gray-900">{selectedTransaction.vendor}</p>
+                  <p className="text-gray-900 dark:text-white">{selectedTransaction.vendor}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Date</p>
-                  <p className="text-gray-900">
+                  <p className="text-gray-900 dark:text-white">
                     {new Date(selectedTransaction.date).toLocaleDateString(
                       "fr-FR",
                       {

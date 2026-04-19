@@ -1,20 +1,63 @@
+
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Task } from '@/task/entities/task.entity';
-import { Milestone } from '@/milestone/entities/milestone.entity';
-import { TaskStage } from '@/task-stage/entities/TaskStage.entities';
-import { Console, log } from 'console';
+import { Task } from '../task/entities/task.entity';
+import { Milestone } from '../milestone/entities/milestone.entity';
+import { TaskStage } from '../task-stage/entities/TaskStage.entities';
+import { ClientKafka } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
+import { AffectedNotificationEventDto } from './dto/affected-notification-event.dto';
+
 @Injectable()
-export class TaskService {
+export class TaskService implements OnModuleInit {
+  private readonly logger = new Logger(TaskService.name);
+
   constructor(
     @InjectModel(Milestone.name) private milestoneModel: Model<Milestone>,
     @InjectModel(Task.name) private taskModel: Model<Task>,
     @InjectModel(TaskStage.name) private taskSTageModel: Model<TaskStage>,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientKafka,
   ) {}
+
+  async onModuleInit() {
+    await this.notificationClient.connect();
+  }
+
+  private normalizeAssignedTeams(assignedTeams: unknown): string[] {
+    if (!assignedTeams) {
+      return [];
+    }
+
+    if (Array.isArray(assignedTeams)) {
+      return assignedTeams
+        .flat(Infinity)
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+
+    if (typeof assignedTeams === 'string') {
+      const raw = assignedTeams.trim();
+      if (!raw) {
+        return [];
+      }
+
+      if (raw.startsWith('[') && raw.endsWith(']')) {
+        // Handles loosely serialized payloads like "[ [ 'id' ] ]".
+        const matches = raw.match(/[a-fA-F0-9]{24}/g);
+        return matches ? [...new Set(matches)] : [];
+      }
+
+      return [raw];
+    }
+
+    return [];
+  }
 
   async create(
     createTaskDto: CreateTaskDto,
@@ -26,9 +69,14 @@ export class TaskService {
       throw new Error(`Milestone with id ${milestoneId} not found`);
     }
 
+    const normalizedRecipients = this.normalizeAssignedTeams(
+      createTaskDto.assignedTeams,
+    );
+
     const newTask = await this.taskModel.create({
       ...createTaskDto,
       milestoneId,
+      assignedTeams: normalizedRecipients,
     });
 
     await this.taskSTageModel
@@ -39,36 +87,88 @@ export class TaskService {
 
     response.tasks.push(newTask._id);
     await response.save();
-    return newTask;
-  }
 
-  async prevcreate(createTaskDto: CreateTaskDto, milestoneId: string) {
-    const response = await this.milestoneModel.findById(milestoneId).exec();
-    if (!response) {
-      throw new Error(`Milestone with id ${milestoneId} not found`);
+    const eventPayload: AffectedNotificationEventDto = {
+      title: `Task assigned: ${newTask.title}`,
+      message: newTask.description
+        ? `Task "${newTask.title}" has been created. ${newTask.description}`
+        : `Task "${newTask.title}" has been created and assigned to your team.`,
+      recipients: normalizedRecipients,
+      priority:
+        newTask.priority === 'CRITICAL' || newTask.priority === 'HIGH'
+          ? 'HIGH'
+          : newTask.priority === 'LOW'
+            ? 'LOW'
+            : 'MEDIUM',
+      type: 'INFO',
+      source: 'gestion-planing',
+      taskId: newTask._id.toString(),
+    };
+
+    try {
+      await firstValueFrom(
+        this.notificationClient.emit('task.created', eventPayload),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Task ${newTask._id.toString()} created but event publish failed`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
 
-    const newTask = await this.taskModel.create({
-      ...createTaskDto,
-      milestoneId,
-    });
-
-    await this.taskSTageModel
-      .findByIdAndUpdate('69c0561d9fc8a9ce45f45bee', {
-        $push: { tasks: newTask._id },
-      })
-      .exec();
-
-    response.tasks.push(newTask._id);
-    await response.save();
     return newTask;
   }
+
+
+//   async getMyTasksGrouped(teamId: string) {
+ 
+
+//   const tasks = await this.taskModel.find({
+//     assignedTeams: { $in: teamId }
+//   }).populate("status");
+
+//   const grouped = {};
+
+//   tasks.forEach(task => {
+//     const stageName = task.status.; // backlog | in progress | done
+
+//     if (!grouped[stageName]) {
+//       grouped[stageName] = [];
+//     }
+
+//     grouped[stageName].push(task);
+//   });
+
+//   return grouped;
+// }
+
+  // async prevcreate(createTaskDto: CreateTaskDto, milestoneId: string) {
+  //   const response = await this.milestoneModel.findById(milestoneId).exec();
+  //   if (!response) {
+  //     throw new Error(`Milestone with id ${milestoneId} not found`);
+  //   }
+
+  //   const newTask = await this.taskModel.create({
+  //     ...createTaskDto,
+  //     milestoneId,
+  //   });
+
+  //   await this.taskSTageModel
+  //     .findByIdAndUpdate('69c0561d9fc8a9ce45f45bee', {
+  //       $push: { tasks: newTask._id },
+  //     })
+  //     .exec();
+
+  //   response.tasks.push(newTask._id);
+  //   await response.save();
+  //   return newTask;
+  // }
 
   async findAll() {
     try {
       const response = await this.taskModel.find().exec();
       return response;
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error fetching tasks: ${error.message}`);
     }
   }
@@ -86,7 +186,17 @@ export class TaskService {
         $or: [
           {
             priority: {
-              $in: ['urgent', 'high', 'Urgent', 'High', 'URGENT', 'HIGH'],
+              $in: [
+                'critical',
+                'high',
+                'urgent',
+                'Critical',
+                'High',
+                'Urgent',
+                'CRITICAL',
+                'HIGH',
+                'URGENT',
+              ],
             },
           },
           { endDate: { $lte: soon } },
@@ -105,7 +215,7 @@ export class TaskService {
     try {
       const response = await this.taskModel.findById(id).exec();
       return response;
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error fetching task: ${error.message}`);
     }
   }
@@ -134,12 +244,12 @@ export class TaskService {
         open: true,
         type: task.type === 'summary' ? 'summary' : 'task',
         priority: task.priority,
-        assignedUsers: task.assignedUsers,
+        assignedTeams: task.assignedTeams,
         description: task.description,
         milestoneId: task.milestoneId,
         status: task.status,
       }));
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error fetching tasks for Gantt: ${error.message}`);
     }
   }
@@ -158,7 +268,7 @@ export class TaskService {
       }
 
       return response;
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(`Error updating task dates: ${error.message}`);
     }
   }
@@ -190,8 +300,14 @@ export class TaskService {
   }
   async update(id: string, updateTaskDto: UpdateTaskDto) {
     try {
+      const payload: UpdateTaskDto = { ...updateTaskDto };
+
+      if (payload.assignedTeams !== undefined) {
+        payload.assignedTeams = this.normalizeAssignedTeams(payload.assignedTeams);
+      }
+
       const response = await this.taskModel
-        .findByIdAndUpdate(id, updateTaskDto, { new: true })
+        .findByIdAndUpdate(id, payload, { new: true })
         .exec();
       if (!response) {
         throw new Error(`Task with id ${id} not found`);
@@ -199,6 +315,15 @@ export class TaskService {
       return response;
     } catch (error: any) {
       throw new Error(`Error updating task: ${error.message}`);
+    }
+  }
+
+  async getTaskByTeamid(teamId: string) {
+    try {
+      const response = await this.taskModel.find({ assignedTeams: { $in: [teamId] } }).exec();
+      return response;
+    } catch (error:any) {
+      throw new Error(`Error fetching tasks for team ${teamId}: ${error.message}`);
     }
   }
 
@@ -223,58 +348,90 @@ export class TaskService {
       throw new Error(`Error removing task: ${error.message}`);
     }
   }
-
+  getTAsksByTeamId = async (teamId: string) => {
+    return await this.taskModel
+      .find({ assignedTeams: { $in: [teamId] } })
+      .exec();
+  };
   async getMyTask(userId: string) {
     if (!userId) {
       return [];
     }
+    // console.log(`Fetching tasks for user ${userId}`);
 
     return await this.taskModel
       .find({
-        $or: [{ assignedUsers: userId }, { assignedUsers: { $in: [userId] } }],
+        $or: [{ assignedTeams: userId }, { assignedTeams: { $in: [userId] } }],
       })
       .exec();
   }
 
   async getMyTasks(userId: string) {
     try {
-      const response = await this.taskModel
-        .aggregate([
-          {
-            $match: {
-              $or: [
-                { assignedUsers: userId },
-                { assignedUsers: { $in: [userId] } },
-              ],
-            },
-          },
-          {
-            $group: {
-              _id: '$status',
-              tasks: { $push: '$$ROOT' },
-            },
-          },
+      if (!userId) {
+        return [];
+      }
 
-          {
-            $project: {
-              title: '$_id',
-              tasks: 1,
-              _id: 0,
-            },
-          },
-          //where: { userId: { $in: [userId] } },
-        ])
+      // 1) Fetch all tasks assigned to the current user
+      const tasks = await this.taskModel
+        .find({
+          $or: [
+            { assignedTeams: userId },
+            { assignedTeams: { $in: [userId] } },
+          ],
+        })
+        .lean()
         .exec();
-      const columns = response.map((group, i) => ({
-        id: `${group.title}`, // or use uuid/v4 for random unique id
-        title: group.title,
-        color: getColorForStatus(group.status),
-        tasks: group.tasks,
-      }));
 
-      return columns;
+      if (!tasks.length) {
+        return [];
+      }
+
+      // 2) Collect distinct status (TaskStage) ids from these tasks
+      const statusIds = Array.from(
+        new Set(
+          tasks
+            .map((task: any) => task.status)
+            .filter((id) => !!id)
+            .map((id) => id.toString()),
+        ),
+      );
+
+      // 3) Load the corresponding TaskStages to get their name & color
+      const stages = await this.taskSTageModel
+        .find({ _id: { $in: statusIds } })
+        .lean()
+        .exec();
+
+      const stageMap = new Map(
+        stages.map((stage: any) => [stage._id.toString(), stage]),
+      );
+
+      // 4) Group tasks by status into columns
+      const columnsMap = new Map<
+        string,
+        { id: string; title: string; color: string; tasks: any[] }
+      >();
+
+      tasks.forEach((task: any) => {
+        const statusId = task.status ? task.status.toString() : 'no-status';
+
+        if (!columnsMap.has(statusId)) {
+          const stage = stageMap.get(statusId);
+          columnsMap.set(statusId, {
+            id: statusId,
+            title: stage?.name || 'No status',
+            color: stage?.color || getColorForStatus(statusId),
+            tasks: [],
+          });
+        }
+
+        columnsMap.get(statusId)!.tasks.push(task);
+      });
+
+      return Array.from(columnsMap.values());
     } catch (error: any) {
-      throw new Error(`Error fetching tasks by milestone id: ${error.message}`);
+      throw new Error(`Error fetching tasks for user: ${error.message}`);
     }
   }
 
@@ -312,6 +469,7 @@ export class TaskService {
     }
   }
 }
+
 function getColorForStatus(status: string) {
   return 'primary';
 }

@@ -7,7 +7,44 @@ import { Permission } from './entities/permission.entity';
 export class PermissionsService {
   constructor(@InjectModel(Permission.name) private permissionModel: Model<Permission>) {}
 
+  private toModuleLabel(rawValue?: string): string {
+    const normalized = String(rawValue || '')
+      .trim()
+      .replace(/^\/+/, '')
+      .replace(/[\-_]+/g, ' ')
+      .replace(/\s+/g, ' ');
+
+    if (!normalized) {
+      return 'General';
+    }
+
+    return normalized
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  private normalizeModule(moduleValue?: string, hrefValue?: string): string {
+    if (moduleValue && moduleValue.trim().length > 0) {
+      return this.toModuleLabel(moduleValue);
+    }
+
+    const cleanedHref = (hrefValue || '').trim().replace(/^\/+/, '');
+    if (!cleanedHref) {
+      return 'General';
+    }
+
+    const firstSegment = cleanedHref.split('/')[0] || 'general';
+    return this.toModuleLabel(firstSegment);
+  }
+
   async create(createPermissionDto: any) {
+    createPermissionDto.module = this.normalizeModule(
+      createPermissionDto.module,
+      createPermissionDto.href,
+    );
+
     const createdPermission = new this.permissionModel(createPermissionDto);
     return createdPermission.save();
   }
@@ -18,7 +55,7 @@ export class PermissionsService {
   // }
 
   async findAll() {
-    return this.permissionModel.find().exec();
+    return this.permissionModel.find().sort({ module: 1, name: 1 }).exec();
   }
 
   async findById(id: string) {
@@ -30,6 +67,11 @@ export class PermissionsService {
   }
 
   async update(id: string, updatePermissionDto: any) {
+    updatePermissionDto.module = this.normalizeModule(
+      updatePermissionDto.module,
+      updatePermissionDto.href,
+    );
+
     return this.permissionModel.findByIdAndUpdate(id, updatePermissionDto, { new: true }).exec();
   }
 

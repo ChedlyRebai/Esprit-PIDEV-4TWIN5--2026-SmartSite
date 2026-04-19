@@ -12,7 +12,7 @@ export default function ProcurementDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Procurement Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Procurement Dashboard</h1>
         <p className="text-gray-500 mt-1">Supply chain and materials management - {user?.firstName}</p>
       </div>
 
@@ -33,7 +33,7 @@ export default function ProcurementDashboard() {
               <div key={supplier.id} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{supplier.name}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{supplier.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">{supplier.category}</p>
                   </div>
                   <Badge variant="secondary">Rating: {supplier.rating}/5</Badge>
@@ -41,15 +41,15 @@ export default function ProcurementDashboard() {
                 <div className="grid grid-cols-3 gap-4 text-sm mb-3">
                   <div>
                     <p className="text-gray-500">Stock Quantity</p>
-                    <p className="font-semibold text-gray-900">{supplier.stockQuantity.toLocaleString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{supplier.stockQuantity.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Received</p>
-                    <p className="font-semibold text-gray-900">{supplier.receivedQuantity.toLocaleString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{supplier.receivedQuantity.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Used</p>
-                    <p className="font-semibold text-gray-900">{supplier.usedQuantity.toLocaleString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{supplier.usedQuantity.toLocaleString()}</p>
                   </div>
                 </div>
                 <div>

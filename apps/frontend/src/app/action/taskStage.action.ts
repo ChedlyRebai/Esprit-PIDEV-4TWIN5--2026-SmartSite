@@ -15,6 +15,48 @@ export const getAllTaskStages = async () => {
 };
 
 
+
+export const getTaskStagesByMilestoneId = async (milestoneId: string) => {
+  try {
+    const { data } = await planingApi.get(
+      `task-stage/milestone/${milestoneId}`
+    );
+    return data;
+  }
+
+  catch (error) {
+    console.log("Error fetching task stages by milestone id:", error);
+    return Promise.reject(error);
+  }
+}
+
+export const getTaskStageById = async (taskStageId: string) => {
+  try {
+    const { data } = await planingApi.get(
+      `task-stage/${taskStageId}`
+    );
+    return data;
+  }
+
+  catch (error) {
+    console.log("Error fetching task stage by id:", error);
+    return Promise.reject(error);
+  }
+}
+
+export const removeTaskStage = async (taskStageId: string) => {
+  try {
+    const response = await planingApi.delete(
+      `task-stage/${taskStageId}`
+    );
+    return Promise.resolve({ status: response.status, data: response.data });
+  }
+
+  catch (error) {
+    console.log("Error deleting task stage:", error);
+    return Promise.reject(error);
+  }
+}
 export const createTaskStage = async (taskStage: TaskStage, milestoneId: string ) => {
     try {
         const response = await planingApi.post(`task-stage/milestone/${milestoneId}`, taskStage);

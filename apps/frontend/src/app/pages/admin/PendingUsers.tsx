@@ -131,8 +131,13 @@ export default function PendingUsers() {
     }
     setActionLoading(id);
     try {
-      await rejectUser(id, rejectReason);
-      toast.success("User rejected. Notification email sent.");
+
+      await rejectUser(id);
+      toast.success("Utilisateur rejeté. Email de notification envoyé.");
+
+      // await rejectUser(id, rejectReason);
+      // toast.success("User rejected. Notification email sent.");
+
       setRejectDialogOpen(false);
       setRejectReason("");
       setSelectedUser(null);

@@ -126,52 +126,59 @@ export class EmailService {
     };
   }
 
-  private wrapLayout(innerHtml: string, accent: 'lime' | 'cyan' | 'danger'): string {
+  private wrapLayout(
+    innerHtml: string,
+    accent: 'lime' | 'cyan' | 'danger',
+  ): string {
     const accentColor =
-      accent === 'danger' ? BRAND.danger : accent === 'cyan' ? BRAND.cyan : BRAND.lime;
+      accent === 'danger'
+        ? BRAND.danger
+        : accent === 'cyan'
+          ? BRAND.cyan
+          : BRAND.lime;
     const { html: logoHtml } = this.getLogoImgTag();
 
     return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartSite</title>
-</head>
-<body style="margin:0;padding:0;background-color:${BRAND.bgPage};font-family:'Segoe UI',Roboto,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:${BRAND.bgPage};padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" style="max-width:600px;background-color:${BRAND.card};border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(12,25,41,0.08);">
-          <tr>
-            <td style="height:4px;background:linear-gradient(90deg,${BRAND.cyan},${BRAND.lime},${BRAND.navyMid});"></td>
-          </tr>
-          <tr>
-            <td style="padding:28px 32px 8px;text-align:center;">
-              ${logoHtml}
-              <div style="font-size:11px;letter-spacing:0.18em;color:${BRAND.navyMid};font-weight:600;margin-bottom:20px;">INTELLIGENT CONSTRUCTION PLATFORM</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 32px 28px;color:${BRAND.text};font-size:15px;line-height:1.55;">
-              <div style="border-left:3px solid ${accentColor};padding-left:14px;margin-bottom:20px;">
-                ${innerHtml}
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 32px;background:${BRAND.navy};color:#94a3b8;font-size:12px;line-height:1.5;text-align:center;">
-              <p style="margin:0 0 8px;color:#e2e8f0;font-weight:600;">SmartSite</p>
-              <p style="margin:0;">Plateforme intelligente pour le suivi de chantiers et la gestion de projets.</p>
-              <p style="margin:12px 0 0;font-size:11px;color:#64748b;">Cet email a été envoyé automatiquement, merci de ne pas répondre directement si vous n’êtes pas sûr du destinataire.</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+  <html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSite</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:${BRAND.bgPage};font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:${BRAND.bgPage};padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" style="max-width:600px;background-color:${BRAND.card};border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(12,25,41,0.08);">
+            <tr>
+              <td style="height:4px;background:linear-gradient(90deg,${BRAND.cyan},${BRAND.lime},${BRAND.navyMid});"></td>
+            </tr>
+            <tr>
+              <td style="padding:28px 32px 8px;text-align:center;">
+                ${logoHtml}
+                <div style="font-size:11px;letter-spacing:0.18em;color:${BRAND.navyMid};font-weight:600;margin-bottom:20px;">INTELLIGENT CONSTRUCTION PLATFORM</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 28px;color:${BRAND.text};font-size:15px;line-height:1.55;">
+                <div style="border-left:3px solid ${accentColor};padding-left:14px;margin-bottom:20px;">
+                  ${innerHtml}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px;background:${BRAND.navy};color:#94a3b8;font-size:12px;line-height:1.5;text-align:center;">
+                <p style="margin:0 0 8px;color:#e2e8f0;font-weight:600;">SmartSite</p>
+                <p style="margin:0;">Plateforme intelligente pour le suivi de chantiers et la gestion de projets.</p>
+                <p style="margin:12px 0 0;font-size:11px;color:#64748b;">Cet email a été envoyé automatiquement, merci de ne pas répondre directement si vous n’êtes pas sûr du destinataire.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>`;
   }
 
   async sendApprovalEmail(
@@ -381,4 +388,64 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendPasswordResetEmail(
+    userEmail: string,
+    firstName: string,
+    resetCode: string,
+  ): Promise<void> {
+    console.log('📧 EMAIL SERVICE: Envoi code réinitialisation à', userEmail);
+    
+    const subject = 'Réinitialisez votre mot de passe SmartSite';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Réinitialisation de mot de passe</h2>
+        <p>Bonjour ${firstName},</p>
+        <p>Vous avez demandé à réinitialiser votre mot de passe SmartSite. Veuillez utiliser le code ci-dessous pour procéder:</p>
+        
+        <div style="background-color: #F3F4F6; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
+          <h1 style="color: #4F46E5; font-size: 48px; margin: 0; letter-spacing: 8px;">${resetCode}</h1>
+        </div>
+
+        <p style="color: #6B7280;">Ce code est valide pendant <strong>15 minutes</strong>.</p>
+        
+        <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+          <p style="color: #92400E; margin: 0;"><strong>Attention :</strong> Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre compte restera sécurisé.</p>
+        </div>
+
+        <p style="margin-top: 30px; color: #6B7280;">Après avoir réinitialisé votre mot de passe, nous vous recommandons de changer votre mot de passe dans les paramètres de votre compte.</p>
+        
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
+        <p style="color: #9CA3AF; font-size: 12px;">
+          Ceci est un email automatique, merci de ne pas y répondre.<br>
+          © ${new Date().getFullYear()} SmartSite. Tous droits réservés.
+        </p>
+      </div>
+    `;
+
+    try {
+      const result = await this.transporter.sendMail({
+        from: process.env.EMAIL_USER || 'noreply@smartsite.com',
+        to: userEmail,
+        subject,
+        html: htmlContent,
+      });
+
+      console.log('✅ EMAIL SERVICE: Code réinitialisation envoyé avec succès !');
+      
+      if (!process.env.EMAIL_USER) {
+        console.log('\n📧 PASSWORD RESET EMAIL - Preview URL:', nodemailer.getTestMessageUrl(result));
+        console.log('📧 You can view the email at the URL above.\n');
+      }
+    } catch (error) {
+      console.error('❌ EMAIL SERVICE: Erreur envoi code réinitialisation:', error);
+      throw error;
+    }
+  }
+
+
+
+  
+
+
 }

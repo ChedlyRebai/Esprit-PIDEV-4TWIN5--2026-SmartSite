@@ -25,6 +25,7 @@ export class AuthController {
       loginDto.cin,
       loginDto.password,
     );
+
     if (!user) {
       await this.auditLogsService.createLog({
         userCin: loginDto.cin,
@@ -38,6 +39,7 @@ export class AuthController {
       });
       throw new UnauthorizedException('Invalid credentials');
     }
+    
 
     const result = await this.authService.login(user);
     await this.auditLogsService.createLog({
@@ -53,6 +55,8 @@ export class AuthController {
       ipAddress: req?.ip,
       sessionId: result.session_id,
     });
+    console.log('Login successful for CINNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN:', loginDto.cin);
+    
     return result;
   }
 
@@ -202,5 +206,38 @@ export class AuthController {
       message: 'User rejected successfully',
       user: updatedUser,
     };
+  }
+
+
+
+  @Post('verify-otp')
+  async verifyOTP(@Body() body: { cin: string; otp: string }) {
+    return this.authService.verifyOTP(body.cin, body.otp);
+  }
+
+  @Post('resend-otp')
+  async resendOTP(@Body() body: { cin: string }) {
+    return this.authService.resendOTP(body.cin);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() body: { email: string; resetCode: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      body.email,
+      body.resetCode,
+      body.newPassword,
+    );
+  }
+
+  @Post('resend-reset-code')
+  async resendResetCode(@Body() body: { email: string }) {
+    return this.authService.resendResetCode(body.email);
   }
 }
