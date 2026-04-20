@@ -11,6 +11,7 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use((config) => {
   const authData = localStorage.getItem('smartsite-auth');
+<<<<<<< HEAD
   if (authData) {
     try {
       const parsed = JSON.parse(authData);
@@ -21,6 +22,21 @@ api.interceptors.request.use((config) => {
     } catch (e) {
       // Ignore parse errors
     }
+=======
+  const token =
+    localStorage.getItem('access_token') ||
+    (authData
+      ? (() => {
+          try {
+            return JSON.parse(authData)?.state?.user?.access_token;
+          } catch {
+            return null;
+          }
+        })()
+      : null);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+>>>>>>> d9b7ccb4a8beb8b281d5e1c2022e91962b8afa71
   }
   return config;
 });
@@ -67,7 +83,7 @@ export const sendChatbotMessage = async (
       language,
       conversationId,
     });
-    if (res.status === 200) {
+    if (res.status === 200 || res.status === 201) {
       return res.data;
     }
     return { success: false, message: 'Failed to send message', timestamp: new Date().toISOString() };
@@ -239,7 +255,7 @@ export const getSuggestedQuestions = async (
   }
 };
 
-// Delete a conversation
+// Delete a conversation (archive)
 export const deleteChatbotConversation = async (
   conversationId: string,
 ): Promise<{ success: boolean; message?: string }> => {
@@ -247,15 +263,75 @@ export const deleteChatbotConversation = async (
     const res = await api.delete('conversation', {
       params: { conversationId },
     });
-    if (res.status === 200) {
+    if (res.status === 200 || res.status === 201) {
       return res.data;
     }
-    return { success: false, message: 'Failed to delete conversation' };
+    return { success: false, message: 'Failed to archive conversation' };
   } catch (error: any) {
     console.error('Delete conversation error:', error?.response?.data?.message);
     return {
       success: false,
+      message: error?.response?.data?.message || 'Error archiving conversation',
+    };
+  }
+};
+
+// Restore an archived conversation
+export const restoreChatbotConversation = async (
+  conversationId: string,
+): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const res = await api.put('conversation/restore', null, {
+      params: { conversationId },
+    });
+    if (res.status === 200 || res.status === 201) {
+      return res.data;
+    }
+    return { success: false, message: 'Failed to restore conversation' };
+  } catch (error: any) {
+    console.error('Restore conversation error:', error?.response?.data?.message);
+    return {
+      success: false,
+      message: error?.response?.data?.message || 'Error restoring conversation',
+    };
+  }
+};
+
+// Permanently delete a conversation
+export const permanentlyDeleteConversation = async (
+  conversationId: string,
+): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const res = await api.delete('conversation/permanent', {
+      params: { conversationId },
+    });
+    if (res.status === 200 || res.status === 201) {
+      return res.data;
+    }
+    return { success: false, message: 'Failed to delete conversation' };
+  } catch (error: any) {
+    console.error('Permanent delete error:', error?.response?.data?.message);
+    return {
+      success: false,
       message: error?.response?.data?.message || 'Error deleting conversation',
     };
+  }
+};
+
+// Get archived conversations
+export const getArchivedConversations = async (
+  limit: number = 20,
+): Promise<{ success: boolean; data?: any[] }> => {
+  try {
+    const res = await api.get('conversations/archived', {
+      params: { limit },
+    });
+    if (res.status === 200 || res.status === 201) {
+      return res.data;
+    }
+    return { success: false };
+  } catch (error: any) {
+    console.error('Get archived conversations error:', error?.response?.data?.message);
+    return { success: false };
   }
 };
