@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { TaskController } from './task.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Milestone, MilestoneSchema } from '@/milestone/entities/milestone.entity';
+import { Milestone, MilestoneSchema } from '../milestone/entities/milestone.entity';
 import { Task, TaskSchema } from './entities/task.entity';
-import { TaskStage, TaskStageSchema } from '@/task-stage/entities/TaskStage.entities';
+import { TaskStage, TaskStageSchema } from '../task-stage/entities/TaskStage.entities';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({

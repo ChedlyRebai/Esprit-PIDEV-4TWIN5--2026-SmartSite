@@ -1,5 +1,5 @@
-import { Milestone } from '@/milestone/entities/milestone.entity';
-import { Task } from '@/task/entities/task.entity';
+import { Milestone } from '../milestone/entities/milestone.entity';
+import { Task } from '../task/entities/task.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
