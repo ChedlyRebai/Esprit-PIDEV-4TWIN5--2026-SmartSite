@@ -12,8 +12,8 @@ import {
 import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { JwtGuard } from '@/auth/jwt.guard/jwt.guard';
-import { GetUser } from '@/auth/get-user.decorator';
+import { JwtGuard } from '../auth/jwt.guard/jwt.guard';
+import { GetUser } from '../auth/get-user.decorator';
 
 @Controller('task')
 export class TaskController {

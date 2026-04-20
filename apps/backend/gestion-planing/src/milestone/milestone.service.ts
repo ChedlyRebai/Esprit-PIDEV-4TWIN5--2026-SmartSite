@@ -5,7 +5,7 @@ import { UpdateMilestoneDto } from './dto/update-milestone.dto';
 import { Milestone } from './entities/milestone.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Task } from '@/task/entities/task.entity';
+import { Task } from '../task/entities/task.entity';
 
 @Injectable()
 export class MilestoneService {

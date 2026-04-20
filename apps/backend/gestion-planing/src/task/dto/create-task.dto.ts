@@ -1,4 +1,4 @@
-import { StatusEnum } from "@/StatusEnum";
+import { StatusEnum } from "../../StatusEnum";
 import { IsEnum, IsNotEmpty, IsOptional } from "class-validator";
 import { TaskPriorityEnum } from "../entities/TaskPriorityEnum";
 

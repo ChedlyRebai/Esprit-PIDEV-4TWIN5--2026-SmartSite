@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TaskStageService } from './task-stage.service';
 import { TaskStageController } from './task-stage.controller';
-import { TaskModule } from '@/task/task.module';
-import { MilestoneModule } from '@/milestone/milestone.module';
+import { TaskModule } from '../task/task.module';
+import { MilestoneModule } from '../milestone/milestone.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
   Milestone,
   MilestoneSchema,
-} from '@/milestone/entities/milestone.entity';
-import { Task, TaskSchema } from '@/task/entities/task.entity';
+} from '../milestone/entities/milestone.entity';
+import { Task, TaskSchema } from '../task/entities/task.entity';
 import { TaskStage, TaskStageSchema } from './entities/TaskStage.entities';
 
 @Module({
