@@ -130,6 +130,16 @@ const materialService = {
     }
   },
 
+  async getMaterialById(id: string): Promise<Material> {
+    try {
+      const response = await apiClient.get(`/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Erreur getMaterialById:', error.message);
+      throw error;
+    }
+  },
+
   async getMaterialsWithSites(): Promise<Material[]> {
     try {
       const response = await siteApiClient.get('/all-with-sites');
@@ -494,6 +504,54 @@ const materialService = {
       throw error;
     }
   },
+
+  // ========== ADVANCED PREDICTION ==========
+  async predictStockAdvanced(
+    materialId: string,
+    features: { hourOfDay: number; dayOfWeek: number; siteActivityLevel: number; weather: string; projectType: string }
+  ): Promise<{
+    materialId: string;
+    materialName: string;
+    currentStock: number;
+    predictedStock: number;
+    hoursToOutOfStock: number;
+    consumptionRate: number;
+    modelTrained: boolean;
+    confidence: number;
+    status: 'safe' | 'warning' | 'critical';
+    recommendedOrderQuantity: number;
+    estimatedRuptureDate: string;
+    message: string;
+  }> {
+    try {
+      const response = await apiClient.post(`/${materialId}/predict-advanced`, features);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur predictStockAdvanced:', error);
+      throw error;
+    }
+  },
+  // ========== SMART SCORE ==========
+  async calculateMultipleSitesScores(sites: Array<{ id: string; name: string; progress: number }>): Promise<any[]> {
+    try {
+      const response = await apiClient.post('/smart-score/sites', { sites });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur calculateMultipleSitesScores:', error);
+      throw error;
+    }
+  },
+
+  async calculateSiteSmartScore(siteId: string, siteName: string, progress: number): Promise<any> {
+    try {
+      const response = await apiClient.post('/smart-score/site', { siteId, siteName, progress });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur calculateSiteSmartScore:', error);
+      throw error;
+    }
+  },
+
 };
 
 export default materialService;

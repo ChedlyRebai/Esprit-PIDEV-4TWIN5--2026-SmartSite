@@ -150,6 +150,46 @@ export const navigationItems: NavItem[] = [
         href: "/materials",
         roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
       },
+      {
+        label: "Stock Predictions (AI)",
+        href: "/materials/predictions",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Anomalies & Alerts",
+        href: "/materials/anomalies",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Auto Orders",
+        href: "/materials/auto-orders",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Order Tracking Map",
+        href: "/materials/order-map",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Site Consumption",
+        href: "/materials/site-consumption",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Flow Log",
+        href: "/materials/flow-log",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "Smart Score",
+        href: "/materials/smart-score",
+        roles: ["super_admin", "procurement_manager", "site_manager", "works_manager"],
+      },
+      {
+        label: "ML Training",
+        href: "/materials/ml-training",
+        roles: ["super_admin", "procurement_manager"],
+      },
     ],
   },
 

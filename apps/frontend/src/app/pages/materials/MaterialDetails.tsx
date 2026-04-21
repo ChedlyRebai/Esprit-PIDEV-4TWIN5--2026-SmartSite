@@ -3,10 +3,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '../../components/ui/dialog';
-import { Card, CardContent } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
+} from '../../../components/ui/dialog';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 import { Package, Calendar, MapPin, Factory, Barcode, TrendingUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import materialService, { Material } from '../../../services/materialService';
@@ -73,7 +73,6 @@ export default function MaterialDetails({ material, onClose, onUpdate }: Materia
         </DialogHeader>
 
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-          {/* Info Cards */}
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6">
@@ -113,7 +112,6 @@ export default function MaterialDetails({ material, onClose, onUpdate }: Materia
             </Card>
           </div>
 
-          {/* Stock Levels */}
           <Card>
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -159,7 +157,6 @@ export default function MaterialDetails({ material, onClose, onUpdate }: Materia
             </CardContent>
           </Card>
 
-          {/* Recent Movements */}
           <Card>
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-3">Mouvements récents</h3>
@@ -199,7 +196,6 @@ export default function MaterialDetails({ material, onClose, onUpdate }: Materia
             </CardContent>
           </Card>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose}>
               Fermer

@@ -14,6 +14,14 @@ import Planning from "./pages/planning/MyTask";
 import Team from "./pages/team/Team";
 import Clients from "./pages/clients/Clients";
 import Materials from "./pages/materials/Materials";
+import SmartScoreDashboard from "./pages/materials/SmartScoreDashboard";
+import MaterialFlowLog from "./pages/materials/MaterialFlowLog";
+import PredictionsList from "./pages/materials/PredictionsList";
+import AnomaliesList from "./pages/materials/AnomaliesList";
+import SiteConsumptionTracker from "./pages/materials/SiteConsumptionTracker";
+import AutoOrderDashboard from "./pages/materials/AutoOrderDashboard";
+import OrderMap from "./pages/materials/OrderMap";
+import MaterialMLTraining from "./pages/materials/MaterialMLTraining";
 import Finance from "./pages/finance/Finance";
 import Payments from "./pages/payments/Payments";
 import QHSE from "./pages/qhse/QHSE";
@@ -226,6 +234,38 @@ export const router = createBrowserRouter([
       {
         path: "materials",
         element: <Materials />,
+      },
+      {
+        path: "materials/smart-score",
+        element: <SmartScoreDashboard />,
+      },
+      {
+        path: "materials/flow-log",
+        element: <MaterialFlowLog />,
+      },
+      {
+        path: "materials/predictions",
+        element: <PredictionsList />,
+      },
+      {
+        path: "materials/anomalies",
+        element: <AnomaliesList />,
+      },
+      {
+        path: "materials/site-consumption",
+        element: <SiteConsumptionTracker />,
+      },
+      {
+        path: "materials/auto-orders",
+        element: <AutoOrderDashboard />,
+      },
+      {
+        path: "materials/order-map",
+        element: <OrderMap />,
+      },
+      {
+        path: "materials/ml-training",
+        element: <MaterialMLTraining />,
       },
       {
         path: "finance",

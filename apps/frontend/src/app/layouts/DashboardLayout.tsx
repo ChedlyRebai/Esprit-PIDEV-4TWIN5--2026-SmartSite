@@ -33,10 +33,11 @@ import { getMynavigationAccess } from "../action/permission.action";
 import { Permission } from "../types";
 import { getUnreadNotificationCount } from "../action/notification.action";
 import ChatbotWidget from "../components/Chatbot";
-import { SidebarMenu } from "../components/SidebarMenu";
+import { SidebarMenu, SidebarMenuItem } from "../components/SidebarMenu";
 import type { RoleType } from "../types";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "../action/auth.action";
+import { getNavigationForRole, navigationItems, type NavItem } from "../utils/roleConfig";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -294,28 +295,12 @@ export default function DashboardLayout() {
           )}
         >
           <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-            {!isLoading &&
-              navigationItems &&
-              navigationItems.map((item: Permission) => {
-                const isActive = location.pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`
-                        flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                        ${
-                          isActive
-                            ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md"
-                            : "text-muted-foreground hover:bg-muted"
-                        }
-                      `}
-                  >
-                    <span className="font-medium">{item.name}</span>
-                  </Link>
-                );
-              })}
+            {/* Use SidebarMenu component with static navigation as fallback */}
+            <SidebarMenu
+              items={getNavigationForRole(roleName)}
+              isCollapsed={false}
+              roleName={roleName}
+            />
           </nav>
           <div className="p-3 mt-auto border-t border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
             <Button

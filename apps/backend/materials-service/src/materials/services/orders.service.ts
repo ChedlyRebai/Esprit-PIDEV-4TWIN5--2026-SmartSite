@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MaterialOrder, OrderStatus } from '../entities/material-order.entity';
 import { CreateMaterialOrderDto, UpdateOrderStatusDto } from '../dto/order.dto';
 import { HttpService } from '@nestjs/axios';
 import { MaterialsGateway } from '../materials.gateway';
+import { WebSocketService } from './websocket.service';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
 export class OrdersService {
@@ -14,6 +16,9 @@ export class OrdersService {
     @InjectModel(MaterialOrder.name) private orderModel: Model<MaterialOrder>,
     private readonly httpService: HttpService,
     private readonly materialsGateway: MaterialsGateway,
+    @Inject(forwardRef(() => WebSocketService))
+    private readonly webSocketService: WebSocketService,
+    private readonly paymentService: PaymentService,
   ) {}
 
   async createOrder(createOrderDto: CreateMaterialOrderDto, userId: string | null): Promise<MaterialOrder> {
@@ -35,46 +40,33 @@ export class OrdersService {
     
     this.logger.log('IDs validated, fetching external data...');
     
-    // Get site data
-    this.logger.log('Fetching site data for:', createOrderDto.destinationSiteId);
     let siteData: any;
     try {
       siteData = await this.getSiteData(createOrderDto.destinationSiteId);
-      this.logger.log('Site data fetched:', JSON.stringify(siteData));
     } catch (e: any) {
       this.logger.error('Failed to get site data:', e.message);
       siteData = { nom: 'Chantier', adresse: 'Adresse inconnue', coordinates: { lat: 0, lng: 0 } };
     }
     
-    // Get supplier data
-    this.logger.log('Fetching supplier data for:', createOrderDto.supplierId);
     let supplierData: any;
     try {
       supplierData = await this.getSupplierData(createOrderDto.supplierId);
-      this.logger.log('Supplier data fetched:', JSON.stringify(supplierData));
     } catch (e: any) {
       this.logger.error('Failed to get supplier data:', e.message);
       supplierData = { nom: 'Fournisseur', adresse: 'Adresse inconnue', coordinates: { lat: 0, lng: 0 } };
     }
     
-    // Get material data
-    this.logger.log('Fetching material data for:', createOrderDto.materialId);
     let materialData: any;
     try {
       materialData = await this.getMaterialData(createOrderDto.materialId);
-      this.logger.log('Material data fetched:', JSON.stringify(materialData));
     } catch (e: any) {
       this.logger.error('Failed to get material data:', e.message);
       materialData = { name: 'Matériau', code: 'UNKNOWN' };
     }
 
-    this.logger.log('All data fetched. Creating order object...');
-    
     const now = new Date();
     const scheduledDeparture = now;
     const scheduledArrival = new Date(now.getTime() + createOrderDto.estimatedDurationMinutes * 60 * 1000);
-
-    this.logger.log('Creating Mongoose document...');
     
     const order = new this.orderModel({
       orderNumber,
@@ -100,31 +92,26 @@ export class OrdersService {
       notes: createOrderDto.notes,
     });
 
-    this.logger.log('Document created. Saving to MongoDB...');
-    
     const savedOrder = await order.save();
     this.logger.log('Order saved successfully:', savedOrder._id);
     
     this.materialsGateway.emitOrderUpdate('orderCreated', savedOrder);
     
-    this.logger.log('=== FIN createOrder - SUCCESS ===');
+    this.webSocketService.emitDeliveryProgress(
+      savedOrder._id.toString(),
+      0,
+      savedOrder.currentPosition || { lat: 0, lng: 0 }
+    );
+    
     return savedOrder;
   }
 
   async getAllOrders(filters?: { status?: string; siteId?: string; supplierId?: string }): Promise<MaterialOrder[]> {
     try {
       const filter: any = {};
-      
-      if (filters?.status) {
-        filter.status = filters.status;
-      }
-      if (filters?.siteId) {
-        filter.destinationSiteId = new Types.ObjectId(filters.siteId);
-      }
-      if (filters?.supplierId) {
-        filter.supplierId = new Types.ObjectId(filters.supplierId);
-      }
-
+      if (filters?.status) filter.status = filters.status;
+      if (filters?.siteId) filter.destinationSiteId = new Types.ObjectId(filters.siteId);
+      if (filters?.supplierId) filter.supplierId = new Types.ObjectId(filters.supplierId);
       return await this.orderModel.find(filter).sort({ createdAt: -1 }).exec();
     } catch (error) {
       this.logger.error(`❌ Erreur récupération commandes: ${error.message}`);
@@ -136,12 +123,8 @@ export class OrdersService {
     if (!Types.ObjectId.isValid(orderId)) {
       throw new BadRequestException('ID de commande invalide');
     }
-
     const order = await this.orderModel.findById(orderId).exec();
-    if (!order) {
-      throw new NotFoundException(`Commande #${orderId} non trouvée`);
-    }
-
+    if (!order) throw new NotFoundException(`Commande #${orderId} non trouvée`);
     return order;
   }
 
@@ -153,7 +136,6 @@ export class OrdersService {
 
   async updateOrderStatus(orderId: string, updateDto: UpdateOrderStatusDto): Promise<MaterialOrder> {
     const order = await this.getOrderById(orderId);
-    
     order.status = updateDto.status as OrderStatus;
     
     if (updateDto.currentPosition) {
@@ -186,10 +168,13 @@ export class OrdersService {
         orderId: order._id.toString(),
         timestamp: new Date(),
       });
+      
+      this.webSocketService.emitArrival(order._id.toString(), order.supplierName);
     }
 
     const updatedOrder = await order.save();
     this.materialsGateway.emitOrderUpdate('orderStatusUpdated', updatedOrder);
+    this.webSocketService.emitDeliveryProgress(orderId, updatedOrder.progress, updatedOrder.currentPosition);
     
     return updatedOrder;
   }
@@ -208,9 +193,11 @@ export class OrdersService {
       order.progress
     );
 
+    let wasPending = false;
     if (order.status === OrderStatus.PENDING) {
       order.status = OrderStatus.IN_TRANSIT;
       order.actualDeparture = new Date();
+      wasPending = true;
       this.materialsGateway.emitNotification({
         type: 'delivery_started',
         title: 'Livraison démarrée',
@@ -221,77 +208,240 @@ export class OrdersService {
     }
 
     const updatedOrder = await order.save();
+    
     this.materialsGateway.emitOrderProgressUpdate(orderId, {
       progress: updatedOrder.progress,
       remainingTimeMinutes: updatedOrder.remainingTimeMinutes,
       currentPosition: updatedOrder.currentPosition,
     });
+    
+    this.webSocketService.emitDeliveryProgress(orderId, updatedOrder.progress, updatedOrder.currentPosition);
+    this.webSocketService.emitLocationUpdate(orderId, updatedOrder.currentPosition, 'System');
+    
+    if (wasPending) {
+      this.webSocketService.emitDeliveryProgress(orderId, 5, currentPosition);
+    }
+    
+    if (updatedOrder.progress >= 100) {
+      this.webSocketService.emitArrival(orderId, updatedOrder.supplierName);
+    }
 
     return updatedOrder;
   }
 
   async simulateDelivery(orderId: string): Promise<MaterialOrder> {
     const order = await this.getOrderById(orderId);
-    
     if (order.status === OrderStatus.DELIVERED) {
       throw new BadRequestException('Commande déjà livrée');
     }
 
-    const steps = 10;
+    const steps = 20;
     let currentStep = 0;
-    const startPos = order.supplierCoordinates;
-    const endPos = order.destinationCoordinates;
+    const startPos = order.destinationCoordinates;
+    const endPos = order.supplierCoordinates;
     const stepLat = (endPos.lat - startPos.lat) / steps;
     const stepLng = (endPos.lng - startPos.lng) / steps;
 
     const simulateStep = async () => {
-      if (currentStep >= steps) {
-        return;
-      }
-
+      if (currentStep >= steps) return;
       currentStep++;
       const newPosition = {
         lat: startPos.lat + stepLat * currentStep,
         lng: startPos.lng + stepLng * currentStep,
       };
-
       await this.updateOrderProgress(orderId, newPosition);
-      this.logger.log(`📍 Progression: ${(currentStep / steps * 100).toFixed(0)}%`);
     };
 
     for (let i = 0; i < steps; i++) {
       await simulateStep();
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
 
-    const finalOrder = await this.updateOrderStatus(orderId, {
+    return await this.updateOrderStatus(orderId, {
       status: OrderStatus.DELIVERED,
       currentPosition: endPos,
     });
-
-    return finalOrder;
   }
 
-  private calculateProgress(
-    start: { lat: number; lng: number },
-    end: { lat: number; lng: number },
-    current: { lat: number; lng: number }
-  ): number {
+  // ========== MÉTHODES PAIEMENT ==========
+
+  async processArrivalPayment(
+    orderId: string,
+    paymentMethod: 'cash' | 'card',
+  ): Promise<{ success: boolean; payment: any; message: string }> {
+    try {
+      this.logger.log(`💳 Traitement paiement commande ${orderId}, méthode: ${paymentMethod}`);
+      
+      const order = await this.getOrderById(orderId);
+      
+      if (order.status !== OrderStatus.DELIVERED) {
+        throw new BadRequestException('Le paiement est autorisé uniquement après arrivée du camion');
+      }
+
+      if (order.paymentId) {
+        const existingStatus = await this.paymentService.getPaymentStatus(order.paymentId);
+        const resolvedStatus = existingStatus?.status || order.paymentStatus;
+
+        if (resolvedStatus === 'completed') {
+          throw new BadRequestException('Cette commande est déjà payée');
+        }
+
+        if (paymentMethod !== 'card') {
+          throw new BadRequestException('Un paiement est déjà en cours pour cette commande');
+        }
+
+        this.logger.warn(
+          `♻️ Paiement carte en cours détecté pour ${orderId}. Recréation d'une nouvelle tentative de paiement.`,
+        );
+      }
+
+      const amount = await this.calculateOrderAmount(order);
+      
+      const description = `Paiement commande ${order.orderNumber} - ${order.materialName} (x${order.quantity})`;
+
+      const paymentResult = await this.paymentService.createPayment(
+        order.destinationSiteId.toString(),
+        amount,
+        paymentMethod,
+        description,
+      );
+
+      order.paymentId = paymentResult.paymentId;
+      order.paymentAmount = amount;
+      order.paymentMethod = paymentMethod;
+      order.paymentStatus = paymentResult.status;
+      await order.save();
+
+      this.logger.log(`✅ Paiement créé pour commande ${orderId}: ${paymentResult.paymentId}`);
+
+      return {
+        success: true,
+        payment: paymentResult,
+        message: paymentResult.message,
+      };
+    } catch (error: any) {
+      this.logger.error(`❌ Erreur traitement paiement: ${error.message}`);
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async confirmCardPayment(
+    orderId: string,
+    stripePaymentIntentId: string,
+  ): Promise<{ success: boolean; payment: any; message: string }> {
+    try {
+      this.logger.log(`✅ Confirmation paiement Stripe pour commande ${orderId}`);
+      
+      const order = await this.getOrderById(orderId);
+      
+      if (!order.paymentId) {
+        throw new BadRequestException('Aucun paiement trouvé pour cette commande');
+      }
+
+      if (order.paymentMethod !== 'card') {
+        throw new BadRequestException('Le paiement à confirmer doit être un paiement par carte');
+      }
+
+      const confirmationResult = await this.paymentService.confirmCardPayment(
+        order.paymentId,
+        stripePaymentIntentId,
+      );
+
+      order.paymentStatus = 'completed';
+      await order.save();
+
+      this.logger.log(`🎉 Paiement confirmé pour commande ${orderId}`);
+
+      return {
+        success: true,
+        payment: confirmationResult,
+        message: 'Paiement confirmé avec succès!',
+      };
+    } catch (error: any) {
+      this.logger.error(`❌ Erreur confirmation paiement: ${error.message}`);
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async getPaymentStatus(orderId: string): Promise<any> {
+    try {
+      const order = await this.getOrderById(orderId);
+      
+      if (!order.paymentId) {
+        return { hasPayment: false, status: null };
+      }
+
+      const paymentStatus = await this.paymentService.getPaymentStatus(order.paymentId);
+      
+      return {
+        hasPayment: true,
+        paymentId: order.paymentId,
+        amount: order.paymentAmount,
+        method: order.paymentMethod,
+        status: paymentStatus?.status || order.paymentStatus,
+      };
+    } catch (error: any) {
+      this.logger.error(`❌ Erreur récupération statut paiement: ${error.message}`);
+      return { hasPayment: false, error: error.message };
+    }
+  }
+
+  // ========== MÉTHODE FACTURE ==========
+
+  async generateInvoiceForOrder(orderId: string, siteNom: string): Promise<any> {
+    try {
+      const order = await this.getOrderById(orderId);
+      
+      if (!order.paymentId) {
+        throw new BadRequestException('Aucun paiement trouvé pour cette commande');
+      }
+
+      const invoice = await this.paymentService.generateInvoice(order.paymentId, siteNom);
+      
+      this.logger.log(`📄 Facture générée pour commande ${orderId}: ${invoice?.numeroFacture}`);
+      
+      return invoice;
+    } catch (error: any) {
+      this.logger.error(`❌ Erreur génération facture: ${error.message}`);
+      return null;
+    }
+  }
+
+  private async calculateOrderAmount(order: MaterialOrder): Promise<number> {
+    try {
+      const unitPrice = await this.getMaterialUnitPrice(order.materialId.toString());
+      const amount = unitPrice * order.quantity;
+      return Math.round(amount * 100) / 100;
+    } catch (error) {
+      this.logger.error(`❌ Erreur calcul montant: ${error.message}`);
+      return order.quantity * 100;
+    }
+  }
+
+  private async getMaterialUnitPrice(materialId: string): Promise<number> {
+    try {
+      const response = await this.httpService.axiosRef.get(
+        `http://localhost:3002/api/materials/${materialId}`
+      );
+      return response.data?.unitPrice || response.data?.price || 100;
+    } catch (error) {
+      this.logger.warn(`⚠️ Prix par défaut pour matériau ${materialId}`);
+      return 100;
+    }
+  }
+
+  private calculateProgress(start: any, end: any, current: any): number {
     const totalDistance = this.calculateDistance(start, end);
     const traveledDistance = this.calculateDistance(start, current);
-    
     if (totalDistance === 0) return 100;
-    
-    const progress = (traveledDistance / totalDistance) * 100;
-    return Math.min(100, Math.max(0, progress));
+    return Math.min(100, Math.max(0, (traveledDistance / totalDistance) * 100));
   }
 
-  private calculateDistance(point1: { lat: number; lng: number }, point2: { lat: number; lng: number }): number {
+  private calculateDistance(point1: any, point2: any): number {
     const R = 6371;
     const dLat = this.toRad(point2.lat - point1.lat);
     const dLng = this.toRad(point2.lng - point1.lng);
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(this.toRad(point1.lat)) * Math.cos(this.toRad(point2.lat)) *
       Math.sin(dLng / 2) * Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
@@ -308,39 +458,30 @@ export class OrdersService {
 
   private async getSiteData(siteId: string): Promise<any> {
     try {
-      const response = await this.httpService.axiosRef.get(
-        `http://localhost:3001/api/gestion-sites/${siteId}`
-      );
+      const response = await this.httpService.axiosRef.get(`http://localhost:3001/api/gestion-sites/${siteId}`);
       return response.data;
     } catch (error) {
       this.logger.error(`❌ Erreur récupération site: ${error.message}`);
-      this.logger.error(`❌ Stack: ${error.stack}`);
       throw error;
     }
   }
 
   private async getSupplierData(supplierId: string): Promise<any> {
     try {
-      const response = await this.httpService.axiosRef.get(
-        `http://localhost:3005/fournisseurs/${supplierId}`
-      );
+      const response = await this.httpService.axiosRef.get(`http://localhost:3005/fournisseurs/${supplierId}`);
       return response.data;
     } catch (error) {
       this.logger.error(`❌ Erreur récupération fournisseur: ${error.message}`);
-      this.logger.error(`❌ Stack: ${error.stack}`);
       throw error;
     }
   }
 
   private async getMaterialData(materialId: string): Promise<any> {
     try {
-      const response = await this.httpService.axiosRef.get(
-        `http://localhost:3002/api/materials/${materialId}`
-      );
+      const response = await this.httpService.axiosRef.get(`http://localhost:3002/api/materials/${materialId}`);
       return response.data;
     } catch (error) {
       this.logger.error(`❌ Erreur récupération matériau: ${error.message}`);
-      this.logger.error(`❌ Stack: ${error.stack}`);
       throw error;
     }
   }

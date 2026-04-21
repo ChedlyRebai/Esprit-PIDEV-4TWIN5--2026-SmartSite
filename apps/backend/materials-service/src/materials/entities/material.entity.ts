@@ -122,6 +122,25 @@ export class Material extends Document {
 
   @Prop({ type: [String] })
   images?: string[];
+
+  @Prop({ type: String })
+  projectType?: string; // 'residential', 'commercial', 'infrastructure', 'industrial'
+
+  // ========== SMART SCORE FIELDS ==========
+  @Prop({ type: Number, default: 0, min: 0, max: 100 })
+  consumptionScore?: number;
+
+  @Prop({ type: Number, default: 0, min: 0, max: 100 })
+  stockHealthScore?: number;
+
+  @Prop({ type: Number, default: 0, min: 0, max: 100 })
+  anomaliesScore?: number;
+
+  @Prop({ type: Number, default: 0, min: 0, max: 100 })
+  siteHealthScore?: number;
+
+  @Prop({ type: Date })
+  lastScoreUpdate?: Date;
 }
 
 export const MaterialSchema = SchemaFactory.createForClass(Material);
@@ -130,3 +149,4 @@ MaterialSchema.index({ category: 1 });
 MaterialSchema.index({ status: 1 });
 MaterialSchema.index({ assignedSites: 1 });
 MaterialSchema.index({ siteId: 1 });
+MaterialSchema.index({ siteHealthScore: -1 });

@@ -47,6 +47,11 @@ export interface MaterialOrder {
   actualArrival?: string;
   notes?: string;
   createdAt: string;
+  // Champs paiement
+  paymentId?: string;
+  paymentAmount?: number;
+  paymentMethod?: string;
+  paymentStatus?: string;
 }
 
 export interface CreateOrderData {
@@ -56,6 +61,46 @@ export interface CreateOrderData {
   supplierId: string;
   estimatedDurationMinutes: number;
   notes?: string;
+}
+
+export interface PaymentStatusResponse {
+  hasPayment: boolean;
+  paymentId?: string;
+  amount?: number;
+  method?: string;
+  status?: string;
+  error?: string;
+}
+
+export interface PaymentProcessResponse {
+  success: boolean;
+  payment: {
+    paymentId: string;
+    status: string;
+    amount: number;
+    paymentMethod: string;
+    message: string;
+    clientSecret?: string;
+  };
+  message: string;
+}
+
+export interface PaymentConfirmResponse {
+  success: boolean;
+  payment: any;
+  message: string;
+}
+
+export interface InvoiceResponse {
+  numeroFacture: string;
+  paymentId: string;
+  siteId: string;
+  siteNom: string;
+  amount: number;
+  paymentMethod: string;
+  paymentDate: string;
+  description?: string;
+  pdfPath?: string;
 }
 
 export const orderService = {
@@ -116,9 +161,16 @@ export const orderService = {
     }
   },
 
-  async updateOrderProgress(orderId: string, progressData: { lat: number; lng: number; progress: number }): Promise<MaterialOrder> {
+  async updateOrderProgress(orderId: string, progressData: { lat: number; lng: number; progress: number; remainingTime?: number }): Promise<MaterialOrder> {
     try {
-      const response = await apiClient.put(`/${orderId}/progress`, { currentPosition: { lat: progressData.lat, lng: progressData.lng } });
+      const response = await apiClient.put(`/${orderId}/progress`, { 
+        currentPosition: { 
+          lat: progressData.lat, 
+          lng: progressData.lng,
+          progress: progressData.progress,
+          remainingTime: progressData.remainingTime
+        } 
+      });
       return response.data;
     } catch (error: any) {
       console.error('❌ Erreur updateOrderProgress:', error.message);
@@ -135,6 +187,131 @@ export const orderService = {
       throw error;
     }
   },
+
+  // ========== MÉTHODES PAIEMENT ==========
+
+  /**
+   * Traiter le paiement d'une commande
+   * @param orderId - ID de la commande
+   * @param paymentMethod - Méthode de paiement ('cash' ou 'card')
+   * @returns Résultat du paiement avec clientSecret pour Stripe si nécessaire
+   */
+  async processPayment(orderId: string, paymentMethod: 'cash' | 'card'): Promise<PaymentProcessResponse> {
+    try {
+      console.log(`💳 Processing payment for order ${orderId} with method ${paymentMethod}`);
+      const response = await apiClient.post(`/${orderId}/payment`, { paymentMethod });
+      console.log('✅ Payment processed:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erreur processPayment:', error.message);
+      console.error('❌ Response data:', error.response?.data);
+      throw error;
+    }
+  },
+
+  /**
+   * Confirmer un paiement par carte après succès Stripe
+   * @param orderId - ID de la commande
+   * @param paymentIntentId - ID du PaymentIntent Stripe
+   * @returns Résultat de la confirmation
+   */
+  async confirmCardPayment(orderId: string, paymentIntentId: string): Promise<PaymentConfirmResponse> {
+    try {
+      console.log(`✅ Confirming card payment for order ${orderId}`);
+      const response = await apiClient.post(`/${orderId}/payment/confirm`, { paymentIntentId });
+      console.log('✅ Payment confirmed:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erreur confirmCardPayment:', error.message);
+      console.error('❌ Response data:', error.response?.data);
+      throw error;
+    }
+  },
+
+  /**
+   * Récupérer le statut du paiement d'une commande
+   * @param orderId - ID de la commande
+   * @returns Statut du paiement
+   */
+  async getPaymentStatus(orderId: string): Promise<PaymentStatusResponse> {
+    try {
+      console.log(`📊 Getting payment status for order ${orderId}`);
+      const response = await apiClient.get(`/${orderId}/payment/status`);
+      console.log('📊 Payment status:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erreur getPaymentStatus:', error.message);
+      // Retourner un objet par défaut en cas d'erreur pour éviter le crash
+      return { hasPayment: false, error: error.message };
+    }
+  },
+
+  /**
+   * Vérifier si une commande a été payée
+   * @param orderId - ID de la commande
+   * @returns true si la commande est payée
+   */
+  async isOrderPaid(orderId: string): Promise<boolean> {
+    try {
+      const status = await this.getPaymentStatus(orderId);
+      return status.hasPayment && status.status === 'completed';
+    } catch (error) {
+      console.error('❌ Erreur isOrderPaid:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Récupérer le montant du paiement d'une commande
+   * @param orderId - ID de la commande
+   * @returns Montant du paiement ou 0
+   */
+  async getPaymentAmount(orderId: string): Promise<number> {
+    try {
+      const order = await this.getOrderById(orderId);
+      return order.paymentAmount || 0;
+    } catch (error) {
+      console.error('❌ Erreur getPaymentAmount:', error);
+      return 0;
+    }
+  },
+
+  // ========== MÉTHODE FACTURE ==========
+
+  /**
+   * Générer une facture pour une commande
+   * @param orderId - ID de la commande
+   * @param siteNom - Nom du site
+   * @returns Facture générée
+   */
+  async generateInvoice(orderId: string, siteNom: string): Promise<InvoiceResponse | null> {
+    try {
+      console.log(`📄 Generating invoice for order ${orderId}`);
+      const response = await apiClient.post(`/${orderId}/invoice`, { siteNom });
+      console.log('📄 Invoice generated:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erreur generateInvoice:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * Télécharger une facture PDF
+   * @param invoiceNumber - Numéro de facture
+   */
+  async downloadInvoice(invoiceNumber: string): Promise<Blob | null> {
+    try {
+      console.log(`📄 Downloading invoice ${invoiceNumber}`);
+      const response = await apiClient.get(`/invoice/${invoiceNumber}/download`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erreur downloadInvoice:', error.message);
+      return null;
+    }
+  }
 };
 
 export default orderService;

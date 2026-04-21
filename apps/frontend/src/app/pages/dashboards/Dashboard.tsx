@@ -10,6 +10,7 @@ import QHSEDashboard from './QHSEDashboard';
 import ClientDashboard from './ClientDashboard';
 import SubcontractorDashboard from './SubcontractorDashboard';
 import UserDashboard from './UserDashboard';
+import SmartSiteDashboard from './SmartSiteDashboard'; // NOUVEAU
 
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user);

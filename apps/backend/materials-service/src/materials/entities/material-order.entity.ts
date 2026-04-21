@@ -82,6 +82,19 @@ export class MaterialOrder extends Document {
 
   @Prop({ type: String })
   notes: string;
+
+  // ========== CHAMPS PAIEMENT (AJOUTER) ==========
+  @Prop({ type: String })
+  paymentId?: string;
+
+  @Prop({ type: Number })
+  paymentAmount?: number;
+
+  @Prop({ type: String })
+  paymentMethod?: string;
+
+  @Prop({ type: String })
+  paymentStatus?: string;
 }
 
 export const MaterialOrderSchema = SchemaFactory.createForClass(MaterialOrder);
