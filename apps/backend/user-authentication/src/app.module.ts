@@ -9,16 +9,10 @@ import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { StaticsModule } from './statics/statics.module';
-
-
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { TeamsModule } from './teams/teams.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
-<<<<<<< HEAD
-=======
 import { AiChatModule } from './ai-chat/ai-chat.module';
-import { SuppliersModule } from './suppliers/suppliers.module';
->>>>>>> main
 import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
@@ -28,25 +22,15 @@ import { CatalogModule } from './catalog/catalog.module';
       envFilePath: '.env',
     }),
     AuthModule,
-    
     UsersModule,
     RolesModule,
     PermissionsModule,
     StaticsModule,
     TeamsModule,
-
     ChatbotModule,
     AiChatModule,
     AuditLogsModule,
-<<<<<<< HEAD
     CatalogModule,
-=======
-
-    SuppliersModule,
-    CatalogModule,
-    SuppliersMaterialsModule,
-
->>>>>>> main
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/smartsite',
     ),

@@ -14,6 +14,7 @@ import {
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store/authStore';
+import RateSupplierModal from './RateSupplierModal';
 import {
   ArrowLeft,
   Building2,
@@ -30,6 +31,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Star,
 } from 'lucide-react';
 
 const API_URL = 'http://localhost:3010/suppliers';
@@ -52,6 +54,9 @@ interface Supplier {
   qhseNotes?: string;
   qhseValidatedAt?: string;
   estArchive?: boolean;
+  averageRating?: number;
+  ratingCount?: number;
+  criteriaAverages?: Record<string, number>;
 }
 
 const STATUS_CONFIG = {
@@ -72,6 +77,7 @@ export default function SupplierDetail() {
   // Modals
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
+  const [showRateModal, setShowRateModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectError, setRejectError] = useState('');
 
@@ -162,6 +168,9 @@ export default function SupplierDetail() {
 
   const status = STATUS_CONFIG[supplier.status];
   const isPending = supplier.status === 'pending_qhse';
+  const isApproved = supplier.status === 'approved';
+  const canRate = isApproved && ['procurement_manager', 'site_manager', 'project_manager', 'qhse_manager'].includes(userRole);
+  const hasRating = supplier.ratingCount && supplier.ratingCount > 0;
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -180,8 +189,23 @@ export default function SupplierDetail() {
               {status.label}
             </Badge>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{supplier.category}</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-gray-500">{supplier.category}</p>
+            {hasRating && (
+              <div className="flex items-center gap-1 text-sm">
+                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="font-medium">{supplier.averageRating?.toFixed(1)}/10</span>
+                <span className="text-gray-400">({supplier.ratingCount} rating{supplier.ratingCount !== 1 ? 's' : ''})</span>
+              </div>
+            )}
+          </div>
         </div>
+        {canRate && (
+          <Button onClick={() => setShowRateModal(true)} className="gap-2">
+            <Star className="w-4 h-4" />
+            Rate
+          </Button>
+        )}
       </div>
 
       {/* Supplier Info */}
@@ -417,6 +441,19 @@ export default function SupplierDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rate Supplier Modal */}
+      <RateSupplierModal
+        isOpen={showRateModal}
+        onClose={() => setShowRateModal(false)}
+        supplierId={supplier._id}
+        supplierName={supplier.name}
+        userRole={userRole}
+        userId={(user as any)?._id || 'unknown'}
+        userName={`${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim() || 'Unknown User'}
+        onSubmitSuccess={() => fetchSupplier()}
+        criteriaAverages={supplier.criteriaAverages}
+      />
     </div>
   );
 }

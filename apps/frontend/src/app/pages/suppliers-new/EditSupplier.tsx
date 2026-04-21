@@ -458,18 +458,20 @@ export default function EditSupplier() {
         )}
 
         {/* Delete button */}
-        <div className="mt-4">
-          <Button
-            type="button"
-            variant="destructive"
-            className="w-full"
-            onClick={handleDelete}
-            disabled={saving}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Supplier
-          </Button>
-        </div>
+        {supplier._id && (
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full"
+              onClick={handleDelete}
+              disabled={saving}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Supplier
+            </Button>
+          </div>
+        )}
       </form>
     </div>
   );

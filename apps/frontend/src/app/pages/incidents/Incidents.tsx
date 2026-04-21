@@ -156,9 +156,8 @@ export default function Incidents() {
   const user = useAuthStore((state) => state.user);
   console.log("🎯 Frontend: User depuis store:", user);
 
-  // Contournement : si le role est null, utiliser un role par défaut
-  const userRole = user?.role || { name: "super_admin" as const };
-  const canManageIncidents = user && canEdit(userRole.name, "incidents");
+  const userRole = (user?.role?.name || user?.role || "user") as string;
+  const canManageIncidents = user && canEdit(userRole, "incidents");
   const [incidents, setIncidents] = useState(mockIncidents);
   const [filteredIncidents, setFilteredIncidents] = useState(mockIncidents);
   const [searchTerm, setSearchTerm] = useState("");
