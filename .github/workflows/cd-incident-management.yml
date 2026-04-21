@@ -41,12 +41,13 @@ jobs:
         env:
           KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
         run: |
-          echo "$KUBECONFIG_DATA" | base64 -d > kubeconfig.yaml
+          echo "$KUBECONFIG_DATA" | base64 -d -i > kubeconfig.yaml
           export KUBECONFIG=kubeconfig.yaml
+          kubectl config view
           kubectl set image deployment/incident-management \
             incident-management=${{ secrets.DOCKER_USERNAME }}/incident-management:${{ github.event.workflow_run.head_sha }} \
             -n smartsite
-          kubectl rollout status deployment/incident-management -n smartsite
+          kubectl rollout status deployment/incident-management -n smartsite --timeout=120s
 
       - name: Confirmation du déploiement
         run: echo "✅ incident-management déployé avec le tag ${{ github.event.workflow_run.head_sha }}"
