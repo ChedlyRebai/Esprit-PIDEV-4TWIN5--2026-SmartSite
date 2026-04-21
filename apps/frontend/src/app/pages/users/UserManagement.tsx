@@ -16,7 +16,11 @@ import { canEdit } from "../../utils/permissions";
 import { data, useNavigate } from "react-router";
 import { toast } from "react-hot-toast";
 import { Permission, Role, User } from "@/app/types";
-import { getAllRoles, deleteRole } from "@/app/action/role.action";
+
+import {
+  getAllRoles,
+  deleteRole,
+} from "@/app/action/role.action";
 
 import { RolesDataTable } from "./_components/roles-data-table";
 import { UserDataTable } from "./_components/user-data-table";
@@ -34,6 +38,7 @@ import Forbidden from "../Error/Forbidden";
 import { usePermissionStore } from "@/app/hooks/permission.store";
 import useAddUserModal from "@/app/hooks/use-user-Modal";
 import useRolePermissionsModal from "@/app/hooks/use-role-permissions-modal";
+
 import { useTranslation } from "@/app/hooks/useTranslation";
 
 export default function UserManagement() {
@@ -71,6 +76,7 @@ export default function UserManagement() {
       setStatics(data.data);
     }
   }, [data]);
+
 
   useEffect(() => {
     if (isError) {

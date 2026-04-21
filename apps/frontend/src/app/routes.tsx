@@ -13,6 +13,7 @@ import SitesTable from "./pages/sites/SitesTable";
 import Projects from "./pages/projects/Projects";
 import Planning from "./pages/planning/MyTask";
 import Team from "./pages/team/Team";
+import MyTeamMembers from "./pages/team/MyTeamMembers";
 import Clients from "./pages/clients/Clients";
 import Materials from "./pages/materials/Materials";
 import Finance from "./pages/finance/Finance";
@@ -47,16 +48,25 @@ import CheckoutSimulator from "./pages/CheckoutSimulator";
 
 import PLaningProjects from "./pages/planning/PLaningProjects";
 import ProjectMilestone from "./pages/planning/ProjectMilestone";
-import MilestoneTasks from "./pages/planning/MilestoneTasks";
 import MyTask from "./pages/planning/MyTask";
-import GanttChart from "./pages/planning/GanttManage";
 import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
 import NotFound from "./pages/Error/NotFound";
-import { PermissionLoader } from "./components/shared/PermissionLoader";
+import Forbidden from "./pages/Error/Forbidden";
+import MyAffectedSite from "./pages/planning/MyAffectedSite";
+import MySItes from "./pages/planning/Mysites";
+import MyMilestones from "./pages/planning/MyMilstone";
+import NotificationsPage from "./pages/videoCall/NotificationsPage";
+import HomePage from "./pages/videoCall/HomePage";
+import CallPage from "./pages/videoCall/CallPage";
+import ChatPage from "./pages/videoCall/ChatPage";
+import GroupChatPage from "./pages/videoCall/GroupChatPage";
 import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
+import AccountBanned from "./pages/AccountBanned";
+import { useAuthStore } from "./store/authStore";
+import RoutePermissionGuard from "./components/shared/RoutePermissionGuard";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = true;
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
@@ -86,15 +96,26 @@ export const router = createBrowserRouter([
     element: <ResetPassword />,
   },
   {
+    path: "/banned",
+    element: <AccountBanned />,
+  },
+  {
     path: "/change-password-first-login",
     element: <ChangePasswordFirstLogin />,
   },
   {
+    path: "/forbidden",
+    element: <Forbidden />,
+  },
+
+  {
     path: "/",
     element: (
-      <PermissionLoader>
-        <DashboardLayout />
-      </PermissionLoader>
+      <ProtectedRoute>
+        <RoutePermissionGuard>
+          <DashboardLayout />
+        </RoutePermissionGuard>
+      </ProtectedRoute>
     ),
     children: [
       {
@@ -102,8 +123,44 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
+        path: "/home",
+        element: <HomePage />,
+      },
+      {
+        path: "/notifcall",
+        element: <NotificationsPage />,
+      },
+      {
+        path: "/call/:id",
+        element: <CallPage />,
+      },
+      {
+        path: "/chat/:id",
+        element: <ChatPage />,
+      },
+      {
+        path: "/group-chat",
+        element: <GroupChatPage />,
+      },
+      {
+        path: "/group-chat/:groupId",
+        element: <GroupChatPage />,
+      },
+      {
         path: "project-manager-dashboard",
         element: <ProjectManagerDashboard />,
+      },
+      {
+        path: "my-mil/:projectId",
+        element: <MyMilestones />,
+      },
+      {
+        path: "profile",
+        element: <Profile />,
+      },
+      {
+        path: "my-sites",
+        element: <MySItes />,
       },
       {
         path: "super-admin-projects",
@@ -118,6 +175,23 @@ export const router = createBrowserRouter([
         element: <Sites />,
       },
       {
+        path: "my-affected-sites",
+        element: <MyAffectedSite />,
+      },
+      {
+        path: "my-task/:milestoneId",
+        element: <MyTask />,
+      },
+
+      {
+        path: "projects",
+        element: <Projects />,
+      },
+      {
+        path: "projects",
+        element: <Projects />,
+      },
+      {
         path: "projects",
         element: <Projects />,
       },
@@ -129,12 +203,12 @@ export const router = createBrowserRouter([
         path: "planning",
         element: <PLaningProjects />,
       },
+      // {
+      //   path: "milestone-tasksprev/:milestoneId",
+      //   element: <MilestoneTasks />,
+      // },
       {
         path: "milestone-tasks/:milestoneId",
-        element: <MilestoneTasks />,
-      },
-      {
-        path: "milestone-tasksC/:milestoneId",
         element: <MilestoneTaskss />,
       },
       {
@@ -144,6 +218,10 @@ export const router = createBrowserRouter([
       {
         path: "team",
         element: <Team />,
+      },
+      {
+        path: "my-team-members",
+        element: <MyTeamMembers />,
       },
       {
         path: "clients",
@@ -186,6 +264,10 @@ export const router = createBrowserRouter([
         element: <Clients />,
       },
       {
+        path:"reset-password-first-login",
+        element:<ChangePasswordFirstLogin />
+      },
+      {
         path: "materials",
         element: <Materials />,
       },
@@ -221,10 +303,10 @@ export const router = createBrowserRouter([
         path: "notifications",
         element: <Notifications />,
       },
-      {
-        path: "gantt",
-        element: <GanttChart />,
-      },
+      // {
+      //   path: "gantt/:milestoneId",
+      //   element: <GanttChart />,
+      // },
       {
         path: "users",
         element: <UserManagement />,
@@ -250,6 +332,10 @@ export const router = createBrowserRouter([
         element: <ResourceOptimizationDashboard />,
       },
     ],
+  },
+  {
+    path: "/account-banned",
+    element: <AccountBanned />,
   },
   {
     path: "/user-guide/:role",

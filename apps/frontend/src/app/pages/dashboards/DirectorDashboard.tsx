@@ -25,7 +25,7 @@ export default function DirectorDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Executive Overview</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Executive Overview</h1>
         <p className="text-gray-500 mt-1">Strategic Business Dashboard - {user?.firstName} {user?.lastName}</p>
       </div>
 
@@ -103,7 +103,7 @@ export default function DirectorDashboard() {
               <div key={project.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{project.name}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{project.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">{project.code}</p>
                   </div>
                   <Badge variant={project.status === 'in_progress' ? 'default' : 'secondary'}>
@@ -113,21 +113,21 @@ export default function DirectorDashboard() {
                 <div className="grid grid-cols-3 gap-4 text-sm mb-3">
                   <div>
                     <p className="text-gray-500">Budget</p>
-                    <p className="font-semibold text-gray-900">${(project.budget / 1000000).toFixed(1)}M</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">${(project.budget / 1000000).toFixed(1)}M</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Start Date</p>
-                    <p className="font-semibold text-gray-900">{new Date(project.startDate).toLocaleDateString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{new Date(project.startDate).toLocaleDateString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Deadline</p>
-                    <p className="font-semibold text-gray-900">{new Date(project.plannedEndDate).toLocaleDateString()}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{new Date(project.plannedEndDate).toLocaleDateString()}</p>
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-gray-600">Overall Progress</span>
-                    <span className="font-semibold text-gray-900">{project.progress}%</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{project.progress}%</span>
                   </div>
                   <Progress value={project.progress} className="h-2" />
                 </div>

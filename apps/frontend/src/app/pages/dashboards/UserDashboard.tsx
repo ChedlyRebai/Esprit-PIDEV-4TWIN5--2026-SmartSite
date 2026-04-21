@@ -203,7 +203,7 @@ export default function UserDashboard() {
         />
         <StatCard
           title={t("dashboard.completedTasks")}
-          value={projects.filter(p => p.status === 'completed').length}
+          value={projects.filter((p:any) => p.status === 'completed').length}
           icon={CheckCircle}
           trend={{ value: 18.3, isPositive: true }}
         />

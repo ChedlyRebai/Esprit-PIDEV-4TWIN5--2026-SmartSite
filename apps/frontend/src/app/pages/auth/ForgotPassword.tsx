@@ -69,7 +69,7 @@ export default function ForgotPassword() {
               alt="SmartSite"
               className="h-16 w-16 object-contain"
             />
-            <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
+            <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white">
               Réinitialiser votre mot de passe
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
@@ -124,18 +124,13 @@ export default function ForgotPassword() {
       <div className="relative hidden w-0 flex-1 lg:block">
         <img
           className="absolute inset-0 h-full w-full object-cover"
-          src="https://images.unsplash.com/photo-1496384968514-baf1d1332fba?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+          src="bg2.jpg"
           alt=""
         />
-        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute inset-0 " />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <h3 className="text-3xl font-bold text-white mb-4">
-              Sécurisez votre compte
-            </h3>
-            <p className="text-white/80 text-lg">
-              Réinitialisez votre mot de passe en quelques secondes
-            </p>
+            
           </div>
         </div>
       </div>

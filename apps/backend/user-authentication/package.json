@@ -27,7 +27,8 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.17",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.6",
     "@nestjs/typeorm": "^11.0.0",
     "@types/nodemailer": "^7.0.11",
     "@types/passport-local": "^1.0.38",
@@ -40,6 +41,7 @@
     "mongoose": "^9.2.1",
     "mysql2": "^3.17.2",
     "nodemailer": "^8.0.1",
+    "openai": "^6.34.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -47,6 +49,7 @@
     "rxjs": "^7.8.1",
     "save": "^2.9.0",
     "sharp": "^0.34.5",
+    "stream-chat": "^8.60.0",
     "typeorm": "^0.3.28",
     "yargs": "^18.0.0"
   },
@@ -55,7 +58,7 @@
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.1",
+    "@nestjs/testing": "^11.1.19",
     "@types/axios": "^0.9.36",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
@@ -78,22 +81,5 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }

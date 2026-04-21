@@ -23,6 +23,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+
+export const getSiteWIthTEAmId = async (teamId: string) => {
+  if (!teamId) {
+    return [];
+  }
+
+  const { data } = await api.get(`/gestion-sites/teams/${teamId}/sites`);
+  return data;
+}
+
+export const fetchMyAffectedSites= () =>{
+  
+}
 // Map backend site data to frontend site format
 const mapBackendSiteToFrontend = (backendSite: any): Site => {
   return {

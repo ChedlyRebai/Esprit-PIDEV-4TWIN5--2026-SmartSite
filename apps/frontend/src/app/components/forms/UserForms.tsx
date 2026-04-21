@@ -33,6 +33,7 @@ import {
 import { SelectLabel } from "../ui/select";
 import { Role } from "@/app/types";
 import useAddUserModal from "@/app/hooks/use-user-Modal";
+import { useQuery } from "@tanstack/react-query";
 
 const UserForms = ({ type }: { type: "add" | "edit" }) => {
   let formSchema;
@@ -109,7 +110,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
   });
 
   useEffect(() => {
-    loadRoles();
+    //loadRoles();
     if (type === "edit") {
       loadUserData();
     }
@@ -134,24 +135,33 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
   };
   const { id, onClose, onUserChange } = useAddUserModal();
 
-  const [roles, setRoles] = useState<Role[]>([]);
-  const loadRoles = async () => {
-    try {
-      const response = await getAllRoles();
-      if (response.status === 200) {
-        setRoles(response.data);
-      }
-    } catch (error) {
-      console.log("FAiled to loading roles");
-    }
-  };
+  // const [roles, setRoles] = useState<Role[]>([]);
+  // const loadRoles = async () => {
+  //   try {
+  //     const response = await getAllRoles();
+  //     console.log("Roles response:", response);
+  //     if (response.status === 200) {
+  //       setRoles(response.data);
+  //     }
+  //   } catch (error) {
+  //     console.log("FAiled to loading roles");
+  //   }
+  // };
+
+
+  const {data:roles,isLoading:isRoleLoadingg}= useQuery({
+    queryKey:["roles"],
+    queryFn:getAllRoles,
+    
+  })
+  console.log("Roles data from query", roles);
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (type === "add") {
         const response = await createUser(
           data as Parameters<typeof createUser>[0],
         );
-        if (response.status === 201) {
+        if (response?.status === 201) {
           toast.success("User created successfully");
           form.reset();
           onClose();
@@ -159,7 +169,7 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
         }
       } else {
         const response = await updateUser(id as string, data);
-        if (response.status === 200 || response.status === 204) {
+        if (response?.status === 200 || response?.status === 204) {
           toast.success("User updated successfully");
           form.reset();
           onClose();
@@ -323,11 +333,17 @@ const UserForms = ({ type }: { type: "add" | "edit" }) => {
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent position="item-aligned">
-                    {roles.map((language) => (
-                      <SelectItem key={language._id} value={language._id}>
-                        {language.name}
+                    {roles && !isRoleLoadingg && roles.length > 0 ? (
+                      roles.map((role: Role) => (
+                        <SelectItem key={role._id} value={role._id as string}>
+                          {role.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem disabled value="none">
+                        No roles available
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </Field>

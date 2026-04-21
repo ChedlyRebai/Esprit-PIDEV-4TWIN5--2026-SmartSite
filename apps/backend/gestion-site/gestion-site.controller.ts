@@ -143,6 +143,10 @@ export class GestionSiteController {
     return result;
   }
 
+  @Get('teams/:teamId/sites')
+  async getSitesByTeam(@Param('teamId') teamId: string) {
+    return this.gestionSiteService.getSiteByteamId(teamId);
+  }
   /**
    * Soft delete a site (set isActif to false)
    */
@@ -218,7 +222,9 @@ export class GestionSiteController {
         site.teamIds.forEach((teamId: string) => {
           teamToSiteMap[teamId] = {
             siteId: site._id.toString(),
+
             siteName: site.nom,
+
             status: site.status || 'planning'
           };
         });

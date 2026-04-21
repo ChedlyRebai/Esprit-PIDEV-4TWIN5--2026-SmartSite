@@ -175,6 +175,9 @@ Update React components to use API Gateway:
 
 ```typescript
 // src/utils/api.ts
+
+const API_URL = process.env.VITE_API_URL || 'http://localhost:3000/api';
+
 const API_URL = process.env.VITE_API_URL || "http://localhost:3000/api";
 
 export const fetchProjects = async () => {

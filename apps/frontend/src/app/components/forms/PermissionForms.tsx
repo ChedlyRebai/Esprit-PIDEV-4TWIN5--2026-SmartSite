@@ -1,4 +1,3 @@
-
 import {
   FieldGroup,
   Field,
@@ -29,32 +28,128 @@ import {
 } from "../ui/select";
 
 const PERMISSION_CATEGORIES = [
+  // Core
   { name: "Dashboard", href: "/dashboard" },
-  { name: "User Management", href: "/users" },
-  { name: "Role Management", href: "/roles" },
-  { name: "Permission Management", href: "/permissions" },
-  { name: "Sites", href: "/sites" },
+  { name: "Home", href: "/home" },
+  { name: "Profile", href: "/profile" },
+
+  // Communication
+  { name: "Chat", href: "/chat" },
+  { name: "Group Chat", href: "/group-chat" },
+  { name: "Calls", href: "/call" },
+  { name: "Notifications", href: "/notifications" },
+  { name: "Call Notifications", href: "/notifcall" },
+
+  // Projects & Planning
   { name: "Projects", href: "/projects" },
+  { name: "Project Milestones", href: "/project-milestone" },
+  { name: "Milestone Tasks", href: "/milestone-tasks" },
   { name: "Planning", href: "/planning" },
+  { name: "My Milestones", href: "/my-mil" },
+  { name: "My Tasks", href: "/my-task" },
+
+  // Teams
   { name: "Team", href: "/team" },
+  { name: "My Team Members", href: "/my-team-members" },
+
+  // Sites
+  { name: "Sites", href: "/sites" },
+  { name: "My Sites", href: "/my-sites" },
+  { name: "My Affected Sites", href: "/my-affected-sites" },
+
+  // Clients & Suppliers
   { name: "Clients", href: "/clients" },
   { name: "Suppliers", href: "/suppliers" },
+  { name: "Supplier Evaluation", href: "/suppliers-evaluation" },
+  { name: "Supplier Comparison", href: "/suppliers-comparison" },
+
+  // Catalog & Materials
+  { name: "Catalog", href: "/catalog" },
   { name: "Materials", href: "/materials" },
+  { name: "Supplier Materials", href: "/supplier-materials" },
+  { name: "Material Suppliers", href: "/material-suppliers" },
+
+  // Finance
   { name: "Finance", href: "/finance" },
-  { name: "QHSE & Safety", href: "/qhse" },
+  { name: "Payments", href: "/payments" },
+
+  // QHSE & Safety
+  { name: "QHSE", href: "/qhse" },
   { name: "Incidents", href: "/incidents" },
+
+  // Insights
   { name: "Reports", href: "/reports" },
   { name: "Analytics", href: "/analytics" },
+
+  // Map
   { name: "Map View", href: "/map" },
-  { name: "Notifications", href: "/notifications" },
+
+  // Admin
+  { name: "User Management", href: "/users" },
   { name: "Pending Approvals", href: "/admin/pending-users" },
-  
-  {name: "My Tasks", href: "/my-task"}  
-  
+  { name: "System Logs", href: "/admin/system-logs" },
+  { name: "Super Admin Projects", href: "/super-admin-projects" },
+
+  // Optimization
+  { name: "Resource Optimization", href: "/resource-optimization" },
+
+  // Misc
+  { name: "User Guide", href: "/user-guide" },
+  { name: "Checkout Simulator", href: "/checkout-simulator" },
 ];
 
 const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const [isCustomCategory, setIsCustomCategory] = React.useState(false);
+
+  const toModuleLabel = (rawValue?: string) => {
+    const normalized = String(rawValue || "")
+      .trim()
+      .replace(/^\/+/, "")
+      .replace(/[\-_]+/g, " ")
+      .replace(/\s+/g, " ");
+
+    if (!normalized) {
+      return "General";
+    }
+
+    return normalized
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  const deriveModuleFromHref = (href?: string) => {
+    const cleanedHref = (href || "").trim().replace(/^\/+/, "");
+    if (!cleanedHref) return "General";
+    return toModuleLabel(cleanedHref.split("/")[0]);
+  };
+
+  const moduleSuggestions = React.useMemo(() => {
+    const baseSuggestions = [
+      "General",
+      "Admin",
+      "Core",
+      "Communication",
+      "Planning",
+      "Team",
+      "Sites",
+      "Clients",
+      "Procurement",
+      "Materials",
+      "Finance",
+      "Qhse",
+      "Insights",
+      "Optimization",
+      "Misc",
+    ];
+
+    const derivedFromCategories = PERMISSION_CATEGORIES.map((category) =>
+      deriveModuleFromHref(category.href),
+    );
+
+    return Array.from(new Set([...baseSuggestions, ...derivedFromCategories])).sort();
+  }, []);
 
   let formSchema;
   if (type === "edit") {
@@ -64,6 +159,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
         .min(3, "Name must be at least 3 characters.")
         .max(50, "Name must be at most 50 characters.")
         .optional(),
+      module: z.string().optional(),
       href: z.string(),
       description: z
         .string()
@@ -81,6 +177,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
         .min(3, "Name must be at least 3 characters.")
         .max(50, "Name must be at most 50 characters."),
       category: z.string().optional(),
+      module: z.string().optional(),
       description: z
         .string()
         .max(200, "Description must be at most 200 characters.")
@@ -98,6 +195,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
     defaultValues: {
       name: "",
       category: "",
+      module: "General",
       description: "",
       href: "",
       access: false,
@@ -110,6 +208,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const { id, onClose, onPermissionChange } = useAddPermissionModal();
 
   useEffect(() => {
+    loadPermissionData();
     if (type === "edit" && id) {
       loadPermissionData();
     }
@@ -118,8 +217,8 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
   const loadPermissionData = async () => {
     try {
       const res = await getPermissionById(id as string);
-      if (res.status === 200) {
-        // Check if the permission name matches a predefined category
+      if (res?.status === 200) {
+        console.log("Permission data loaded:", res.data);
         const matchedCategory = PERMISSION_CATEGORIES.find(
           (cat) => cat.name === res.data.name,
         );
@@ -127,6 +226,7 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
         form.reset({
           name: res.data.name || "",
           category: matchedCategory ? res.data.name : "Custom",
+          module: res.data.module || deriveModuleFromHref(res.data.href),
           description: res.data.description || "",
           href: res.data.href || "",
           access: res.data.access || false,
@@ -134,8 +234,6 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
           update: res.data.update || false,
           delete: res.data.delete || false,
         });
-
-        
       }
     } catch (error: any) {
       toast.error("Failed to load permission data. Please try again.");
@@ -148,38 +246,53 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
     );
 
     if (selectedCategory) {
-      
-        setIsCustomCategory(false);
-        form.setValue("name", selectedCategory.name);
-        form.setValue("href", selectedCategory.href);
-      
+      setIsCustomCategory(false);
+      form.setValue("name", selectedCategory.name);
+      form.setValue("href", selectedCategory.href);
+      form.setValue("module", deriveModuleFromHref(selectedCategory.href));
     }
   };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (type === "add") {
-        const response = await createPermission(data);
+        if (!data.name || data.name.trim().length === 0) {
+          toast.error("Permission name is required.");
+          return;
+        }
+
+        const payload = {
+          name: data.name,
+          module: data.module || deriveModuleFromHref(data.href),
+          description: data.description,
+          access: data.access,
+          href: data.href,
+          create: data.create,
+          update: data.update,
+          delete: data.delete,
+        };
+
+        const response = await createPermission(payload);
         console.log("data", data);
-        if (response.status === 201) {
+        if (response?.status === 201) {
           toast.success("Permission created successfully");
           form.reset();
           onClose();
           onPermissionChange();
           loadPermissionData();
         } else {
-          toast.error(response.data || "Failed to create permission");
+          toast.error(response?.data || "Failed to create permission");
         }
       } else {
         const response = await updatePermission(id as string, data);
-        if (response.status === 200 || response.status === 204) {
+        if (response?.status === 200 || response?.status === 204) {
           toast.success("Permission updated successfully");
           form.reset();
           onClose();
           onPermissionChange();
           loadPermissionData();
         } else {
-          toast.error(response.data || "Failed to update permission");
+          toast.error(response?.data || "Failed to update permission");
         }
       }
     } catch (error) {
@@ -266,6 +379,34 @@ const PermissionForms = ({ type }: { type: "add" | "edit" }) => {
                   autoComplete="off"
                   disabled={type === "add" && !isCustomCategory}
                 />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="module"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="form-permission-module">Module *</FieldLabel>
+                <Input
+                  {...field}
+                  id="form-permission-module"
+                  aria-invalid={fieldState.invalid}
+                  placeholder="e.g., admin, projects, finance"
+                  list={type === "add" ? "module-suggestions" : undefined}
+                  autoComplete="off"
+                />
+                {type === "add" && (
+                  <datalist className="bg-white" id="module-suggestions">
+                    {moduleSuggestions.map((moduleName) => (
+                      <option className="bg-white" key={moduleName} value={moduleName} />
+                    ))}
+                  </datalist>
+                )}
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}

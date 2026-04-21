@@ -12,3 +12,6 @@ yarn-error.log*
 
 # env
 .env
+
+# Kafka runtime data
+apps/backend/kafka1/data/

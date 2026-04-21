@@ -4,7 +4,6 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type FieldErrors } from "react-hook-form";
 import * as z from "zod";
-
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -13,7 +12,9 @@ import {
   FieldLabel,
   FieldDescription,
 } from "@/components/ui/field";
+
 import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
@@ -46,6 +47,7 @@ const getCountryDisplay = (country: any) => {
 };
 
 // Liste des roles disponibles (sauf super_admin)
+
 const availableRoles: RoleType[] = [
   "director",
   "project_manager",
@@ -73,9 +75,9 @@ const phoneCountryCodes = [
 // Helper function to convert phone code values back to proper format
 const getPhoneCode = (value: string): string => {
   switch (value) {
-    case '+1-ca':
-    case '+1-us':
-      return '+1';
+    case "+1-ca":
+    case "+1-us":
+      return "+1";
     default:
       return value;
   }
@@ -217,7 +219,8 @@ export default function Register() {
         ? String(first.message)
         : null;
     toast.error(
-      msg ?? "Veuillez compléter tous les champs obligatoires et cocher les cases.",
+      msg ??
+        "Veuillez compléter tous les champs obligatoires et cocher les cases.",
     );
   };
 

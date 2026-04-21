@@ -116,24 +116,21 @@ export default function Sites() {
   const navigate = useNavigate();
   const isProjectContext = !!projectIdFromUrl;
   const currentProjectId = isProjectContext ? projectIdFromUrl : null;
-  
+
   const [projectSiteLimit, setProjectSiteLimit] = useState<number | null>(null);
-  const [projectLoading, setProjectLoading] = useState(false);
-  
+
   useEffect(() => {
     if (isProjectContext && currentProjectId) {
-      setProjectLoading(true);
       axios.get(`http://localhost:3007/projects/${currentProjectId}`)
         .then(res => {
           if (res.data?.siteCount !== undefined) {
             setProjectSiteLimit(res.data.siteCount);
           }
         })
-        .catch(err => console.error('Error fetching project:', err))
-        .finally(() => setProjectLoading(false));
+        .catch(err => console.error('Error fetching project:', err));
     }
   }, [isProjectContext, currentProjectId]);
-  
+
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -150,7 +147,8 @@ export default function Sites() {
   const [useMockData, setUseMockData] = useState(false);
   
   const canManageSites = true;
-  const isLimitReached = projectSiteLimit !== null && sites.filter(s => s.projectId === currentProjectId).length >= projectSiteLimit;
+  const currentSiteCount = sites.filter(s => s.projectId === currentProjectId).length;
+  const isLimitReached = projectSiteLimit !== null && currentSiteCount >= projectSiteLimit;
   
   // Real-time refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -187,6 +185,7 @@ export default function Sites() {
 
   // Validation errors
   const [errors, setErrors] = useState<{ name?: string; address?: string; area?: string; budget?: string }>({});
+  const [budgetError, setBudgetError] = useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [availableTeams, setAvailableTeams] = useState<Array<{_id: string; name: string}>>([]);
   
@@ -654,12 +653,11 @@ export default function Sites() {
       toast.error('Please correct the form errors');
       return;
     }
-    
+
     if (isLimitReached) {
-      toast.error(`Site limit (${projectSiteLimit}) reached for this project`);
       return;
     }
-    
+
     try {
       if (useMockData) {
         const site: Site = {
@@ -715,9 +713,9 @@ export default function Sites() {
       const errorData = error?.response?.data;
       const backendMessage = errorData?.message || error?.message || '';
       console.log('Backend error:', backendMessage);
-      
-      if (backendMessage.includes('exceeds')) {
-        toast.error(backendMessage);
+
+      if (backendMessage.toLowerCase().includes('budget') || backendMessage.toLowerCase().includes('exceeds')) {
+        setBudgetError(backendMessage);
       } else {
         toast.error(backendMessage || 'Error creating site');
       }
@@ -728,6 +726,7 @@ export default function Sites() {
     setNewSite({ name: '', address: '', area: '', budget: '', clientName: '' });
     setMapPosition(null);
     setErrors({});
+    setBudgetError(null);
     setSelectedTeam('');
     setNearbyFournisseurs([]);
     setAddDialogOpen(false);
@@ -940,7 +939,7 @@ export default function Sites() {
             </span>
             {projectSiteLimit !== null && (
               <span className="ml-1 text-blue-600">
-                {' • '}{sites.filter(s => s.projectId === currentProjectId).length} / {projectSiteLimit} limit
+                {' • '}{currentSiteCount} / {projectSiteLimit} sites
               </span>
             )}
             {siteIssues && Object.keys(siteIssues).length > 0 && (
@@ -1000,7 +999,11 @@ export default function Sites() {
             
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all">
+              <Button
+                className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLimitReached}
+                title={isLimitReached ? `Limite de ${projectSiteLimit} site(s) atteinte` : undefined}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 New Site
               </Button>
@@ -1112,7 +1115,7 @@ export default function Sites() {
                         min="1"
                         placeholder="e.g., 2500000"
                         value={newSite.budget}
-                        onChange={(e) => setNewSite({ ...newSite, budget: e.target.value })}
+                        onChange={(e) => { setNewSite({ ...newSite, budget: e.target.value }); setBudgetError(null); }}
                         className={errors.budget ? 'border-red-500 focus:ring-red-500' : ''}
                       />
                       {errors.budget && (
@@ -1234,6 +1237,17 @@ export default function Sites() {
                 </div>
                 
                 <div className="flex gap-3 pt-4">
+                  {budgetError && (
+                    <div className="w-full flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-1">
+                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-red-700 text-sm">Budget exceeded</p>
+                        <p className="text-sm text-red-600 mt-0.5">{budgetError}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-3 pt-2">
                   <Button
                     variant="outline"
                     className="flex-1"
@@ -1254,6 +1268,21 @@ export default function Sites() {
           </div>
         ) : null}
       </div>
+
+      {/* Search and Filter Card */}
+      {isLimitReached && isProjectContext && (
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-4">
+          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-red-700">Site limit reached</p>
+            <p className="text-sm text-red-600 mt-0.5">
+              This project is limited to <span className="font-bold">{projectSiteLimit} site{projectSiteLimit !== 1 ? 's' : ''}</span>.
+              You already have {currentSiteCount} site{currentSiteCount !== 1 ? 's' : ''} created.
+              To add a new site, update the limit in the project settings.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter Card */}
       <Card className="border-none shadow-md">
@@ -1478,7 +1507,7 @@ export default function Sites() {
               <div className="bg-gray-50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                 <MapPin className="h-8 w-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No sites found</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No sites found</h3>
               <p className="text-gray-500 mb-6">
                 {searchTerm || selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly
                   ? 'No results match your criteria'
@@ -1555,7 +1584,7 @@ export default function Sites() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                          <CardTitle className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">
                             {site.name}
                           </CardTitle>
                           {/* Priority Badge */}
@@ -1596,13 +1625,13 @@ export default function Sites() {
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Area</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {site.area.toLocaleString()} <span className="text-xs font-normal text-gray-500">m²</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Budget</p>
-                      <p className="font-semibold text-gray-900">{formatBudget(site.budget)}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{formatBudget(site.budget)}</p>
                     </div>
                   </div>
 
@@ -1610,7 +1639,7 @@ export default function Sites() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Progress</span>
-                      <span className="font-semibold text-gray-900">{site.progress}%</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{site.progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                       <div 
@@ -1886,24 +1915,24 @@ export default function Sites() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Site Name</p>
-                    <p className="font-semibold text-gray-900 text-lg">{selectedSite.name}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg">{selectedSite.name}</p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Address</p>
-                    <p className="text-gray-900">{selectedSite.address}</p>
+                    <p className="text-gray-900 dark:text-white">{selectedSite.address}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Area</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {selectedSite.area.toLocaleString()} m²
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Budget</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {formatBudget(selectedSite.budget)}
                       </p>
                     </div>
@@ -1928,7 +1957,7 @@ export default function Sites() {
                           style={{ width: `${selectedSite.progress}%` }}
                         />
                       </div>
-                      <span className="font-semibold text-gray-900 min-w-[3rem]">
+                      <span className="font-semibold text-gray-900 dark:text-white min-w-[3rem]">
                         {selectedSite.progress}%
                       </span>
                     </div>
@@ -1936,7 +1965,7 @@ export default function Sites() {
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Start Date</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       {formatDate(selectedSite.workStartDate)}
                     </p>
                   </div>
@@ -1997,7 +2026,7 @@ export default function Sites() {
           {selectedSite && (
             <div className="space-y-4 py-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="font-medium text-gray-900 mb-2">Site to delete:</p>
+                <p className="font-medium text-gray-900 dark:text-white mb-2">Site to delete:</p>
                 <p className="text-gray-700"><span className="font-medium">Name:</span> {selectedSite.name}</p>
                 <p className="text-gray-700"><span className="font-medium">Address:</span> {selectedSite.address}</p>
                 <p className="text-gray-700"><span className="font-medium">Budget:</span> {formatBudget(selectedSite.budget)}</p>

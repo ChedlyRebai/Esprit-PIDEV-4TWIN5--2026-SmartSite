@@ -65,7 +65,7 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
   const loadRoleData = async () => {
     try {
       const res = await getRoleById(id as string);
-      if (res.status === 200) {
+      if (res?.status === 200) {
         const permissionIds = Array.isArray(res.data.permissions)
           ? res.data.permissions.map((p: any) => 
               typeof p === 'string' ? p : p._id
@@ -95,23 +95,23 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
     try {
       if (type === "add") {
         const res = await createRole(data.name, data.description, data.permissions);
-        if (res.status === 201) {
+        if (res?.status === 201) {
           toast.success("Role created successfully");
           form.reset();
           onClose();
           onRoleChange();
         } else {
-          toast.error(res.data || "Failed to create role");
+          toast.error(res?.data || "Failed to create role");
         }
       } else {
         const res = await updateRole(data.id!, data.name, data.description, data.permissions);
-        if (res.status === 200 || res.status === 204) {
+        if (res?.status === 200 || res?.status === 204) {
           toast.success("Role updated successfully");
           form.reset();
           onClose();
           onRoleChange();
         } else {
-          toast.error(res.data || "Failed to update role");
+          toast.error(res?.data || "Failed to update role");
         }
       }
     } catch (error: any) {
@@ -160,7 +160,7 @@ const RoleForms = ({ type }: { type: "edit" | "add" }) => {
                   />
                   <InputGroupAddon align="block-end">
                     <InputGroupText className="tabular-nums">
-                      {field.value.length}/100 characters
+                      {field?.value?.length || 0}/100 characters
                     </InputGroupText>
                   </InputGroupAddon>
                 </InputGroup>

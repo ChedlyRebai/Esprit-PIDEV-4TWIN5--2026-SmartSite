@@ -5,17 +5,21 @@ import { Document } from 'mongoose';
 @Schema({ timestamps: true })
 export class Permission extends Document {
   @Prop({ required: true, unique: true, trim: true })
-  name: string;
+  name!: string;
+
+  @Prop({ required: true, trim: true, default: 'general' })
+  module!: string;
+
   @Prop()
-  href: string;
+  href!: string;
   @Prop()
-  access: boolean;
+  access!: boolean;
   @Prop()
-  create: boolean;
+  create!: boolean;
   @Prop()
-  delete: boolean;
+  delete!: boolean;
   @Prop()
-  update: boolean;
+  update!: boolean;
 
   @Prop({ trim: true })
   description?: string;

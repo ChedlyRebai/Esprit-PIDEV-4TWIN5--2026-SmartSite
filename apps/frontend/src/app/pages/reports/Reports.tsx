@@ -6,7 +6,7 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports</h1>
         <p className="text-gray-500 mt-1">Generate and view project reports</p>
       </div>
       <Card>
@@ -26,7 +26,7 @@ export default function Reports() {
             ].map((report, index) => (
               <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
                 <div>
-                  <h3 className="font-semibold text-gray-900">{report.name}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{report.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">{report.type} • {report.date}</p>
                 </div>
                 <Button size="sm" variant="outline">

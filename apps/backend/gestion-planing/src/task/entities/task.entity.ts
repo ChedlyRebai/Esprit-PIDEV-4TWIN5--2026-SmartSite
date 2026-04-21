@@ -1,7 +1,8 @@
-import { StatusEnum } from '@/StatusEnum';
+import { StatusEnum } from '../../StatusEnum';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { TaskTypeEnum } from './TaskTypeEnum';
+import { TaskPriorityEnum } from './TaskPriorityEnum';
 
 @Schema({ timestamps: true })
 export class Task extends Document {
@@ -15,10 +16,10 @@ export class Task extends Document {
   milestoneId: Types.ObjectId;
 
   @Prop({ type: [String], default: [] })
-  assignedUsers: string;
+  assignedTeams: string[];
 
-  @Prop()
-  priority: string;
+  @Prop({ type: String, enum: TaskPriorityEnum, default: TaskPriorityEnum.MEDIUM })
+  priority: TaskPriorityEnum;
 
   @Prop({ type: String, enum: TaskTypeEnum, default: TaskTypeEnum.TASK })
   type: string;

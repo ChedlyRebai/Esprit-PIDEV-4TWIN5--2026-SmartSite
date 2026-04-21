@@ -114,7 +114,7 @@ export default function ResetPassword() {
               alt="SmartSite"
               className="h-16 w-16 object-contain"
             />
-            <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
+            <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white">
               Réinitialiser votre mot de passe
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">

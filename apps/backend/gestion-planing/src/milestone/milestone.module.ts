@@ -3,7 +3,7 @@ import { MilestoneService } from './milestone.service';
 import { MilestoneController } from './milestone.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Milestone, MilestoneSchema } from './entities/milestone.entity';
-import { Task, TaskSchema } from '@/task/entities/task.entity';
+import { Task, TaskSchema } from '../task/entities/task.entity';
 
 @Module({
   imports: [

@@ -23,7 +23,7 @@ export function StatCard({ title, value, icon: Icon, trend, subtitle }: StatCard
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-gray-900">{value}</div>
+        <div className="text-3xl font-bold text-gray-900 dark:text-white">{value}</div>
         {trend && (
           <div className="flex items-center gap-1 mt-2">
             {trend.isPositive ? (

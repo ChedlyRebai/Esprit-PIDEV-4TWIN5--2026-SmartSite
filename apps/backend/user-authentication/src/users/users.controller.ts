@@ -8,13 +8,20 @@ import {
   Delete,
   UseGuards,
   Headers,
+  UnauthorizedException,
   Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
+import { GetUser } from '../auth/strategies/get-user.decorator';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
+interface JwtPayload {
+  sub: string;
+  email?: string;
+  role?: string;
+}
 @Controller('users')
 //@UseGuards(JwtAuthGuard)
 //@UseGuards(JwtAuthGuard)
@@ -84,27 +91,31 @@ export class UsersController {
     }
   }
 
+  // @UseGuards(JwtGuard)
+  // @Get('/my-tasks')
+  // getMytasks(@GetUser() user: any) {
+  //   const userId = user?.sub || user?.userId || user?.id || user?._id;
+  //   console.log('Extracted user ID from token payload:', user);
+  //   if (!userId) {
+  //     throw new UnauthorizedException('User ID missing in token payload');
+  //   }
+
+  //   return this.taskService.getMyTask("69bb3f601fa09b37911c44b2");
+  // }
+  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getCurrentUser(@Headers('Authorization') authHeader: string) {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { error: 'No token provided' };
-    }
-    const token = authHeader.split(' ')[1];
-    try {
-      const decoded: any = this.jwtService.verify(token);
-      const userId = decoded.sub;
-      const user = await this.usersService.findById(userId);
+  async getCurrentUser(@GetUser() user: any) {
+    console.log('User from tokensss:', user);
 
-      if (!user) {
-        return { error: 'User not found' };
-      }
+    const userId = user.sub || user?.userId || user.id || user._id;
 
-      // Return user without password
-      const { password, ...userWithoutPassword } = user.toObject();
-      return userWithoutPassword;
-    } catch (error) {
-      return { error: 'Invalid token' };
+    if (!userId) {
+      throw new UnauthorizedException('Invalid token payload');
     }
+    const findeduser = await this.usersService.findById(userId);
+    console.log('Found user:', findeduser);
+    return findeduser;
   }
 
   @Put('me')
@@ -159,7 +170,6 @@ export class UsersController {
     try {
       const decoded: any = this.jwtService.verify(token);
       const userId = decoded.sub;
-
       return await this.usersService.changePassword(
         userId,
         passwordData.currentPassword,
@@ -244,5 +254,75 @@ export class UsersController {
       ipAddress: req?.ip,
     });
     return user;
+  }
+
+  // ============ TEAM ASSIGNMENT ENDPOINTS ============
+
+  /**
+   * Assign a manager to a user
+   */
+  @Post(':id/manager')
+  async assignManager(
+    @Param('id') userId: string,
+    @Body() body: { managerId: string },
+  ) {
+    return this.usersService.assignManager(userId, body.managerId);
+  }
+
+  /**
+   * Modify a user's manager
+   */
+  @Put(':id/manager')
+  async modifyManager(
+    @Param('id') userId: string,
+    @Body() body: { managerId: string },
+  ) {
+    return this.usersService.modifyManager(userId, body.managerId);
+  }
+
+  /**
+   * View a user's manager
+   */
+  @Get(':id/manager')
+  async getManager(@Param('id') userId: string) {
+    return this.usersService.getManager(userId);
+  }
+
+  /**
+   * Set responsibilities for a user
+   */
+  @Put(':id/responsibilities')
+  async setResponsibilities(
+    @Param('id') userId: string,
+    @Body() body: { responsibilities: string },
+  ) {
+    return this.usersService.setResponsibilities(userId, body.responsibilities);
+  }
+
+  /**
+   * Get users by site
+   */
+  @Get('site/:siteId')
+  async getUsersBySite(@Param('siteId') siteId: string) {
+    return this.usersService.getUsersBySite(siteId);
+  }
+
+  /**
+   * Assign user to a site
+   */
+  @Post(':id/site')
+  async assignToSite(
+    @Param('id') userId: string,
+    @Body() body: { siteId: string },
+  ) {
+    return this.usersService.assignToSite(userId, body.siteId);
+  }
+
+  /**
+   * Remove user from a site
+   */
+  @Delete(':id/site')
+  async removeFromSite(@Param('id') userId: string) {
+    return this.usersService.removeFromSite(userId);
   }
 }

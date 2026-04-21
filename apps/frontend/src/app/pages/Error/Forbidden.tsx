@@ -1,11 +1,15 @@
+import { useTranslation } from "@/app/hooks/useTranslation";
+
 export default function Forbidden() {
+  const { t } = useTranslation();
+  // const router = useRouter();
   return (
     <>
-      <div className="bg-white h-full flex flex-col lg:relative">
-        <div className="flex-grow flex flex-col">
-          <main className="flex-grow flex flex-col bg-white">
-            <div className="flex-grow mx-auto max-w-7xl w-full flex flex-col px-4 sm:px-6 lg:px-8">
-              <div className="flex-shrink-0 pt-10 sm:pt-16">
+      <div className="bg-white h-screen flex flex-col lg:relative">
+        <div className="grow flex flex-col">
+          <main className="grow flex flex-col bg-white">
+            <div className="grow mx-auto max-w-7xl w-full flex flex-col px-4 sm:px-6 lg:px-8">
+              <div className="shrink-0 pt-10 sm:pt-16">
                 <a href="/" className="inline-flex">
                   <span className="sr-only">Workflow</span>
                   <img
@@ -15,22 +19,22 @@ export default function Forbidden() {
                   />
                 </a>
               </div>
-              <div className="flex-shrink-0 my-auto py-16 sm:py-32">
+              <div className="shrink-0 my-auto py-16 sm:py-32">
                 <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">
-                  404 error
+                  403 error
                 </p>
-                <h1 className="mt-2 text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl">
-                  Forbidden
+                <h1 className="mt-2 text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight sm:text-5xl">
+                  Access denied
                 </h1>
                 <p className="mt-2 text-base text-gray-500">
-                  Sorry, we couldn’t find the page you’re looking for.
+                  You do not have permission to access this page.
                 </p>
                 <div className="mt-6">
                   <a
-                    href="#"
+                    href="/"
                     className="text-base font-medium text-indigo-600 hover:text-indigo-500"
                   >
-                    Go back home<span aria-hidden="true"> &rarr;</span>
+                    Go Back<span aria-hidden="true"> &rarr;</span>
                   </a>
                 </div>
               </div>

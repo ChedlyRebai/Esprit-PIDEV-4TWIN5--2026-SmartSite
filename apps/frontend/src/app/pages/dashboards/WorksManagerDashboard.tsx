@@ -26,7 +26,7 @@ export default function WorksManagerDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Works Management Overview
         </h1>
         <p className="text-gray-500 mt-1">
@@ -80,7 +80,7 @@ export default function WorksManagerDashboard() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                       {site.name}
                     </h3>
                     <p className="text-sm text-gray-500 mb-3">{site.address}</p>

@@ -1,7 +1,8 @@
+import { AUTH_API_URL } from '@/lib/auth-api-url';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/teams',
+  baseURL: `${AUTH_API_URL}/teams`,
 });
 
 // Add auth token to requests
@@ -56,6 +57,8 @@ export const getTeamById = async (id: string): Promise<{ status: number; data: T
 export const createTeam = async (team: Partial<Team>): Promise<{ status: number; data: Team }> => {
   try {
     const response = await api.post('/', team);
+    console.log(team)
+    console.log(response)
     return { status: response.status, data: response.data };
   } catch (error: any) {
     console.error('Error creating team:', error);

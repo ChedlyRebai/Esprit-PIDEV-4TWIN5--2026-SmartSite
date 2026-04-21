@@ -6,7 +6,7 @@ import TaskForms from "../../forms/TaskForms";
 import useTaskModal from "@/app/hooks/use-task-modal";
 
 const AddTaskModal = () => {
-  const { isOpen, onClose,setType,type } = useTaskModal();
+  const { isOpen, onClose,setType,type,id } = useTaskModal();
   return (
     <Modal
       title={type === "add" ? "Add New Task" : "Edit Task"}

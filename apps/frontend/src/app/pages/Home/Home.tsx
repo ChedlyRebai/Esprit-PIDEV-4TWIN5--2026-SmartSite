@@ -165,7 +165,7 @@ export default function Home2() {
             <div className="mx-auto max-w-7xl px-6 pb-32 pt-36 sm:pt-60 lg:px-8 lg:pt-32">
               <div className="mx-auto max-w-2xl gap-x-14 lg:mx-0 lg:flex lg:max-w-none lg:items-center">
                 <div className="w-full max-w-xl lg:shrink-0 xl:max-w-2xl">
-                  <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+                  <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
                     SmartSite: Manage your construction sites with artificial
                     intelligence
                   </h1>
@@ -232,7 +232,7 @@ export default function Home2() {
         {/* Content section */}
         <div className="mx-auto -mt-12 max-w-7xl px-6 sm:mt-0 lg:px-8 xl:-mt-8">
           <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               Our mission
             </h2>
             <div className="mt-6 flex flex-col gap-x-8 gap-y-20 lg:flex-row">
@@ -267,7 +267,7 @@ export default function Home2() {
                       <dt className="text-base leading-7 text-gray-600">
                         {stat.label}
                       </dt>
-                      <dd className="text-5xl font-semibold tracking-tight text-gray-900">
+                      <dd className="text-5xl font-semibold tracking-tight text-gray-900 dark:text-white">
                         {stat.value}
                       </dd>
                     </div>
@@ -297,7 +297,7 @@ export default function Home2() {
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 <a
                   href="#"
-                  className="rounded-md bg-yellow-500 px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm hover:bg-yellow-400 transition"
+                  className="rounded-md bg-yellow-500 px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white shadow-sm hover:bg-yellow-400 transition"
                 >
                   Start Free Trial
                 </a>
@@ -346,7 +346,7 @@ export default function Home2() {
         {/* Values section */}
         <div className="mx-auto mt-32 max-w-7xl px-6 sm:mt-40 lg:px-8">
           <div className="mx-auto max-w-2xl lg:mx-0">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               Our values
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
@@ -357,7 +357,7 @@ export default function Home2() {
           <dl className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 text-base leading-7 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3">
             {values.map((value) => (
               <div key={value.name}>
-                <dt className="font-semibold text-gray-900">{value.name}</dt>
+                <dt className="font-semibold text-gray-900 dark:text-white">{value.name}</dt>
                 <dd className="mt-1 text-gray-600">{value.description}</dd>
               </div>
             ))}
@@ -399,7 +399,7 @@ export default function Home2() {
             </svg>
           </div>
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <h2 className="text-center text-lg font-semibold leading-8 text-gray-900">
+            <h2 className="text-center text-lg font-semibold leading-8 text-gray-900 dark:text-white">
               Already adopted by innovative construction companies
             </h2>
             <div className="mx-auto mt-10 grid max-w-lg grid-cols-4 items-center gap-x-8 gap-y-10 sm:max-w-xl sm:grid-cols-6 sm:gap-x-10 lg:mx-0 lg:max-w-none lg:grid-cols-5">
@@ -445,7 +445,7 @@ export default function Home2() {
         {/* Team section */}
         <div className="mx-auto mt-32 max-w-7xl px-6 sm:mt-48 lg:px-8">
           <div className="mx-auto max-w-2xl lg:mx-0">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               Our team
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
@@ -464,7 +464,7 @@ export default function Home2() {
                   src={person.imageUrl}
                   alt=""
                 />
-                <h3 className="mt-6 text-base font-semibold leading-7 tracking-tight text-gray-900">
+                <h3 className="mt-6 text-base font-semibold leading-7 tracking-tight text-gray-900 dark:text-white">
                   {person.name}
                 </h3>
                 <p className="text-sm leading-6 text-gray-600">{person.role}</p>
@@ -476,7 +476,7 @@ export default function Home2() {
         {/* Blog section */}
         <div className="mx-auto mt-32 max-w-7xl px-6 sm:mt-40 lg:px-8">
           <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               From the blog
             </h2>
             <p className="mt-2 text-lg leading-8 text-gray-600">
@@ -541,7 +541,7 @@ export default function Home2() {
             <div key={item.name} className="pb-6">
               <a
                 href={item.href}
-                className="text-sm leading-6 text-gray-600 hover:text-gray-900"
+                className="text-sm leading-6 text-gray-600 hover:text-gray-900 dark:text-white"
               >
                 {item.name}
               </a>

@@ -45,7 +45,7 @@ import {
   getAllClients,
   createClient,
   updateClient,
-  deleteClient,
+  deleteUser,
 } from "@/app/action/user.action";
 import { User } from "@/app/types";
 
@@ -218,7 +218,7 @@ export default function ClientsNew() {
     setIsLoading(true);
     try {
       const token = user?.access_token;
-      const res = await deleteClient(selectedClient._id, token);
+      const res = await deleteUser(selectedClient._id);
       if (res.status === 200) {
         toast.success("Client deleted successfully!");
         setDeleteOpen(false);
@@ -244,7 +244,7 @@ export default function ClientsNew() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clients</h1>
           <p className="text-gray-500 mt-1">Manage client relationships</p>
         </div>
         <div className="flex gap-2">
@@ -455,7 +455,7 @@ export default function ClientsNew() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
                           {client.firstName} {client.lastName}
                         </h3>
                         {client.isActive ? (
@@ -519,7 +519,7 @@ export default function ClientsNew() {
                                 <p className="text-sm text-gray-600">
                                   Client Name
                                 </p>
-                                <p className="font-semibold text-gray-900">
+                                <p className="font-semibold text-gray-900 dark:text-white">
                                   {selectedClient.firstName}{" "}
                                   {selectedClient.lastName}
                                 </p>
@@ -529,20 +529,20 @@ export default function ClientsNew() {
                                   <p className="text-sm text-gray-600">
                                     Company
                                   </p>
-                                  <p className="font-semibold text-gray-900">
+                                  <p className="font-semibold text-gray-900 dark:text-white">
                                     {selectedClient.companyName}
                                   </p>
                                 </div>
                               )}
                               <div>
                                 <p className="text-sm text-gray-600">Email</p>
-                                <p className="font-semibold text-gray-900">
+                                <p className="font-semibold text-gray-900 dark:text-white">
                                   {selectedClient.email}
                                 </p>
                               </div>
                               <div>
                                 <p className="text-sm text-gray-600">Phone</p>
-                                <p className="font-semibold text-gray-900">
+                                <p className="font-semibold text-gray-900 dark:text-white">
                                   {selectedClient.telephone}
                                 </p>
                               </div>
@@ -551,7 +551,7 @@ export default function ClientsNew() {
                                   <p className="text-sm text-gray-600">
                                     Address
                                   </p>
-                                  <p className="font-semibold text-gray-900">
+                                  <p className="font-semibold text-gray-900 dark:text-white">
                                     {selectedClient.address}
                                   </p>
                                 </div>
@@ -561,7 +561,7 @@ export default function ClientsNew() {
                                   <p className="text-sm text-gray-600">
                                     Active Projects
                                   </p>
-                                  <p className="font-semibold text-gray-900">
+                                  <p className="font-semibold text-gray-900 dark:text-white">
                                     {selectedClient.projectsCount || 0}
                                   </p>
                                 </div>

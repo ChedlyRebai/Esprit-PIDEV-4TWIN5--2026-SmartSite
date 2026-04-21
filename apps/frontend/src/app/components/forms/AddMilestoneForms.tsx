@@ -51,7 +51,7 @@ const formSchema = z
       .string()
       .max(500, "Description must be at most 500 characters.")
       .optional(),
-    //assignedUsers: z.array(z.string()).optional(),
+    //assignedTeams: z.array(z.string()).optional(),
     startDate: z.date(),
     endDate: z.date(),
   })

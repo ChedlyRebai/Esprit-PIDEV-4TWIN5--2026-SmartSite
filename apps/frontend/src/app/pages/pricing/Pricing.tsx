@@ -54,7 +54,7 @@ const Pricing = () => {
       <section className="bg-white py-20">
         <div className="max-w-7xl mx-auto mt-20 px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
               Choose the Right Plan for Your Construction Business
             </h2>
             <p className="mt-4 text-lg text-gray-600">
@@ -79,11 +79,11 @@ const Pricing = () => {
                   </span>
                 )}
 
-                <h3 className="mt-4 text-xl font-semibold text-gray-900">
+                <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">
                   {plan.name}
                 </h3>
 
-                <p className="mt-4 text-4xl font-bold text-gray-900">
+                <p className="mt-4 text-4xl font-bold text-gray-900 dark:text-white">
                   ${plan.price}
                   <span className="text-base font-medium text-gray-500">
                     /month

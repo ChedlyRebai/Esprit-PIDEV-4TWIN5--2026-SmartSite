@@ -1,4 +1,4 @@
-import type { Project, Site, Client, Supplier, Notification, Incident, Task, User } from '../types';
+import type { Project, Site, Client, Supplier, Notification, Incident, Task, User, RoleType } from '../types';
 
 export const mockProjects: Project[] = [
   {
@@ -188,7 +188,7 @@ export const mockTeamMembers: User[] = [
     lastName: 'Ben Ali',
     email: 'mohamed.benali@example.com',
     phone: '+216 12 345 678',
-    phoneNumber: '+216 12 345 678',
+    telephone: '+216 12 345 678',
     cin: '12345678',
     role: {
       _id: '1',
@@ -207,7 +207,7 @@ export const mockTeamMembers: User[] = [
     lastName: 'Khaled',
     email: 'ahmed.khaled@example.com',
     phone: '+216 23 456 789',
-    phoneNumber: '+216 23 456 789',
+    telephone: '+216 23 456 789',
     cin: '23456789',
     role: {
       _id: '2',
@@ -226,7 +226,7 @@ export const mockTeamMembers: User[] = [
     lastName: 'Mansour',
     email: 'sami.mansour@example.com',
     phone: '+216 34 567 890',
-    phoneNumber: '+216 34 567 890',
+    telephone: '+216 34 567 890',
     cin: '34567890',
     role: {
       _id: '3',
@@ -245,7 +245,7 @@ export const mockTeamMembers: User[] = [
     lastName: 'Bouazizi',
     email: 'ali.bouazizi@example.com',
     phone: '+216 45 678 901',
-    phoneNumber: '+216 45 678 901',
+    telephone: '+216 45 678 901',
     cin: '45678901',
     role: {
       _id: '4',
@@ -264,7 +264,7 @@ export const mockTeamMembers: User[] = [
     lastName: 'Sassi',
     email: 'youssef.sassi@example.com',
     phone: '+216 56 789 012',
-    phoneNumber: '+216 56 789 012',
+    telephone: '+216 56 789 012',
     cin: '56789012',
     role: {
       _id: '5',

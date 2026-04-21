@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Delete, Body, Query, UseGuards, Req, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Put } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChatbotService } from './chatbot.service';
 import { SendMessageDto, GetConversationDto, FeedbackDto } from './dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -56,6 +56,8 @@ export class ChatbotController {
   ) {
     const userId = req.user?.userId || req.user?.id || req.user?._id;
     const userRole = req.user?.role?.name || 'user';
+      console.log(`**********************************************************************Processing quick command: ${userId} with role: ${userRole}`);
+  
     return this.chatbotService.sendMessage(userId, userRole, dto);
   }
 
@@ -120,6 +122,7 @@ export class ChatbotController {
     const userId = req.user?.userId || req.user?.id || req.user?._id;
     const userRole = req.user?.role?.name || 'user';
     const { command, language = 'en' } = body;
+    console.log(`Processing quick command: ${command} with language: ${language} for user: ${userId} with role: ${userRole}`);
     return this.chatbotService.processQuickCommand(userId, userRole, command, language);
   }
 
@@ -152,6 +155,38 @@ export class ChatbotController {
   ) {
     const userId = req.user?.userId || req.user?.id || req.user?._id;
     return this.chatbotService.deleteConversation(userId, conversationId);
+  }
+
+  @Put('conversation/restore')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async restoreConversation(
+    @Req() req: any,
+    @Query('conversationId') conversationId: string,
+  ) {
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    return this.chatbotService.restoreConversation(userId, conversationId);
+  }
+
+  @Delete('conversation/permanent')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async permanentlyDeleteConversation(
+    @Req() req: any,
+    @Query('conversationId') conversationId: string,
+  ) {
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    return this.chatbotService.permanentlyDeleteConversation(userId, conversationId);
+  }
+
+  @Get('conversations/archived')
+  @UseGuards(JwtAuthGuard)
+  async getArchivedConversations(
+    @Req() req: any,
+    @Query('limit') limit?: string,
+  ) {
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    return this.chatbotService.getArchivedConversations(userId, limit ? parseInt(limit) : 20);
   }
 
   @Post('feedback')

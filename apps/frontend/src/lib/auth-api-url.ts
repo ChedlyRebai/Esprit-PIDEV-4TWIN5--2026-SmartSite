@@ -1,7 +1,5 @@
 /**
- * Base URL de l’API **user-authentication** (Nest).
- * Doit correspondre à `PORT` dans le backend (défaut **3000**).
- * Le navigateur charge l’UI sur Vite (**5173**) ; les appels API restent sur ce port.
+ * Base URL de l'API user-authentication (Nest).
+ * Surcharge via VITE_AUTH_API_URL pour s'aligner sur le port reel en dev.
  */
-export const AUTH_API_URL =
-  import.meta.env.VITE_AUTH_API_URL ?? "http://localhost:3000";
+export const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL?.trim() || "http://localhost:3000";

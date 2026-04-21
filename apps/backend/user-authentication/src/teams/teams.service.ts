@@ -1,11 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Team } from './entities/team.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TeamsService {
-  constructor(@InjectModel(Team.name) private teamModel: Model<Team>) {}
+  constructor(
+    @InjectModel(Team.name) private teamModel: Model<Team>,
+    @InjectModel(User.name) private userModel: Model<User>,
+  ) {}
 
   async create(createTeamDto: any) {
     const createdTeam = new this.teamModel(createTeamDto);
@@ -14,12 +18,17 @@ export class TeamsService {
 
   async findAll() {
     try {
-      return await this.teamModel.find()
+      return await this.teamModel
+        .find()
         .populate({
           path: 'members',
-          select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+          select:
+            '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
         })
-        .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+        .populate(
+          'manager',
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+        )
         .exec();
     } catch (error) {
       console.error('Error in findAll teams:', error);
@@ -29,12 +38,17 @@ export class TeamsService {
 
   async findById(id: string) {
     try {
-      return await this.teamModel.findById(id)
+      return await this.teamModel
+        .findById(id)
         .populate({
           path: 'members',
-          select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+          select:
+            '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
         })
-        .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+        .populate(
+          'manager',
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+        )
         .exec();
     } catch (error) {
       console.error('Error in findById team:', error);
@@ -43,22 +57,32 @@ export class TeamsService {
   }
 
   async findByName(name: string) {
-    return this.teamModel.findOne({ name })
+    return this.teamModel
+      .findOne({ name })
       .populate({
         path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+        select:
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+      .populate(
+        'manager',
+        '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+      )
       .exec();
   }
 
   async update(id: string, updateTeamDto: any) {
-    return this.teamModel.findByIdAndUpdate(id, updateTeamDto, { new: true })
+    return this.teamModel
+      .findByIdAndUpdate(id, updateTeamDto, { new: true })
       .populate({
         path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+        select:
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+      .populate(
+        'manager',
+        '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+      )
       .exec();
   }
 
@@ -67,112 +91,116 @@ export class TeamsService {
   }
 
   async addMemberToTeam(teamId: string, memberId: string) {
-    if (!Types.ObjectId.isValid(teamId)) {
-      throw new BadRequestException('Identifiant d’équipe invalide');
-    }
-    if (!Types.ObjectId.isValid(memberId)) {
-      throw new BadRequestException(
-        'Identifiant utilisateur invalide — utilisez l’ID MongoDB du compte (24 caractères hexadécimaux), pas un identifiant de démo.',
-      );
-    }
-    const memberObjectId = new Types.ObjectId(memberId);
-    const updated = await this.teamModel
+    const users = await this.userModel.findByIdAndUpdate(
+      memberId,
+      { $push: { assignedTeam: teamId } },
+      { new: true },
+    );
+    const team = await this.teamModel
       .findByIdAndUpdate(
         teamId,
-        { $addToSet: { members: memberObjectId } },
+        { $addToSet: { members: memberId } },
         { new: true },
       )
       .populate({
         path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+        select:
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+      .populate(
+        'manager',
+        '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+      )
       .exec();
-    if (!updated) {
-      throw new NotFoundException('Équipe introuvable');
-    }
-    return updated;
+    return team;
   }
 
+  async getTeamsBySite(siteId: string) {
+    return this.teamModel
+      .find({ site: siteId })
+      .populate({
+        path: 'members',
+        select: 'firstName lastName email',
+      })
+      .populate('manager', 'firstName lastName')
+      .lean();
+  }
+
+  // Backward compatible alias.
+  async getUsersBySiteWithTeams(siteId: string) {
+    return this.getTeamsBySite(siteId);
+  }
+
+  
   async removeMemberFromTeam(teamId: string, memberId: string) {
-    if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(memberId)) {
-      throw new BadRequestException('Identifiant invalide');
-    }
-    const updated = await this.teamModel
+    return this.teamModel
       .findByIdAndUpdate(
         teamId,
-        { $pull: { members: new Types.ObjectId(memberId) } },
+        { $pull: { members: memberId } },
         { new: true },
       )
       .populate({
         path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+        select:
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+      .populate(
+        'manager',
+        '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+      )
       .exec();
-    if (!updated) {
-      throw new NotFoundException('Équipe introuvable');
-    }
-    return updated;
   }
 
   async setManager(teamId: string, managerId: string) {
-    if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(managerId)) {
-      throw new BadRequestException('Identifiant invalide');
-    }
-    const updated = await this.teamModel
-      .findByIdAndUpdate(
-        teamId,
-        { manager: new Types.ObjectId(managerId) },
-        { new: true },
-      )
+    return this.teamModel
+      .findByIdAndUpdate(teamId, { manager: managerId }, { new: true })
       .populate({
         path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+        select:
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+      .populate(
+        'manager',
+        '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+      )
       .exec();
-    if (!updated) {
-      throw new NotFoundException('Équipe introuvable');
-    }
-    return updated;
   }
 
   // Note: assignSite method - updates the Team document with the assigned site
   async assignSite(teamId: string, siteId: string) {
-    if (!Types.ObjectId.isValid(teamId) || !Types.ObjectId.isValid(siteId)) {
-      throw new BadRequestException('Identifiant invalide');
-    }
-    const updated = await this.teamModel
-      .findByIdAndUpdate(
-        teamId,
-        { site: new Types.ObjectId(siteId) },
-        { new: true }
-      )
-      .populate({
-        path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
-      })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
-      .exec();
-    if (!updated) {
-      throw new NotFoundException('Équipe introuvable');
-    }
-    return updated;
+    const team = await this.teamModel.findById(teamId);
+
+    if (!team) throw new Error('Team not found');
+
+    const updateTeam = await this.teamModel.findByIdAndUpdate(
+      teamId,
+      {
+        site: siteId,
+      },
+      { new: true },
+    );
+
+    const updateTeamMembers = await this.userModel.updateMany(
+      { _id: { $in: team.members } },
+      { assignedSite: siteId },
+    );
+
+    return updateTeam;
   }
 
   // Remove site assignment from team
   async removeSite(teamId: string) {
-    return this.teamModel.findByIdAndUpdate(
-      teamId,
-      { $unset: { site: 1 } },
-      { new: true }
-    )
+    return this.teamModel
+      .findByIdAndUpdate(teamId, { $unset: { site: 1 } }, { new: true })
       .populate({
         path: 'members',
-        select: '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt'
+        select:
+          '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
       })
-      .populate('manager', '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt')
+      .populate(
+        'manager',
+        '-role -password -emailVerificationOtp -otpExpiresAt -passwordResetCode -passwordResetCodeExpiresAt',
+      )
       .exec();
   }
 }
