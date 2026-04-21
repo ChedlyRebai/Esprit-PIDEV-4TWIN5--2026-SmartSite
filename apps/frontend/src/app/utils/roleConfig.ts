@@ -14,6 +14,7 @@ import {
   BarChart3,
   Briefcase,
   UserCog,
+  Lock,
   Warehouse,
   AlertTriangle,
   MapPin,
@@ -308,6 +309,18 @@ export const navigationItems: NavItem[] = [
         label: "User management",
         href: "/users",
         roles: ["super_admin"],
+      },
+      {
+        label: "Roles",
+        href: "/roles",
+        roles: ["super_admin"],
+        icon: Shield,
+      },
+      {
+        label: "Permissions",
+        href: "/permissions",
+        roles: ["super_admin"],
+        icon: Lock,
       },
       {
         label: "Pending approvals",
