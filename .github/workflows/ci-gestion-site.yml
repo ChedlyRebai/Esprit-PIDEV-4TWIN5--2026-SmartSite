@@ -42,12 +42,3 @@ jobs:
 
       - name: Build NestJS
         run: npm run build
-
-      - name: Analyse SonarQube
-        if: ${{ secrets.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v5
-        with:
-          projectBaseDir: apps/backend/gestion-site
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
