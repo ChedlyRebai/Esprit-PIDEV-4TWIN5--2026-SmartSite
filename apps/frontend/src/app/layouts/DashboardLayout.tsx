@@ -16,7 +16,16 @@ import {
   Bell,
   User,
   ChevronDown,
+  Type,
+  Plus,
+  Minus,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover";
+import { Slider } from "../components/ui/slider";
 import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/button";
 import {
@@ -55,6 +64,7 @@ export default function DashboardLayout() {
   const [logoAvailable, setLogoAvailable] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('fontSize') || '100'));
 
   const toggleModuleExpanded = (moduleKey: string) => {
     const newExpanded = new Set(expandedModules);
@@ -72,6 +82,12 @@ export default function DashboardLayout() {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  // Update font size and save to localStorage when changed
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+    localStorage.setItem('fontSize', fontSize.toString());
+  }, [fontSize]);
 
   const locale =
     language === "fr" ? "fr-FR" : language === "ar" ? "ar-TN" : "en-GB";
@@ -274,6 +290,63 @@ export default function DashboardLayout() {
 
             {/* Accessibility, Theme & Language Selectors */}
             <NavbarAccessibilityButton />
+            
+            {/* Font Size Control */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("accessibility.fontSize", "Taille du texte")}
+                  title="Taille du texte"
+                >
+                  <Type className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-4">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Taille du texte</p>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setFontSize(prev => Math.max(80, prev - 10))}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Slider
+                      min={80}
+                      max={140}
+                      step={10}
+                      value={[fontSize]}
+                      onValueChange={([value]) => setFontSize(value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setFontSize(prev => Math.min(140, prev + 10))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="text-center text-xs text-muted-foreground">
+                    {fontSize}%
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => setFontSize(100)}
+                  >
+                    Réinitialiser
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <ThemeButton />
             <LanguageSelector />
 

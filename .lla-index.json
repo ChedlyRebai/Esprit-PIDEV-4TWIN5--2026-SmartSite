@@ -7237,5 +7237,37 @@
       "capitialize"
     ],
     "imports": []
+  },
+  "apps\\backend\\incident-management\\src\\incidents\\incidents.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\incident-management\\src\\incidents\\incidents.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose",
+      "@nestjs/common"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\recommendation\\recommendation.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\recommendation\\recommendation.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose",
+      "@nestjs/axios"
+    ]
   }
 }
