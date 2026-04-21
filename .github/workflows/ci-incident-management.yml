@@ -32,7 +32,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: apps/backend/incident-management/package-lock.json
 
       - name: Installation des dépendances
         run: npm ci
