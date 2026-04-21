@@ -78,13 +78,7 @@ export default function UserManagement() {
   }, [data]);
 
 
-  useEffect(() => {
-    if (isError) {
-      toast.error(
-        t("userManagement.toast.failedLoadStatics", "Failed to load statistics"),
-      );
-    }
-  }, [isError, error]);
+  
 
   const loadStatics = async () => {
     try {
@@ -127,56 +121,56 @@ export default function UserManagement() {
         t("userManagement.toast.failedDeleteUser", "Failed to delete user"),
       );
     }
-  };
+  };  
 
-  const { data: permissionsList, isLoading: isPermissionLoading } = useQuery({
-    queryKey: ["permissions"],
-    queryFn: getAllPermissions,
-    staleTime: Infinity,
-  });
+  // const { data: permissionsList, isLoading: isPermissionLoading } = useQuery({
+  //   queryKey: ["permissions"],
+  //   queryFn: getAllPermissions,
+  //   staleTime: Infinity,
+  // });
 
-  const handleEditPermission = (permission: Permission) => {
-    const { setId, setType, onOpen } = useAddPermissionModal.getState();
-    setId(permission._id);
-    setType("edit");
-    onOpen();
-  };
+  // const handleEditPermission = (permission: Permission) => {
+  //   const { setId, setType, onOpen } = useAddPermissionModal.getState();
+  //   setId(permission._id);
+  //   setType("edit");
+  //   onOpen();
+  // };
 
-  const handleDeletePermission = async (permissionId: string) => {
-    try {
-      const response = await deletePermission(permissionId);
-      if (response?.status === 200) {
-        toast.success(
-          t(
-            "userManagement.toast.permissionDeleted",
-            "Permission deleted successfully",
-          ),
-        );
-        // loadPermissions();
-      } else {
-        toast.error(
-          response?.data ||
-            t(
-              "userManagement.toast.failedDeletePermission",
-              "Failed to delete permission",
-            ),
-        );
-      }
-    } catch (error) {
-      console.error("Failed to delete permission:", error);
-      toast.error(
-        t(
-          "userManagement.toast.failedDeletePermission",
-          "Failed to delete permission",
-        ),
-      );
-    }
-  };
+  // const handleDeletePermission = async (permissionId: string) => {
+  //   try {
+  //     const response = await deletePermission(permissionId);
+  //     if (response?.status === 200) {
+  //       toast.success(
+  //         t(
+  //           "userManagement.toast.permissionDeleted",
+  //           "Permission deleted successfully",
+  //         ),
+  //       );
+  //       // loadPermissions();
+  //     } else {
+  //       toast.error(
+  //         response?.data ||
+  //           t(
+  //             "userManagement.toast.failedDeletePermission",
+  //             "Failed to delete permission",
+  //           ),
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to delete permission:", error);
+  //     toast.error(
+  //       t(
+  //         "userManagement.toast.failedDeletePermission",
+  //         "Failed to delete permission",
+  //       ),
+  //     );
+  //   }
+  // };
 
-  const handleAddNewPermission = () => {
-    toast.success("Add new permission");
-    // TODO: Implement create dialog
-  };
+  // const handleAddNewPermission = () => {
+  //   toast.success("Add new permission");
+  //   // TODO: Implement create dialog
+  // };
   // const loadRoles = async () => {
   //   setIsLoading(true);
   //   try {
@@ -191,10 +185,10 @@ export default function UserManagement() {
   //     setIsLoading(false);
   //   }
   // };
-  const { data: roles, isLoading: isRoleLoading } = useQuery({
-    queryKey: ["roles"],
-    queryFn: () => getAllRoles(),
-  });
+  // const { data: roles, isLoading: isRoleLoading } = useQuery({
+  //   queryKey: ["roles"],
+  //   queryFn: () => getAllRoles(),
+  // });
   const handleBanUser = async (userId: string, isActif: boolean) => {
     try {
       const response = await banUser(userId, isActif);
@@ -227,60 +221,43 @@ export default function UserManagement() {
       );
     }
   };
-  const handleEditRole = (role: Role) => {
-    const { setId, setType, onOpen } = useRoleModal.getState();
-    setId(role._id);
-    setType("edit");
-    onOpen();
-  };
+  // const handleEditRole = (role: Role) => {
+  //   const { setId, setType, onOpen } = useRoleModal.getState();
+  //   setId(role._id);
+  //   setType("edit");
+  //   onOpen();
+  // };
 
-  const handleDeleteRole = async (roleId: string) => {
-    try {
-      const response = await deleteRole(roleId);
-      if (response?.status === 200) {
-        toast.success(
-          t("userManagement.toast.roleDeleted", "Role deleted successfully"),
-        );
-        // loadRoles();
-      } else {
-        toast.error(
-          response?.data ||
-            t("userManagement.toast.failedDeleteRole", "Failed to delete role"),
-        );
-      }
-    } catch (error) {
-      console.error("Failed to delete role:", error);
-      toast.error(
-        t("userManagement.toast.failedDeleteRole", "Failed to delete role"),
-      );
-    }
-  };
+  // const handleDeleteRole = async (roleId: string) => {
+  //   try {
+  //     const response = await deleteRole(roleId);
+  //     if (response?.status === 200) {
+  //       toast.success(
+  //         t("userManagement.toast.roleDeleted", "Role deleted successfully"),
+  //       );
+  //       // loadRoles();
+  //     } else {
+  //       toast.error(
+  //         response?.data ||
+  //           t("userManagement.toast.failedDeleteRole", "Failed to delete role"),
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to delete role:", error);
+  //     toast.error(
+  //       t("userManagement.toast.failedDeleteRole", "Failed to delete role"),
+  //     );
+  //   }
+  // };
 
   const handleAddNewRole = () => {
     toast.success("Add new role");
     // TODO: Implement create dialog
   };
 
-  // const { data: accessData, isLoading: isAccessLoading } = useQuery({
-  //   queryKey: ["access", "users"],
-  //   queryFn: () => accessPermissionByurl("users"),
-
-  // });
-
-  // console.log("Access permissions for /dashboard/users:", accessData);
-  // if (accessData && !isAccessLoading) {
-  //   if (!accessData.access) {
-  //     return (
-  //       <Forbidden/>
-  //     );
-  //   }
-  // }
 
   const access = usePermissionStore((s) => s.permissions);
-  // console.log("Access permissions for /dashboard/users:", access["users"]);
-  // if (!access["users"]?.access) {
-  //   return <Forbidden />;
-  // }
+ 
 
   return (
     <div className="space-y-6">
@@ -352,7 +329,7 @@ export default function UserManagement() {
       </div>
 
       <Card>
-        <Tabs defaultValue="users">
+        
           <CardHeader>
             <CardTitle>
               <TabsList>
@@ -370,7 +347,7 @@ export default function UserManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <TabsContent value="role">
+            {/* <TabsContent value="role">
               {isRoleLoading ? (
                 <div className="text-center py-12">
                   {t("userManagement.loadingRoles", "Loading roles...")}
@@ -383,23 +360,17 @@ export default function UserManagement() {
                   onAddNew={handleAddNewRole}
                 />
               )}
-            </TabsContent>
+            </TabsContent> */}
 
-            <TabsContent value="users">
-              {isUsersLoading ? (
-                <div className="text-center py-12">
-                  {t("userManagement.loadingUsers", "Loading users...")}
-                </div>
-              ) : (
+           
                 <UserDataTable
                   onBan={handleBanUser}
                   users={users as User[]}
                   onDelete={handleDeleteUser}
                 />
-              )}
-            </TabsContent>
+              
 
-            <TabsContent value="permissions">
+            {/* <TabsContent value="permissions">
               {isPermissionLoading ? (
                 <div className="text-center py-12">
                   {t(
@@ -414,9 +385,9 @@ export default function UserManagement() {
                   onDelete={handleDeletePermission}
                 />
               )}
-            </TabsContent>
+            </TabsContent> */}
           </CardContent>
-        </Tabs>
+        
       </Card>
     </div>
   );
