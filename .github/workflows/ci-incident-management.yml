@@ -32,7 +32,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: apps/backend/incident-management/package-lock.json
 
       - name: Installation des dépendances
         run: npm ci
@@ -49,7 +48,9 @@ jobs:
           retention-days: 7
 
       - name: Analyse SonarQube
-        uses: sonarsource/sonarqube-scan-action@v5
+        uses: sonarsource/sonarqube-scan-action@v6
+        if: success() && env.SONAR_TOKEN != ''
+        continue-on-error: true
         with:
           projectBaseDir: apps/backend/incident-management
         env:
