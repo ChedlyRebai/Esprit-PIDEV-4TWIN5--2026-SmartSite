@@ -1,4 +1,4 @@
-import { Bell, CheckCircle, AlertTriangle, Info, X } from "lucide-react";
+import { Bell, CheckCircle, AlertTriangle, Info, X, FileText } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -13,7 +13,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -25,6 +26,8 @@ import { useTranslation } from "@/app/hooks/useTranslation";
 
 export default function Notifications() {
   const { t, language } = useTranslation();
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+
   const getIcon = (type: string) => {
     switch (type) {
       case "critical":
@@ -58,12 +61,10 @@ export default function Notifications() {
   };
 
   const handleClearAll = () => {
-    //setNotifications([]);
     toast.success(t("notifications.toastCleared", "All notifications cleared"));
   };
 
   const handleDeleteNotification = (id: number) => {
-    //setNotifications(notifications.filter(n => n.id !== id));
     toast.success(t("notifications.toastRemoved", "Notification removed"));
   };
 
@@ -81,8 +82,6 @@ export default function Notifications() {
     queryKey: ["unreadNotifications"],
     queryFn: () => getUnreadNotifications(),
   });
-  
-  console.log("unread notif",unreadNotifs);
 
   return (
     <div className="space-y-6">
@@ -106,10 +105,6 @@ export default function Notifications() {
           >
             {t("notifications.markAllRead", "Mark All as Read")}
           </Button>
-          {/* <Button variant="outline" onClick={handleClearAll} disabled={notifications.length === 0}>
-            <X className="h-4 w-4 mr-2" />
-            Clear All
-          </Button> */}
         </div>
       </div>
 
@@ -142,6 +137,7 @@ export default function Notifications() {
                   <div
                     key={notification.id}
                     className={`flex items-start gap-4 p-4 border rounded-lg ${getBackgroundColor(notification.type)}`}
+                    onClick={() => setSelectedNotification(notification)}
                   >
                     <div className="flex-shrink-0 mt-1">
                       {getIcon(notification.type)}
@@ -155,6 +151,11 @@ export default function Notifications() {
                           <p className="text-sm text-gray-600 mt-1">
                             {notification.message}
                           </p>
+                          {notification.qhseNotes && (
+                            <div className="mt-2 p-2 bg-white/50 rounded text-xs text-gray-700">
+                              <span className="font-semibold">Reason:</span> {notification.qhseNotes}
+                            </div>
+                          )}
                           <p className="text-xs text-gray-400 mt-2">
                             {new Date(notification.createdAt).toLocaleString(
                               language === "fr"
@@ -184,7 +185,10 @@ export default function Notifications() {
                       variant="ghost"
                       size="icon"
                       className="flex-shrink-0"
-                      //onClick={() => handleDeleteNotification(notification.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteNotification(notification.id);
+                      }}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -202,6 +206,7 @@ export default function Notifications() {
                       ? "bg-gray-50 opacity-75"
                       : getBackgroundColor(notification.type)
                   }`}
+                  onClick={() => setSelectedNotification(notification)}
                 >
                   <div className="flex-shrink-0 mt-1">
                     {getIcon(notification.type)}
@@ -217,6 +222,11 @@ export default function Notifications() {
                         <p className="text-sm text-gray-600 mt-1">
                           {notification.message}
                         </p>
+                        {notification.qhseNotes && (
+                          <div className="mt-2 p-2 bg-white/50 rounded text-xs text-gray-700">
+                            <span className="font-semibold">Reason:</span> {notification.qhseNotes}
+                          </div>
+                        )}
                         <p className="text-xs text-gray-400 mt-2">
                           {new Date(notification.createdAt).toLocaleString(
                             language === "fr"
@@ -246,7 +256,10 @@ export default function Notifications() {
                     variant="ghost"
                     size="icon"
                     className="flex-shrink-0"
-                    //onClick={() => handleDeleteNotification(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNotification(notification.id);
+                    }}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -256,6 +269,32 @@ export default function Notifications() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Notification Detail Modal */}
+      <Dialog open={!!selectedNotification} onOpenChange={() => setSelectedNotification(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {getIcon(selectedNotification?.type)}
+              {selectedNotification?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-gray-600">{selectedNotification?.message}</p>
+            {selectedNotification?.qhseNotes && (
+              <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-xs font-semibold text-orange-700 mb-1">Rejection reason :</p>
+                <p className="text-sm text-orange-700">{selectedNotification.qhseNotes}</p>
+              </div>
+            )}
+            <p className="text-xs text-gray-400">
+              {selectedNotification && new Date(selectedNotification.createdAt).toLocaleString(
+                language === "fr" ? "fr-FR" : language === "ar" ? "ar-TN" : "en-GB",
+              )}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

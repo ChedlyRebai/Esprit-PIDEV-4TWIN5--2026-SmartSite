@@ -160,7 +160,7 @@ export default function DashboardLayout() {
   // Navigation statique en fonction du rôle
   // const navigationItems = getNavigationForRole(userRole.name);
   // const navigationItems = getNavigationForRole(roleName);
-  const unreadNotifications = 0; // Placeholder - will be implemented with real notifications
+  const unreadNotifications = unredDataLength || 0;
 
   // if(navigItemsError || UnreadError){
   //   return (
