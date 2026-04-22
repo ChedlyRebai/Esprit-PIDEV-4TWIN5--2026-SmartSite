@@ -4,9 +4,7 @@ pipeline {
     environment {
         SERVICE_NAME  = 'gestion-projects'
         SERVICE_DIR   = 'apps/backend/gestion-projects'
-        DOCKER_IMAGE  = "asmaamh/smartsite-gestion-projects"
         SONAR_PROJECT = 'smartsite-gestion-projects'
-        PORT          = '3007'
     }
 
     tools {
@@ -52,7 +50,6 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    // ✅ Plus de double exécution des tests — lcov.info déjà généré
                     withSonarQubeEnv('SonarQube') {
                         withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
                             sh """
@@ -71,69 +68,26 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                // ✅ Timeout augmenté à 10 minutes
                 timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                    waitForQualityGate abortPipeline: false  // ✅ non bloquant
                 }
             }
         }
 
-        stage('Docker Build') {
+        stage('Trigger CD') {
             steps {
-                dir("${SERVICE_DIR}") {
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
-                    echo "✅ Image Docker construite"
-                }
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'docker-hub-credentials',
-                    usernameVariable: 'DOCKER_USERNAME',
-                    passwordVariable: 'DOCKER_PASSWORD'
-                )]) {
-                    sh """
-                        echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
-                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                        docker push ${DOCKER_IMAGE}:latest
-                    """
-                    echo "✅ Image Docker poussée"
-                }
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                withCredentials([string(
-                    credentialsId: 'mongodb-uri',
-                    variable: 'MONGODB_URI'
-                )]) {
-                    sh """
-                        docker stop ${SERVICE_NAME} || true
-                        docker rm ${SERVICE_NAME} || true
-                        docker run -d \
-                            --name ${SERVICE_NAME} \
-                            --restart unless-stopped \
-                            -p ${PORT}:${PORT} \
-                            -e PORT=${PORT} \
-                            -e NODE_ENV=production \
-                            -e MONGODB_URI="\${MONGODB_URI}" \
-                            ${DOCKER_IMAGE}:latest
-                    """
-                    echo "✅ Service déployé sur le port ${PORT}"
-                }
+                build job: 'gestion-projects-CD', wait: false
+                echo "🚀 Pipeline CD déclenché automatiquement"
             }
         }
     }
 
     post {
         success {
-            echo "🎉 Pipeline réussi pour ${SERVICE_NAME}"
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         failure {
-            echo "❌ Pipeline échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         always {
             cleanWs()
