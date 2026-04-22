@@ -35,6 +35,7 @@ pipeline {
             steps {
                 dir("${SERVICE_DIR}") {
                     sh 'npm test -- --coverage --coverageReporters=lcov --forceExit'
+                    echo "✅ Tests unitaires terminés"
                 }
             }
         }
@@ -43,34 +44,35 @@ pipeline {
             steps {
                 dir("${SERVICE_DIR}") {
                     sh 'npm run build'
+                    echo "✅ Build terminé"
                 }
             }
         }
 
-      stage('SonarQube Analysis') {
-    steps {
-        dir("${SERVICE_DIR}") {
-            sh 'npm test -- --coverage'
-
-            withSonarQubeEnv('SonarQube') {
-                withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
-                    sh """
-                        sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT} \
-                            -Dsonar.projectName='SmartSite - Gestion Projects' \
-                            -Dsonar.sources=src \
-                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
-                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                    """
+        stage('SonarQube Analysis') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    // ✅ Plus de double exécution des tests — lcov.info déjà généré
+                    withSonarQubeEnv('SonarQube') {
+                        withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+                            sh """
+                                sonar-scanner \
+                                    -Dsonar.projectKey=${SONAR_PROJECT} \
+                                    -Dsonar.projectName='SmartSite - Gestion Projects' \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            """
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
+                // ✅ Timeout augmenté à 10 minutes
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -80,6 +82,7 @@ pipeline {
             steps {
                 dir("${SERVICE_DIR}") {
                     sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
+                    echo "✅ Image Docker construite"
                 }
             }
         }
@@ -92,10 +95,11 @@ pipeline {
                     passwordVariable: 'DOCKER_PASSWORD'
                 )]) {
                     sh """
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
                         docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
                         docker push ${DOCKER_IMAGE}:latest
                     """
+                    echo "✅ Image Docker poussée"
                 }
             }
         }
@@ -115,9 +119,10 @@ pipeline {
                             -p ${PORT}:${PORT} \
                             -e PORT=${PORT} \
                             -e NODE_ENV=production \
-                            -e MONGODB_URI=${MONGODB_URI} \
+                            -e MONGODB_URI="\${MONGODB_URI}" \
                             ${DOCKER_IMAGE}:latest
                     """
+                    echo "✅ Service déployé sur le port ${PORT}"
                 }
             }
         }
@@ -128,7 +133,7 @@ pipeline {
             echo "🎉 Pipeline réussi pour ${SERVICE_NAME}"
         }
         failure {
-            echo "❌ Pipeline échoué"
+            echo "❌ Pipeline échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         always {
             cleanWs()
