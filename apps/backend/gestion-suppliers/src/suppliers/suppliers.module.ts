@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
+import { ConfigModule } from '@nestjs/config';
 import { SuppliersController } from './suppliers.controller';
 import { SuppliersService } from './suppliers.service';
 import { Supplier, SupplierSchema } from './entities/supplier.entity';
@@ -13,6 +14,7 @@ import { SupplierRating, SupplierRatingSchema } from './entities/supplier-rating
       { name: SupplierRating.name, schema: SupplierRatingSchema },
     ]),
     HttpModule,
+    ConfigModule,
   ],
   controllers: [SuppliersController],
   providers: [SuppliersService],

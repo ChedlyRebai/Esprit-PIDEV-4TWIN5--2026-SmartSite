@@ -1,13 +1,13 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import * as path from 'path';
 import { Supplier, SupplierDocument, SupplierStatus } from './entities/supplier.entity';
 import { SupplierRating, SupplierRatingDocument } from './entities/supplier-rating.entity';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
-
 const NOTIFICATION_API = 'http://localhost:3004/notification';
 const USER_API = 'http://localhost:3000/users';
 
@@ -48,39 +48,44 @@ export class SuppliersService {
     return `${prefix}${String(nextNumber).padStart(3, '0')}`;
   }
 
-  async create(
-    dto: CreateSupplierDto,
-    contractFile: Express.Multer.File,
-    insuranceFile: Express.Multer.File,
-  ): Promise<Supplier> {
-    if (!contractFile) {
-      throw new BadRequestException(
-        'Contract document is required. Please upload a PDF, JPG, or PNG file (max 5MB)',
-      );
-    }
-    if (!insuranceFile) {
-      throw new BadRequestException(
-        'Insurance document is required. Please upload a PDF, JPG, or PNG file (max 5MB)',
-      );
-    }
+   async create(
+     dto: CreateSupplierDto,
+     contractFile: Express.Multer.File,
+     insuranceDocumentFile: Express.Multer.File,
+   ): Promise<any> {
+     if (!contractFile) {
+       throw new BadRequestException(
+         'Contract document is required. Please upload a PDF, JPG, or PNG file (max 5MB)',
+       );
+     }
+     if (!insuranceDocumentFile) {
+       throw new BadRequestException(
+         'Insurance document is required. Please upload a PDF, JPG, or PNG file (max 5MB)',
+       );
+     }
 
-    const supplierCode = await this.generateSupplierCode();
+     const supplierCode = await this.generateSupplierCode();
 
-    const supplier = new this.supplierModel({
-      ...dto,
-      supplierCode,
-      contractUrl: `/uploads/contracts/${contractFile.filename}`,
-      insuranceUrl: `/uploads/insurance/${insuranceFile.filename}`,
-      status: SupplierStatus.PENDING_QHSE,
-    });
+     const supplier = new this.supplierModel({
+       ...dto,
+       supplierCode,
+       contractUrl: `/uploads/documents/${contractFile.filename}`,
+       insuranceDocumentUrl: `/uploads/documents/${insuranceDocumentFile.filename}`,
+       status: SupplierStatus.PENDING_QHSE,
+     });
 
-    const saved = await supplier.save();
+     let saved;
+     try {
+       saved = await supplier.save();
+     } catch (error) {
+       if (error.code === 11000) {
+         throw new ConflictException(`A supplier with this email already exists: ${dto.email}`);
+       }
+       throw error;
+     }
 
-    // Send notification to all QHSE managers (disabled for now - service notification not running)
-    // await this.notifyQhseManagers(saved);
-
-    return saved;
-  }
+     return saved.toObject();
+   }
 
   async findAll(): Promise<any[]> {
     const suppliers = await this.supplierModel.find().sort({ createdAt: -1 }).exec();
@@ -168,7 +173,7 @@ export class SuppliersService {
     id: string,
     dto: UpdateSupplierDto,
     contractFile?: Express.Multer.File,
-    insuranceFile?: Express.Multer.File,
+    insuranceDocumentFile?: Express.Multer.File,
   ): Promise<Supplier> {
     const supplier = await this.supplierModel.findById(id).exec();
     if (!supplier) throw new NotFoundException('Supplier not found');
@@ -183,10 +188,10 @@ export class SuppliersService {
 
     // Update files if provided
     if (contractFile) {
-      supplier.contractUrl = `/uploads/contracts/${contractFile.filename}`;
+      supplier.contractUrl = `/uploads/documents/${contractFile.filename}`;
     }
-    if (insuranceFile) {
-      supplier.insuranceUrl = `/uploads/insurance/${insuranceFile.filename}`;
+    if (insuranceDocumentFile) {
+      supplier.insuranceDocumentUrl = `/uploads/documents/${insuranceDocumentFile.filename}`;
     }
 
     // Si le fournisseur était rejeté, on le réactive pour re-approbation
@@ -233,7 +238,23 @@ export class SuppliersService {
     ratings: Record<string, number>,
     comment?: string,
   ): Promise<SupplierRating> {
-    const supplier = await this.findById(supplierId);
+    const supplier = await this.supplierModel.findById(supplierId).exec();
+    if (!supplier) throw new NotFoundException('Supplier not found');
+    
+    // Check if user has already rated today
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const existingRating = await this.ratingModel.findOne({
+      supplierId: new Types.ObjectId(supplierId),
+      userId,
+      createdAt: { $gte: startOfDay },
+    }).exec();
+    
+    if (existingRating) {
+      throw new BadRequestException('You have already rated this supplier today. Please try again tomorrow.');
+    }
+
     const validCriteria = RATING_CRITERIA_BY_ROLE[userRole] || [];
 
     for (const criterion of Object.keys(ratings)) {

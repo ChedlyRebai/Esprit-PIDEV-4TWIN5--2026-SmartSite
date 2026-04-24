@@ -46,10 +46,10 @@ export class SuppliersController {
     FileFieldsInterceptor(
       [
         { name: 'contract', maxCount: 1 },
-        { name: 'insurance', maxCount: 1 },
+        { name: 'insuranceDocument', maxCount: 1 },
       ],
       {
-        storage: createStorage('contracts'),
+        storage: createStorage('documents'),
         limits: { fileSize: MAX_FILE_SIZE },
         fileFilter: (req, file, cb) => {
           if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
@@ -71,13 +71,13 @@ export class SuppliersController {
     @UploadedFiles()
     files: {
       contract?: Express.Multer.File[];
-      insurance?: Express.Multer.File[];
+      insuranceDocument?: Express.Multer.File[];
     },
   ) {
     const contractFile = files?.contract?.[0];
-    const insuranceFile = files?.insurance?.[0];
+    const insuranceDocumentFile = files?.insuranceDocument?.[0];
 
-    return this.suppliersService.create(dto, contractFile, insuranceFile);
+    return this.suppliersService.create(dto, contractFile, insuranceDocumentFile);
   }
 
   @Get()
@@ -116,10 +116,10 @@ export class SuppliersController {
     FileFieldsInterceptor(
       [
         { name: 'contract', maxCount: 1 },
-        { name: 'insurance', maxCount: 1 },
+        { name: 'insuranceDocument', maxCount: 1 },
       ],
       {
-        storage: createStorage('contracts'),
+        storage: createStorage('documents'),
         limits: { fileSize: MAX_FILE_SIZE },
         fileFilter: (req, file, cb) => {
           if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
@@ -142,13 +142,13 @@ export class SuppliersController {
     @UploadedFiles()
     files: {
       contract?: Express.Multer.File[];
-      insurance?: Express.Multer.File[];
+      insuranceDocument?: Express.Multer.File[];
     },
   ) {
     const contractFile = files?.contract?.[0];
-    const insuranceFile = files?.insurance?.[0];
+    const insuranceDocumentFile = files?.insuranceDocument?.[0];
 
-    return this.suppliersService.update(id, dto, contractFile, insuranceFile);
+    return this.suppliersService.update(id, dto, contractFile, insuranceDocumentFile);
   }
 
   @Put(':id/archive')

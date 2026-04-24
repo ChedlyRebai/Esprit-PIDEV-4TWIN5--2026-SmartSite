@@ -47,7 +47,7 @@ export class Supplier extends Document {
   contractUrl: string; // Path to uploaded contract file
 
   @Prop({ required: true })
-  insuranceUrl: string; // Path to uploaded insurance file
+  insuranceDocumentUrl: string; // Path to uploaded insurance document file
 
   @Prop({
     type: String,
