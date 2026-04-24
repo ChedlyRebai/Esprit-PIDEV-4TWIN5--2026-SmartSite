@@ -6,6 +6,7 @@ import {
   Put,
   Delete,
   Body,
+  Query,
   UploadedFiles,
   UseInterceptors,
   BadRequestException,
@@ -15,6 +16,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { SuppliersService } from './suppliers.service';
+import { MLService } from '../ml/ml.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 
@@ -39,7 +41,10 @@ function createStorage(destination: string) {
 
 @Controller('suppliers')
 export class SuppliersController {
-  constructor(private readonly suppliersService: SuppliersService) {}
+  constructor(
+    private readonly suppliersService: SuppliersService,
+    private readonly mlService: MLService,
+  ) {}
 
   @Post()
   @UseInterceptors(
@@ -88,6 +93,41 @@ export class SuppliersController {
   @Get('pending-qhse')
   findPendingQhse() {
     return this.suppliersService.findPendingQhse();
+  }
+
+  @Get(':id/delay-prediction')
+  async getDelayPrediction(
+    @Param('id') id: string,
+    @Query('amount') amount?: string,
+    @Query('days') days?: string,
+    @Query('month') month?: string,
+  ) {
+    try {
+      const supplier = await this.suppliersService.findById(id);
+      const prediction = await this.mlService.predictDelay({
+        supplierId: id,
+        amount: amount ? parseFloat(amount) : 10000,
+        days: days ? parseInt(days, 10) : 5,
+        month: month ? parseInt(month, 10) : new Date().getMonth() + 1,
+        supplierRating: supplier.averageRating || 0,
+      });
+      return {
+        supplierId: id,
+        supplierName: supplier.name,
+        averageRating: supplier.averageRating || 0,
+        ...prediction,
+      };
+    } catch (error) {
+      return {
+        supplierId: id,
+        error: 'Unable to generate prediction',
+        risk_percentage: 0,
+        risk_level: 'Inconnu',
+        risk_color: '#6b7280',
+        recommendation: 'Une erreur est survenue lors de la récupération des données fournisseur.',
+        will_be_late: false,
+      };
+    }
   }
 
   @Get(':id')
@@ -185,24 +225,24 @@ export class SuppliersController {
     };
   }
 
-  @Post(':id/ratings')
-  addRating(
-    @Param('id') id: string,
-    @Body() body: {
-      userId: string;
-      userName: string;
-      userRole: string;
-      ratings: Record<string, number>;
-      comment?: string;
-    },
-  ) {
-    return this.suppliersService.addRating(
-      id,
-      body.userId,
-      body.userName,
-      body.userRole,
-      body.ratings,
-      body.comment,
-    );
+   @Post(':id/ratings')
+   addRating(
+     @Param('id') id: string,
+     @Body() body: {
+       userId: string;
+       userName: string;
+       userRole: string;
+       ratings: Record<string, number>;
+       comment?: string;
+     },
+   ) {
+     return this.suppliersService.addRating(
+       id,
+       body.userId,
+       body.userName,
+       body.userRole,
+       body.ratings,
+        body.comment,
+      );
+    }
   }
-}

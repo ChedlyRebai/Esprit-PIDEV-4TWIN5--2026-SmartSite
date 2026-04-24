@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store/authStore';
 import RateSupplierModal from './RateSupplierModal';
+import DelayPrediction from '../../components/supplier/DelayPrediction';
 import {
   ArrowLeft,
   Building2,
@@ -32,6 +33,7 @@ import {
   XCircle,
   Loader2,
   Star,
+  TrendingUp,
 } from 'lucide-react';
 
 const API_URL = 'http://localhost:3010/suppliers';
@@ -74,12 +76,13 @@ export default function SupplierDetail() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Modals
-  const [showApprove, setShowApprove] = useState(false);
-  const [showReject, setShowReject] = useState(false);
-  const [showRateModal, setShowRateModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectError, setRejectError] = useState('');
+   // Modals
+   const [showApprove, setShowApprove] = useState(false);
+   const [showReject, setShowReject] = useState(false);
+   const [showRateModal, setShowRateModal] = useState(false);
+   const [rejectReason, setRejectReason] = useState('');
+   const [rejectError, setRejectError] = useState('');
+   const [activeTab, setActiveTab] = useState<'infos' | 'documents' | 'prediction'>('infos');
 
   const userRole = (user as any)?.role?.name || (user as any)?.role;
   const isQhse = userRole === 'qhse_manager';
@@ -208,166 +211,204 @@ export default function SupplierDetail() {
         )}
       </div>
 
-      {/* Supplier Info */}
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Building2 className="w-4 h-4 text-blue-600" />
-            Supplier Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div className="flex items-start gap-2">
-              <Mail className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-400">Email</p>
-                <p className="font-medium">{supplier.email}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-400">Phone</p>
-                <p className="font-medium">{supplier.phone}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-400">Address</p>
-                <p className="font-medium">{supplier.address}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-400">SIRET</p>
-                <p className="font-mono font-medium">{supplier.siret}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-400">Created by</p>
-                <p className="font-medium">{supplier.createdByName}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-400">Created at</p>
-                <p className="font-medium">{new Date(supplier.createdAt).toLocaleDateString()}</p>
-              </div>
-            </div>
-          </div>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 border-b">
+        <Button
+          variant={activeTab === 'infos' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('infos')}
+          className="rounded-b-none"
+        >
+          <Building2 className="w-4 h-4 mr-2" />
+          Infos
+        </Button>
+        <Button
+          variant={activeTab === 'documents' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('documents')}
+          className="rounded-b-none"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Documents
+        </Button>
+        <Button
+          variant={activeTab === 'prediction' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('prediction')}
+          className="rounded-b-none"
+        >
+          <TrendingUp className="w-4 h-4 mr-2" />
+          📊 Prédiction
+        </Button>
+      </div>
 
-          {/* QHSE notes if rejected */}
-          {supplier.status === 'rejected' && supplier.qhseNotes && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-xs font-semibold text-red-700 mb-1">Rejection reason :</p>
-              <p className="text-sm text-red-700">{supplier.qhseNotes}</p>
-            </div>
-          )}
-          {supplier.status === 'approved' && supplier.qhseNotes && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-xs font-semibold text-green-700 mb-1">QHSE notes :</p>
-              <p className="text-sm text-green-700">{supplier.qhseNotes}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Documents */}
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="w-4 h-4 text-blue-600" />
-            Documents
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-3">
-              {/* Contract */}
-              <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-4 py-3">
-                <FileText className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700">Contract</span>
-                <a
-                  href={`${FILES_URL}${supplier.contractUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
-                >
-                  <Eye className="w-3.5 h-3.5" /> View
-                </a>
-                <a
-                  href={`${FILES_URL}${supplier.contractUrl}`}
-                  download
-                  className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1"
-                >
-                  <Download className="w-3.5 h-3.5" /> Download
-                </a>
+      {/* Tab Content */}
+      {activeTab === 'infos' && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="w-4 h-4 text-blue-600" />
+              Supplier Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start gap-2">
+                <Mail className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400">Email</p>
+                  <p className="font-medium">{supplier.email}</p>
+                </div>
               </div>
-
-              {/* Insurance Document */}
-              <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-4 py-3">
-                <Shield className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700">Insurance Document</span>
-                <a
-                  href={`${FILES_URL}${supplier.insuranceDocumentUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
-                >
-                  <Eye className="w-3.5 h-3.5" /> View
-                </a>
-                <a
-                  href={`${FILES_URL}${supplier.insuranceDocumentUrl}`}
-                  download
-                  className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1"
-                >
-                  <Download className="w-3.5 h-3.5" /> Download
-                </a>
+              <div className="flex items-start gap-2">
+                <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400">Phone</p>
+                  <p className="font-medium">{supplier.phone}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400">Address</p>
+                  <p className="font-medium">{supplier.address}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400">SIRET</p>
+                  <p className="font-mono font-medium">{supplier.siret}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400">Created by</p>
+                  <p className="font-medium">{supplier.createdByName}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400">Created at</p>
+                  <p className="font-medium">{new Date(supplier.createdAt).toLocaleDateString()}</p>
+                </div>
               </div>
             </div>
 
-            {/* Actions */}
-      {isQhse && isPending && (
-        <div className="flex gap-3">
-          <Button
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2"
-            onClick={() => setShowApprove(true)}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Approve Supplier
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 border-red-300 text-red-600 hover:bg-red-50 gap-2"
-            onClick={() => { setShowReject(true); setRejectReason(''); setRejectError(''); }}
-          >
-            <XCircle className="w-4 h-4" />
-            Reject Supplier
-          </Button>
-        </div>
+            {/* QHSE notes if rejected */}
+            {supplier.status === 'rejected' && supplier.qhseNotes && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-xs font-semibold text-red-700 mb-1">Rejection reason :</p>
+                <p className="text-sm text-red-700">{supplier.qhseNotes}</p>
+              </div>
+            )}
+            {supplier.status === 'approved' && supplier.qhseNotes && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-xs font-semibold text-green-700 mb-1">QHSE notes :</p>
+                <p className="text-sm text-green-700">{supplier.qhseNotes}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Edit button — for procurement manager */}
-      {isProcurement && (
-        <div className="mt-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => navigate(`/suppliers/${supplier._id}/edit`)}
-          >
-            Edit Supplier
-          </Button>
-         </div>
-       )}
-        </div>
-        </CardContent>
-      </Card>
+      {activeTab === 'documents' && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="w-4 h-4 text-blue-600" />
+              Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                {/* Contract */}
+                <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-4 py-3">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">Contract</span>
+                  <a
+                    href={`${FILES_URL}${supplier.contractUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View
+                  </a>
+                  <a
+                    href={`${FILES_URL}${supplier.contractUrl}`}
+                    download
+                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download
+                  </a>
+                </div>
+
+                {/* Insurance Document */}
+                <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-4 py-3">
+                  <Shield className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">Insurance Document</span>
+                  <a
+                    href={`${FILES_URL}${supplier.insuranceDocumentUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View
+                  </a>
+                  <a
+                    href={`${FILES_URL}${supplier.insuranceDocumentUrl}`}
+                    download
+                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download
+                  </a>
+                </div>
+              </div>
+
+              {/* Actions */}
+              {isQhse && isPending && (
+                <div className="flex gap-3">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2"
+                    onClick={() => setShowApprove(true)}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Approve Supplier
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-red-300 text-red-600 hover:bg-red-50 gap-2"
+                    onClick={() => { setShowReject(true); setRejectReason(''); setRejectError(''); }}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject Supplier
+                  </Button>
+                </div>
+              )}
+
+              {/* Edit button — for procurement manager */}
+              {isProcurement && (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate(`/suppliers/${supplier._id}/edit`)}
+                  >
+                    Edit Supplier
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'prediction' && supplier && (supplier._id || (supplier as any).id) && (
+        <DelayPrediction
+          key={String(supplier._id || (supplier as any).id)}
+          supplierId={String(supplier._id || (supplier as any).id)}
+        />
+      )}
 
       {/* Approve Modal */}
       <Dialog open={showApprove} onOpenChange={setShowApprove}>

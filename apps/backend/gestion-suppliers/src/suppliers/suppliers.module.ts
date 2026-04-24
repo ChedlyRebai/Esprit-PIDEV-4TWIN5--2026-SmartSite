@@ -4,6 +4,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { SuppliersController } from './suppliers.controller';
 import { SuppliersService } from './suppliers.service';
+import { MLModule } from '../ml/ml.module';
 import { Supplier, SupplierSchema } from './entities/supplier.entity';
 import { SupplierRating, SupplierRatingSchema } from './entities/supplier-rating.entity';
 
@@ -15,6 +16,7 @@ import { SupplierRating, SupplierRatingSchema } from './entities/supplier-rating
     ]),
     HttpModule,
     ConfigModule,
+    MLModule,
   ],
   controllers: [SuppliersController],
   providers: [SuppliersService],
