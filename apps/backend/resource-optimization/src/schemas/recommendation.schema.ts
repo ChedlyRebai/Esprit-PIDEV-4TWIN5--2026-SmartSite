@@ -3,11 +3,27 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Recommendation extends Document {
-  @Prop({ required: true })
-  siteId: string;
+  @Prop()
+  projectId?: string;
+
+  @Prop()
+  siteId?: string;
+
+  @Prop({ default: 'site' })
+  scope: 'project' | 'site';
 
   @Prop({ required: true })
-  type: 'energy' | 'workforce' | 'equipment' | 'scheduling' | 'environmental';
+  type:
+    | 'energy'
+    | 'workforce'
+    | 'equipment'
+    | 'scheduling'
+    | 'environmental'
+    | 'budget'
+    | 'timeline'
+    | 'task_distribution'
+    | 'resource_allocation'
+    | 'individual_task_management';
 
   @Prop({ required: true })
   title: string;
@@ -29,6 +45,9 @@ export class Recommendation extends Document {
 
   @Prop({ default: 0 })
   confidenceScore: number; // 0-100
+
+  @Prop({ type: [String], default: [] })
+  actionItems: string[];
 
   @Prop({ type: Object, default: {} })
   metadata: Record<string, any>;

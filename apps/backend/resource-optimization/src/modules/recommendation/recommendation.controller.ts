@@ -19,7 +19,9 @@ interface CreateRecommendationDto {
   estimatedCO2Reduction: number;
   confidenceScore: number;
   actionItems: string[];
-  siteId: string;
+  siteId?: string;
+  projectId?: string;
+  scope?: 'project' | 'site';
 }
 
 interface UpdateRecommendationStatusDto {
@@ -31,40 +33,11 @@ export class RecommendationController {
   constructor(private readonly recommendationService: RecommendationService) { }
 
   @Post('generate/:siteId')
-  async generateRecommendations(@Param('siteId') siteId: string) {
+  async generateRecommendations(@Param('siteId') siteId: string, @Query('projectId') projectId?: string) {
     try {
-      // Create mock recommendations for now
-      const mockRecommendations = [
-        {
-          type: 'energy',
-          title: 'Optimisation de la consommation énergétique',
-          description: 'Réduire la consommation pendant les heures creuses',
-          estimatedSavings: 1500,
-          estimatedCO2Reduction: 200,
-          priority: 8,
-          confidenceScore: 85,
-          actionItems: ['Installer des horloges intelligents', 'Optimiser les équipements'],
-          siteId,
-        },
-        {
-          type: 'equipment',
-          title: 'Maintenance préventive des équipements',
-          description: 'Planifier la maintenance avant les pannes',
-          estimatedSavings: 800,
-          estimatedCO2Reduction: 100,
-          priority: 7,
-          confidenceScore: 90,
-          actionItems: ['Inspecter les équipements', 'Planifier la maintenance'],
-          siteId,
-        }
-      ];
-
-      // Save all generated recommendations
-      const savedRecommendations = [];
-      for (const rec of mockRecommendations) {
-        const savedRec = await this.recommendationService.create(rec);
-        savedRecommendations.push(savedRec);
-      }
+      const savedRecommendations = projectId
+        ? await this.recommendationService.generateForProject(projectId, siteId)
+        : await this.recommendationService.generateForSite(siteId);
 
       return {
         message: 'Recommendations generated successfully',
@@ -76,6 +49,35 @@ export class RecommendationController {
     }
   }
 
+  @Post('generate')
+  async generateByProject(@Body() body: { projectId: string; siteId?: string }) {
+    if (!body?.projectId) {
+      throw new Error('projectId is required');
+    }
+
+    const savedRecommendations = await this.recommendationService.generateForProject(
+      body.projectId,
+      body.siteId,
+    );
+
+    return {
+      message: 'Recommendations generated successfully',
+      count: savedRecommendations.length,
+      recommendations: savedRecommendations,
+    };
+  }
+
+  @Post('generate/project/:projectId')
+  async generateProjectOnly(@Param('projectId') projectId: string) {
+    const savedRecommendations = await this.recommendationService.generateForProject(projectId);
+
+    return {
+      message: 'Project recommendations generated successfully',
+      count: savedRecommendations.length,
+      recommendations: savedRecommendations,
+    };
+  }
+
   @Post()
   async createRecommendation(@Body() createRecommendationDto: CreateRecommendationDto) {
     return this.recommendationService.create(createRecommendationDto);
@@ -85,8 +87,10 @@ export class RecommendationController {
   async getRecommendations(
     @Query('siteId') siteId?: string,
     @Query('status') status?: string,
+    @Query('projectId') projectId?: string,
+    @Query('scope') scope?: string,
   ) {
-    return this.recommendationService.findAll(siteId, status);
+    return this.recommendationService.findAll(siteId, status, projectId, scope);
   }
 
   /** Liste des recommandations pour un site (évite la confusion avec GET :id = id MongoDB) */
@@ -98,6 +102,16 @@ export class RecommendationController {
   @Get('site/:siteId/summary')
   async getRecommendationsSummary(@Param('siteId') siteId: string) {
     return this.recommendationService.getSummary(siteId);
+  }
+
+  @Get('project/:projectId')
+  async getRecommendationsByProject(@Param('projectId') projectId: string) {
+    return this.recommendationService.findAll(undefined, undefined, projectId, 'project');
+  }
+
+  @Get('project/:projectId/summary')
+  async getProjectSummary(@Param('projectId') projectId: string) {
+    return this.recommendationService.getSummary(undefined, projectId, 'project');
   }
 
   @Get('site/:siteId/savings')
@@ -143,5 +157,10 @@ export class RecommendationController {
   @Get('site/:siteId/analytics')
   async getSiteAnalytics(@Param('siteId') siteId: string) {
     return this.recommendationService.getAnalytics(siteId);
+  }
+
+  @Get('project/:projectId/analytics')
+  async getProjectAnalytics(@Param('projectId') projectId: string) {
+    return this.recommendationService.getAnalytics(undefined, projectId, 'project');
   }
 }

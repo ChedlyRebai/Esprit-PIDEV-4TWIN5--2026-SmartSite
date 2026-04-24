@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { HttpService } from '@nestjs/axios';
 import { RecommendationService, Recommendation, CreateRecommendationDto } from './recommendation.service';
+import { ExternalDataService } from '../external-data/external-data.service';
+import { AIRecommendationService } from '../../ai/ai-recommendation.service';
+import { ResourceAnalysisService } from '../resource-analysis/resource-analysis.service';
+import { AlertService } from '../alert/alert.service';
 
 const mockRecommendation: Recommendation = {
   _id: '507f1f77bcf86cd799439011',
@@ -34,10 +37,21 @@ const MockModelConstructor: any = function (data: any) {
 };
 Object.assign(MockModelConstructor, mockModel);
 
-const mockHttpService = {
-  axiosRef: {
-    get: jest.fn().mockRejectedValue(new Error('Network error')),
-  },
+const mockExternalDataService = {
+  getAllSiteData: jest.fn(),
+  getProjectContext: jest.fn(),
+};
+
+const mockAIRecommendationService = {
+  generateRecommendations: jest.fn(),
+};
+
+const mockResourceAnalysisService = {
+  analyzeEnergyConsumption: jest.fn(),
+};
+
+const mockAlertService = {
+  getAlertsSummary: jest.fn(),
 };
 
 describe('RecommendationService', () => {
@@ -62,8 +76,20 @@ describe('RecommendationService', () => {
           useValue: MockModelConstructor,
         },
         {
-          provide: HttpService,
-          useValue: mockHttpService,
+          provide: ExternalDataService,
+          useValue: mockExternalDataService,
+        },
+        {
+          provide: AIRecommendationService,
+          useValue: mockAIRecommendationService,
+        },
+        {
+          provide: ResourceAnalysisService,
+          useValue: mockResourceAnalysisService,
+        },
+        {
+          provide: AlertService,
+          useValue: mockAlertService,
         },
       ],
     }).compile();

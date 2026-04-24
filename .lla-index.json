@@ -1555,8 +1555,7 @@
     ],
     "imports": [
       "@nestjs/common",
-      "@nestjs/mongoose",
-      "@nestjs/axios"
+      "@nestjs/mongoose"
     ]
   },
   "apps\\backend\\resource-optimization\\src\\modules\\recommendation\\recommendation.service.ts": {
@@ -1567,8 +1566,7 @@
     "imports": [
       "@nestjs/common",
       "@nestjs/mongoose",
-      "mongoose",
-      "@nestjs/axios"
+      "mongoose"
     ]
   },
   "apps\\backend\\resource-optimization\\src\\modules\\reporting\\reporting.controller.ts": {
@@ -7266,8 +7264,7 @@
     "exports": [],
     "imports": [
       "@nestjs/testing",
-      "@nestjs/mongoose",
-      "@nestjs/axios"
+      "@nestjs/mongoose"
     ]
   }
 }

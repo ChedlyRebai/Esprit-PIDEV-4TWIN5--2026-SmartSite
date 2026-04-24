@@ -1,6 +1,7 @@
 import { useAuthStore } from '../../store/authStore';
 import { StatCard } from '../../components/DashboardStats';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { AssignedIncidentFlash } from '../../components/AssignedIncidentFlash';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { AlertTriangle, Users, MapPin, Clock, CheckCircle, TrendingUp, Search, Lightbulb, Quote } from 'lucide-react';
@@ -50,6 +51,9 @@ incidentsApi.interceptors.request.use((config) => {
 export default function UserDashboard() {
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
+
+  // Afficher le CIN du user pour debug
+  console.log('👤 UserDashboard - User CIN:', user?.cin);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
@@ -127,6 +131,9 @@ export default function UserDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Flash Notification for Assigned Incidents */}
+      {user?.cin && <AssignedIncidentFlash userCin={user.cin} />}
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -203,7 +210,7 @@ export default function UserDashboard() {
         />
         <StatCard
           title={t("dashboard.completedTasks")}
-          value={projects.filter((p:any) => p.status === 'completed').length}
+          value={projects.filter((p: any) => p.status === 'completed').length}
           icon={CheckCircle}
           trend={{ value: 18.3, isPositive: true }}
         />

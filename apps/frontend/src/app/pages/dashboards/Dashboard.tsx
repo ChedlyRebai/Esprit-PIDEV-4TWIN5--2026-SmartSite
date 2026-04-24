@@ -1,4 +1,5 @@
 import { useAuthStore } from '../../store/authStore';
+import { AssignedIncidentFlash } from '../../components/AssignedIncidentFlash';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import DirectorDashboard from './DirectorDashboard';
 import ProjectManagerDashboard from './ProjectManagerDashboard';
@@ -20,30 +21,40 @@ export default function Dashboard() {
   const roleName = typeof user.role === 'string' ? user.role : user.role?.name || 'user';
 
   // Route to appropriate dashboard based on role
-  switch (roleName) {
-    case 'super_admin':
-      return <SuperAdminDashboard />;
-    case 'director':
-      return <DirectorDashboard />;
-    case 'project_manager':
-      return <ProjectManagerDashboard />;
-    case 'site_manager':
-      return <SiteManagerDashboard />;
-    case 'works_manager':
-      return <WorksManagerDashboard />;
-    case 'accountant':
-      return <AccountantDashboard />;
-    case 'procurement_manager':
-      return <ProcurementDashboard />;
-    case 'qhse_manager':
-      return <QHSEDashboard />;
-    case 'client':
-      return <ClientDashboard />;
-    case 'subcontractor':
-      return <SubcontractorDashboard />;
-    case 'user':
-      return <UserDashboard />;
-    default:
-      return <UserDashboard />;
-  }
+  const renderDashboard = () => {
+    switch (roleName) {
+      case 'super_admin':
+        return <SuperAdminDashboard />;
+      case 'director':
+        return <DirectorDashboard />;
+      case 'project_manager':
+        return <ProjectManagerDashboard />;
+      case 'site_manager':
+        return <SiteManagerDashboard />;
+      case 'works_manager':
+        return <WorksManagerDashboard />;
+      case 'accountant':
+        return <AccountantDashboard />;
+      case 'procurement_manager':
+        return <ProcurementDashboard />;
+      case 'qhse_manager':
+        return <QHSEDashboard />;
+      case 'client':
+        return <ClientDashboard />;
+      case 'subcontractor':
+        return <SubcontractorDashboard />;
+      case 'user':
+        return <UserDashboard />;
+      default:
+        return <UserDashboard />;
+    }
+  };
+
+  return (
+    <>
+      {/* Flash Notification for Assigned Incidents - All Users */}
+      {user?.cin && <AssignedIncidentFlash userCin={user.cin} />}
+      {renderDashboard()}
+    </>
+  );
 }

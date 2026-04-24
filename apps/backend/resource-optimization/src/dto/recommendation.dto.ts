@@ -2,10 +2,29 @@ import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateRecommendationDto {
   @IsString()
-  siteId: string;
+  @IsOptional()
+  projectId?: string;
 
   @IsString()
-  type: 'energy' | 'workforce' | 'equipment' | 'scheduling' | 'environmental';
+  @IsOptional()
+  siteId?: string;
+
+  @IsString()
+  @IsOptional()
+  scope?: 'project' | 'site';
+
+  @IsString()
+  type:
+    | 'energy'
+    | 'workforce'
+    | 'equipment'
+    | 'scheduling'
+    | 'environmental'
+    | 'budget'
+    | 'timeline'
+    | 'task_distribution'
+    | 'resource_allocation'
+    | 'individual_task_management';
 
   @IsString()
   title: string;
@@ -24,6 +43,9 @@ export class CreateRecommendationDto {
   @IsNumber()
   @IsOptional()
   priority?: number;
+
+  @IsOptional()
+  actionItems?: string[];
 }
 
 export class UpdateRecommendationStatusDto {
@@ -32,8 +54,10 @@ export class UpdateRecommendationStatusDto {
 }
 
 export class RecommendationResponseDto {
+  projectId?: string;
   _id: string;
-  siteId: string;
+  siteId?: string;
+  scope?: 'project' | 'site';
   type: string;
   title: string;
   description: string;

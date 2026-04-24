@@ -27,6 +27,8 @@ const mockRecommendationService = {
   approveRecommendation: jest.fn(),
   implementRecommendation: jest.fn(),
   getAnalytics: jest.fn(),
+  generateForProject: jest.fn(),
+  generateForSite: jest.fn(),
 };
 
 describe('RecommendationController', () => {
@@ -69,13 +71,13 @@ describe('RecommendationController', () => {
       mockRecommendationService.findAll.mockResolvedValue([mockRecommendation]);
       const result = await controller.getRecommendations();
       expect(result).toEqual([mockRecommendation]);
-      expect(mockRecommendationService.findAll).toHaveBeenCalledWith(undefined, undefined);
+      expect(mockRecommendationService.findAll).toHaveBeenCalledWith(undefined, undefined, undefined, undefined);
     });
 
     it('filtre par siteId et status', async () => {
       mockRecommendationService.findAll.mockResolvedValue([mockRecommendation]);
       await controller.getRecommendations('site-123', 'pending');
-      expect(mockRecommendationService.findAll).toHaveBeenCalledWith('site-123', 'pending');
+      expect(mockRecommendationService.findAll).toHaveBeenCalledWith('site-123', 'pending', undefined, undefined);
     });
   });
 

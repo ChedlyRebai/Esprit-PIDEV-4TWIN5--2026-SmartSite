@@ -43,6 +43,12 @@ export class IncidentsService {
       status: dto.status as IncidentStatus || IncidentStatus.OPEN,
     };
 
+    // projectId est optionnel
+    if (dto.projectId && Types.ObjectId.isValid(dto.projectId)) {
+      (payload as any).project = new Types.ObjectId(dto.projectId);
+    }
+
+    // siteId est optionnel
     if (dto.siteId && Types.ObjectId.isValid(dto.siteId)) {
       (payload as any).site = new Types.ObjectId(dto.siteId);
     }
@@ -64,10 +70,26 @@ export class IncidentsService {
   async update(id: string, dto: UpdateIncidentDto): Promise<Incident> {
     const updatePayload: any = { ...dto };
 
-    if (dto.siteId && Types.ObjectId.isValid(dto.siteId)) {
-      updatePayload.site = new Types.ObjectId(dto.siteId);
+    // projectId est optionnel
+    if (dto.projectId !== undefined) {
+      if (dto.projectId && Types.ObjectId.isValid(dto.projectId)) {
+        updatePayload.project = new Types.ObjectId(dto.projectId);
+      } else {
+        updatePayload.project = null; // Permet de dissocier le projet
+      }
+      delete updatePayload.projectId;
+    }
+
+    // siteId est optionnel (peut être null pour retirer l'affectation)
+    if (dto.siteId !== undefined) {
+      if (dto.siteId && Types.ObjectId.isValid(dto.siteId)) {
+        updatePayload.site = new Types.ObjectId(dto.siteId);
+      } else {
+        updatePayload.site = null; // Permet de dissocier le site
+      }
       delete updatePayload.siteId;
     }
+
     if (dto.reportedBy && Types.ObjectId.isValid(dto.reportedBy)) {
       updatePayload.reportedBy = new Types.ObjectId(dto.reportedBy);
     }
@@ -90,5 +112,43 @@ export class IncidentsService {
       throw new NotFoundException("Incident not found");
     }
     return { removed: true };
+  }
+
+  async findBySite(siteId: string): Promise<Incident[]> {
+    if (!Types.ObjectId.isValid(siteId)) {
+      return [];
+    }
+    return this.incidentModel
+      .find({ site: new Types.ObjectId(siteId) })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async findByProject(projectId: string): Promise<Incident[]> {
+    if (!Types.ObjectId.isValid(projectId)) {
+      return [];
+    }
+    return this.incidentModel
+      .find({ project: new Types.ObjectId(projectId) })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async countBySite(siteId: string): Promise<number> {
+    if (!Types.ObjectId.isValid(siteId)) {
+      return 0;
+    }
+    return this.incidentModel
+      .countDocuments({ site: new Types.ObjectId(siteId) })
+      .exec();
+  }
+
+  async countByProject(projectId: string): Promise<number> {
+    if (!Types.ObjectId.isValid(projectId)) {
+      return 0;
+    }
+    return this.incidentModel
+      .countDocuments({ project: new Types.ObjectId(projectId) })
+      .exec();
   }
 }

@@ -1,11 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 export interface RecommendationRequest {
-  siteId: string;
-  site: any;
+  projectId?: string;
+  siteId?: string;
+  project?: any;
+  site?: any;
+  sites?: any[];
   tasks: any[];
   teams: any[];
   budget: number;
+  budgetScope?: 'project' | 'site';
+  totalSitesBudget?: number;
 }
 
 export interface AIRecommendation {
@@ -48,7 +53,7 @@ export class AIRecommendationService {
   }
 
   private analyzeProjectData(request: RecommendationRequest) {
-    const { tasks, teams, budget } = request;
+    const { tasks, teams, budget, budgetScope, totalSitesBudget } = request;
 
     // Analyse de la répartition des tâches
     const taskAnalysis = this.analyzeTaskDistribution(tasks, teams);
@@ -68,8 +73,11 @@ export class AIRecommendationService {
       timelineAnalysis,
       resourceAnalysis,
       totalTeamMembers: teams.length,
-      budgetPerTask: budget / tasks.length,
-      budgetPerTeamMember: budget / teams.length,
+      budgetPerTask: tasks.length > 0 ? budget / tasks.length : 0,
+      budgetPerTeamMember: teams.length > 0 ? budget / teams.length : 0,
+      budgetScope: budgetScope || 'site',
+      totalSitesBudget: Number(totalSitesBudget) || 0,
+      budgetScopeLabel: budgetScope === 'project' ? 'projet' : 'site',
     };
   }
 
@@ -92,7 +100,7 @@ export class AIRecommendationService {
     const distributionPercentages: Record<string, number> = {};
     const totalMembers = teams.length;
     Object.entries(taskDistribution).forEach(([taskId, memberCount]) => {
-      distributionPercentages[taskId] = (memberCount / totalMembers) * 100;
+      distributionPercentages[taskId] = totalMembers > 0 ? (memberCount / totalMembers) * 100 : 0;
     });
 
     // Identification des problèmes de répartition
@@ -112,7 +120,7 @@ export class AIRecommendationService {
   }
 
   private analyzeBudgetUsage(budget: number, tasks: any[]) {
-    const budgetPerTask = budget / tasks.length;
+    const budgetPerTask = tasks.length > 0 ? budget / tasks.length : 0;
 
     // Simulation de l'utilisation du budget par tâche
     const taskBudgetUsage = tasks.map(task => ({
@@ -195,12 +203,13 @@ export class AIRecommendationService {
   private generateBudgetRecommendations(analysis: any): AIRecommendation[] {
     const recommendations: AIRecommendation[] = [];
     const { budgetAnalysis } = analysis;
+    const scopeLabel = analysis.budgetScopeLabel || 'site';
 
     if (budgetAnalysis.isOverBudget) {
       recommendations.push({
         type: 'budget',
-        title: 'Optimisation du budget nécessaire',
-        description: `Le budget est dépassé de ${budgetAnalysis.overrunPercentage.toFixed(1)}%. Réallocation nécessaire.`,
+        title: `Optimisation du budget ${scopeLabel} nécessaire`,
+        description: `Le budget ${scopeLabel} est dépassé de ${budgetAnalysis.overrunPercentage.toFixed(1)}%. Réallocation nécessaire.`,
         priority: 'high',
         estimatedSavings: Math.abs(budgetAnalysis.budgetOverrun) * 0.8,
         actionItems: [
@@ -208,15 +217,15 @@ export class AIRecommendationService {
           'Négocier des délais supplémentaires',
           'Optimiser l\'allocation des ressources',
         ],
-        reasoning: 'Analyse des coûts par tâche montre une surutilisation du budget disponible',
+        reasoning: `Analyse des coûts par tâche montre une surutilisation du budget ${scopeLabel} disponible`,
       });
     }
 
     if (budgetAnalysis.budgetPerTask > 1000) {
       recommendations.push({
         type: 'budget',
-        title: 'Répartition inefficiente du budget',
-        description: 'Le budget par tâche semble excessif, possibilité d\'optimisation',
+        title: `Répartition inefficiente du budget ${scopeLabel}`,
+        description: `Le budget ${scopeLabel} par tâche semble excessif, possibilité d\'optimisation`,
         priority: 'medium',
         estimatedSavings: budgetAnalysis.budgetPerTask * 0.2,
         actionItems: [
@@ -224,8 +233,27 @@ export class AIRecommendationService {
           'Identifier les tâches sur-budgétisées',
           'Réallouer le budget aux tâches critiques',
         ],
-        reasoning: 'Le budget moyen par tâche est supérieur aux recommandations standards',
+        reasoning: `Le budget moyen ${scopeLabel} par tâche est supérieur aux recommandations standards`,
       });
+    }
+
+    if (analysis.budgetScope === 'project' && analysis.totalSitesBudget > 0) {
+      const delta = analysis.totalSitesBudget - (budgetAnalysis.totalEstimatedCost || 0);
+      if (analysis.totalSitesBudget > budgetAnalysis.totalEstimatedCost) {
+        recommendations.push({
+          type: 'budget',
+          title: 'Aligner budgets sites et projet',
+          description: `Le total des budgets des sites (${analysis.totalSitesBudget.toFixed(0)}) depasse les besoins projet estimes (${budgetAnalysis.totalEstimatedCost.toFixed(0)}).`,
+          priority: 'medium',
+          estimatedSavings: Math.max(0, delta) * 0.2,
+          actionItems: [
+            'Revoir la repartition des budgets par site',
+            'Realigner les enveloppes sur les besoins reels',
+            'Renegocier les couts fournisseurs si possible',
+          ],
+          reasoning: 'Incoherence entre budgets sites et besoins projet',
+        });
+      }
     }
 
     return recommendations;

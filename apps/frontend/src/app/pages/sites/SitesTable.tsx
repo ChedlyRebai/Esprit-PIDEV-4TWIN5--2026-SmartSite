@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Users, DollarSign, Calendar, ChevronDown, ChevronUp, Search, Building2, ChevronLeft, ChevronRight, Trash2, Archive } from 'lucide-react';
+import { IncidentBadge } from '../../components/IncidentBadge';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -43,7 +44,7 @@ export default function SitesTable() {
   const [totalSitesBudget, setTotalSitesBudget] = useState(0);
   const [totalProjectsBudget, setTotalProjectsBudget] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -52,7 +53,7 @@ export default function SitesTable() {
     loadData();
   }, []);
 
-const loadData = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       const [projectsData, sitesData] = await Promise.all([
@@ -60,15 +61,15 @@ const loadData = async () => {
         getAllSitesWithTeams(),
       ]);
       setProjectsWithSites(projectsData);
-      
+
       const activeProjects = projectsData.filter((p: ProjectWithSites) => p.status !== 'completed' && p.status !== 'archived');
       const activeProjectIds = new Set(activeProjects.map((p: ProjectWithSites) => p.id));
-      
+
       const activeSitesData = (sitesData as SiteData[]).filter((site: SiteData) => {
         const siteProjectId = site.projectId;
         return siteProjectId && activeProjectIds.has(String(siteProjectId));
       });
-      
+
       const sitesBudget = activeSitesData.reduce((sum: number, site: SiteData) => sum + (site.budget || 0), 0);
       const projectsBudget = activeProjects.reduce((sum: number, p: ProjectWithSites) => sum + (p.budget || 0), 0);
       setTotalSitesBudget(sitesBudget);
@@ -254,7 +255,7 @@ const loadData = async () => {
               {paginatedProjects.map((project) => {
                 const isExpanded = expandedProjects.has(project.id);
                 const projectSites = project.sites as SiteData[];
-                
+
                 return (
                   <>
                     <TableRow key={project.id} className="hover:bg-gray-50">
@@ -274,8 +275,12 @@ const loadData = async () => {
                       </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-gray-400" />
-                          {project.name}
+                          <Building2 className="h-5 w-5 text-blue-600" />
+                          <span className="font-semibold text-lg">{project.name}</span>
+                          {project.status === 'completed' && (
+                            <Badge variant="secondary" className="ml-2">Archived</Badge>
+                          )}
+                          <IncidentBadge projectId={project.id} size="sm" />
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
@@ -338,7 +343,7 @@ const loadData = async () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                    
+
                     {/* Expanded Sites Details */}
                     {isExpanded && projectSites.length > 0 && (
                       <TableRow>
@@ -410,7 +415,7 @@ const loadData = async () => {
               )}
             </TableBody>
           </Table>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
