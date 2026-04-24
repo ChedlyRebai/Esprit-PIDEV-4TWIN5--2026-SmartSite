@@ -23,10 +23,7 @@ import { CatalogModule } from './catalog/catalog.module';
       envFilePath: '.env',
     }),
     AuthModule,
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/main
     UsersModule,
     RolesModule,
     PermissionsModule,
@@ -35,13 +32,10 @@ import { CatalogModule } from './catalog/catalog.module';
     ChatbotModule,
     AiChatModule,
     AuditLogsModule,
-<<<<<<< HEAD
     CatalogModule,
-=======
 
     CatalogModule,
 
->>>>>>> origin/main
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/smartsite',
     ),
