@@ -83,25 +83,25 @@ export class ChatbotController {
     return this.chatbotService.processVoiceMessage(userId, userRole, audio, language);
   }
 
-  @Post('analyze-image')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('image', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-        cb(null, `${randomName}${extname(file.originalname)}`);
-      }
-    }),
-    fileFilter: (req: any, file: any, cb: any) => {
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed'), false);
-      }
-    }
-  }))
+  // @Post('analyze-image')
+  // @HttpCode(HttpStatus.OK)
+  // @UseGuards(JwtAuthGuard)
+  // @UseInterceptors(FileInterceptor('image', {
+  //   storage: diskStorage({
+  //     destination: './uploads',
+  //     filename: (req, file, cb) => {
+  //       const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+  //       cb(null, `${randomName}${extname(file.originalname)}`);
+  //     }
+  //   }),
+  //   fileFilter: (req: any, file: any, cb: any) => {
+  //     if (file.mimetype.startsWith('image/')) {
+  //       cb(null, true);
+  //     } else {
+  //       cb(new Error('Only image files are allowed'), false);
+  //     }
+  //   }
+  // }))
   async analyzeImage(
     @Req() req: any,
     @UploadedFile() image: any,
