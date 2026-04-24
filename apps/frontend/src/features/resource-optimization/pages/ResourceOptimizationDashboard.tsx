@@ -2,19 +2,36 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { SiteRecommendationCard } from '../components/SiteRecommendationCard';
 import { RecommendationAnalytics } from '../components/RecommendationAnalytics';
-import { useResourceOptimization, useSites } from '../hooks/useResourceApi';
+import {
+  useResourceOptimization,
+  useSites,
+  useIncidentsBySite,
+  useProjects,
+  useProjectById,
+  useProjectSites,
+  useRecommendationsByProject,
+  useProjectSummary,
+  useGenerateRecommendationsForProject,
+  useIncidentsByProject,
+} from '../hooks/useResourceApi';
 import { RecommendationsList } from '../components/RecommendationsList';
 import { AlertsList } from '../components/AlertsList';
 import { SummaryStats, SavingsChart, CO2ImpactChart, RecommendationStatusChart } from '../components/DashboardCharts';
-import { Zap, Lightbulb, AlertTriangle, BarChart3, ChevronRight, TrendingUp, DollarSign, Loader2, X, Sparkles, ArrowLeft, Target, Users } from 'lucide-react';
-import { getSiteId } from '../types';
+import {
+  Zap, Lightbulb, AlertTriangle, BarChart3, ChevronRight, TrendingUp,
+  DollarSign, Loader2, X, Sparkles, ArrowLeft, Target, Users,
+  ShieldAlert, Clock, Star, Briefcase, Building2,
+} from 'lucide-react';
+import { getSiteId, getProjectId } from '../types';
+import type { Incident } from '../types';
 
 type SubPage = 'overview' | 'resource-analysis' | 'recommendations' | 'analytics' | 'alerts' | 'reporting';
+type ViewMode = 'site' | 'project';
 
 export const ResourceOptimizationDashboard: React.FC = () => {
   const { siteId } = useParams();
@@ -29,10 +46,13 @@ export const ResourceOptimizationDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<SubPage>('overview');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [viewMode, setViewMode] = useState<ViewMode>('site');
   const [previewSite, setPreviewSite] = useState<any | null>(null);
 
   // Fetch sites for selector
   const { data: sites, isLoading: sitesLoading } = useSites();
+  const { data: projects, isLoading: projectsLoading } = useProjects();
 
   const activeSites = sites?.filter(s => s.isActif) || [];
 
@@ -47,12 +67,14 @@ export const ResourceOptimizationDashboard: React.FC = () => {
 
   // Determine effective siteId with proper validation
   let effectiveSiteId = '';
-  if (selectedSiteId && isValidSiteId(selectedSiteId)) {
+  if (selectedSiteId && isValidSiteId(selectedSiteId) && selectedSiteId !== '__project__') {
     effectiveSiteId = selectedSiteId;
   } else if (siteIdParam && isValidSiteId(siteIdParam)) {
     effectiveSiteId = siteIdParam;
   }
-  // Remove auto-selection - only use explicitly selected siteId
+
+  // In project mode with a project selected, show the project dashboard
+  const isProjectMode = viewMode === 'project' && !!selectedProjectId;
 
   const {
     recommendations,
@@ -70,6 +92,30 @@ export const ResourceOptimizationDashboard: React.FC = () => {
     markAlertAsRead,
     markAlertAsResolved,
   } = useResourceOptimization(effectiveSiteId);
+
+  const { data: incidents = [] } = useIncidentsBySite(effectiveSiteId);
+  const openIncidents = incidents.filter((i: Incident) => i.status === 'open' || i.status === 'investigating');
+  const criticalIncidents = incidents.filter((i: Incident) => i.severity === 'critical' || i.severity === 'high');
+
+  // ── Project mode hooks ──────────────────────────────────────────────────
+  const { data: selectedProject } = useProjectById(selectedProjectId);
+  const { data: projectSites = [] } = useProjectSites(selectedProjectId);
+  const { data: projectRecs = [], isLoading: projectRecsLoading } = useRecommendationsByProject(selectedProjectId);
+  const { data: projectSummary } = useProjectSummary(selectedProjectId);
+  const { data: projectIncidents = [] } = useIncidentsByProject(selectedProjectId);
+  const generateProjectRecs = useGenerateRecommendationsForProject(selectedProjectId);
+
+  const openProjectIncidents = projectIncidents.filter((i: Incident) => i.status === 'open' || i.status === 'investigating');
+  const criticalProjectIncidents = projectIncidents.filter((i: Incident) => i.severity === 'critical' || i.severity === 'high');
+
+  const handleGenerateProjectRecommendations = async () => {
+    setIsGenerating(true);
+    try {
+      await generateProjectRecs.mutateAsync();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Transform alerts to match expected interface
   const transformedAlerts = alerts?.map(alert => ({
@@ -138,28 +184,53 @@ export const ResourceOptimizationDashboard: React.FC = () => {
     { id: 'reporting', label: 'Reports', icon: DollarSign },
   ] as const;
 
-  // No site selected - Show global view of all sites
-  if (!isValidSiteId(effectiveSiteId) && !sitesLoading) {
+  // No site selected - Show global view of all sites or projects
+  if (!isValidSiteId(effectiveSiteId) && !isProjectMode && !sitesLoading) {
     return (
       <div className="relative p-6">
         <div className={`space-y-6 transition-all duration-300 ${previewSite ? 'blur-[4px] scale-[0.995]' : ''}`}>
           {/* Enhanced Header */}
           <div className="rounded-3xl border-2 border-border/60 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-8 py-6 shadow-xl relative overflow-hidden">
-            {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-indigo-300 to-purple-300 rounded-full -mr-36 -mt-36 opacity-20" />
             <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-blue-300 to-indigo-300 rounded-full -ml-28 -mb-28 opacity-20" />
             
-            <div className="relative z-10 flex items-start gap-5">
-              <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl">
-                <BarChart3 className="h-10 w-10 text-white" />
+            <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex items-start gap-5">
+                <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl">
+                  <BarChart3 className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                    Optimisation des Ressources
+                  </h1>
+                  <p className="text-muted-foreground max-w-2xl leading-relaxed">
+                    {viewMode === 'site'
+                      ? 'Vue globale par site — sélectionnez un site pour accéder aux recommandations IA détaillées.'
+                      : 'Vue globale par projet — sélectionnez un projet pour générer des recommandations basées sur tâches, équipes et incidents.'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                  Resource Management — All Sites
-                </h1>
-                <p className="text-muted-foreground max-w-4xl leading-relaxed">
-                  Cross-site overview with AI-powered recommendations, budget tracking, and team analytics. Select any site to dive into detailed optimization insights and implementation metrics.
-                </p>
+
+              {/* View mode toggle — visible dès la page d'accueil */}
+              <div className="flex rounded-xl border-2 border-indigo-200 overflow-hidden bg-white shadow-sm self-start">
+                <button
+                  onClick={() => setViewMode('site')}
+                  className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-colors ${
+                    viewMode === 'site' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  <Building2 className="h-4 w-4" />
+                  Par Site
+                </button>
+                <button
+                  onClick={() => setViewMode('project')}
+                  className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-colors ${
+                    viewMode === 'project' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Par Projet
+                </button>
               </div>
             </div>
           </div>
@@ -245,41 +316,129 @@ export const ResourceOptimizationDashboard: React.FC = () => {
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Active Sites & AI Recommendations</CardTitle>
+                  <CardTitle className="text-xl">
+                    {viewMode === 'site' ? 'Sites actifs & Recommandations IA' : 'Projets & Recommandations IA'}
+                  </CardTitle>
                   <CardDescription className="mt-1.5">
-                    Each card provides a site overview with intelligent optimization suggestions. Click to explore detailed analytics and track implementation impact.
+                    {viewMode === 'site'
+                      ? 'Cliquez sur un site pour accéder aux recommandations détaillées.'
+                      : 'Sélectionnez un projet pour générer des recommandations basées sur ses tâches, équipes et incidents.'}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              {sitesLoading ? (
-                <div className="flex flex-col items-center justify-center p-12">
-                  <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mb-4" />
-                  <p className="text-gray-600">Loading sites...</p>
-                </div>
-              ) : activeSites.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center">
-                  <div className="p-4 bg-gray-100 rounded-full mb-4">
-                    <BarChart3 className="h-12 w-12 text-gray-400" />
+              {viewMode === 'site' ? (
+                sitesLoading ? (
+                  <div className="flex flex-col items-center justify-center p-12">
+                    <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mb-4" />
+                    <p className="text-gray-600">Chargement des sites...</p>
                   </div>
-                  <p className="text-gray-600 font-medium mb-2">No Active Sites</p>
-                  <p className="text-sm text-gray-500">Create a site to start optimizing resources</p>
-                </div>
+                ) : activeSites.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-center">
+                    <Building2 className="h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-gray-600 font-medium mb-2">Aucun site actif</p>
+                    <p className="text-sm text-gray-500">Créez un site pour commencer l'optimisation</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activeSites.map((site, index) => {
+                      const id = getSiteId(site);
+                      return (
+                        <SiteRecommendationCard
+                          key={id || `site-${index}`}
+                          site={site}
+                          siteId={id}
+                          onSelect={() => setPreviewSite({ ...site, __siteId: id })}
+                        />
+                      );
+                    })}
+                  </div>
+                )
               ) : (
-                <div className="space-y-4">
-                  {activeSites.map((site, index) => {
-                    const id = getSiteId(site);
-                    return (
-                      <SiteRecommendationCard
-                        key={id || `site-${index}`}
-                        site={site}
-                        siteId={id}
-                        onSelect={() => setPreviewSite({ ...site, __siteId: id })}
-                      />
-                    );
-                  })}
-                </div>
+                /* ── Project mode list ── */
+                projectsLoading ? (
+                  <div className="flex flex-col items-center justify-center p-12">
+                    <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mb-4" />
+                    <p className="text-gray-600">Chargement des projets...</p>
+                  </div>
+                ) : !projects || projects.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-center">
+                    <Briefcase className="h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-gray-600 font-medium mb-2">Aucun projet trouvé</p>
+                    <p className="text-sm text-gray-500">Créez un projet pour commencer</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {projects.map((project) => {
+                      const pid = getProjectId(project);
+                      const statusColors: Record<string, string> = {
+                        in_progress: 'bg-green-100 text-green-800',
+                        en_cours:    'bg-green-100 text-green-800',
+                        planning:    'bg-blue-100 text-blue-800',
+                        completed:   'bg-gray-100 text-gray-800',
+                        terminé:     'bg-gray-100 text-gray-800',
+                        en_retard:   'bg-red-100 text-red-800',
+                      };
+                      return (
+                        <Card
+                          key={pid}
+                          className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-purple-300 bg-gradient-to-br from-purple-50 to-white overflow-hidden relative"
+                          onClick={() => {
+                            setSelectedProjectId(pid);
+                            setViewMode('project');
+                            // Switch to site-detail view with project selected
+                            setSelectedSiteId('__project__');
+                          }}
+                        >
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100 rounded-full -mr-12 -mt-12 opacity-50 group-hover:scale-110 transition-transform duration-300" />
+                          <CardContent className="pt-5 pb-4 relative z-10 space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg">
+                                  <Briefcase className="h-4 w-4 text-white" />
+                                </div>
+                                <h3 className="font-bold text-gray-800 text-sm leading-tight">{project.name}</h3>
+                              </div>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColors[project.status] || 'bg-gray-100 text-gray-700'}`}>
+                                {project.status === 'in_progress' || project.status === 'en_cours' ? '🚧 En cours'
+                                  : project.status === 'planning' ? '📋 Planification'
+                                  : project.status === 'completed' || project.status === 'terminé' ? '✅ Terminé'
+                                  : project.status}
+                              </span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div>
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Progression</span>
+                                <span className="font-semibold">{project.progress}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div
+                                  className="bg-gradient-to-r from-purple-500 to-indigo-500 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${project.progress}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" />
+                                {(project.budget || 0).toLocaleString()} TND
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {project.siteCount || 0} site(s)
+                              </span>
+                              <ChevronRight className="h-4 w-4 text-purple-400 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )
               )}
             </CardContent>
           </Card>
@@ -410,6 +569,226 @@ export const ResourceOptimizationDashboard: React.FC = () => {
     );
   }
 
+  // ── Project mode dashboard ──────────────────────────────────────────────
+  if (isProjectMode) {
+    return (
+      <div className="space-y-6 p-6">
+        <Button
+          variant="ghost"
+          onClick={() => { setSelectedProjectId(''); setSelectedSiteId(''); }}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour à tous les projets
+        </Button>
+
+        {/* Project header */}
+        <div className="rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-white to-indigo-50 px-8 py-6 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-purple-200 rounded-full -mr-24 -mt-24 opacity-20" />
+          <div className="relative z-10 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-lg">
+                <Briefcase className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-purple-900">
+                  {selectedProject?.name || 'Projet'}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-purple-700 mt-1 flex-wrap">
+                  <span>Budget: {(selectedProject?.budget || 0).toLocaleString()} TND</span>
+                  <span>•</span>
+                  <span>{projectSites.length} site(s)</span>
+                  <span>•</span>
+                  <span>Progression: {selectedProject?.progress || 0}%</span>
+                  {openProjectIncidents.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="text-orange-600 font-semibold">
+                        ⚠️ {openProjectIncidents.length} incident(s) ouvert(s)
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg"
+              onClick={handleGenerateProjectRecommendations}
+              disabled={isGenerating}
+            >
+              <Zap className={`h-5 w-5 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? 'Génération...' : 'Générer les insights IA'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Summary cards */}
+        {projectSummary && (
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
+              <CardContent className="pt-4 flex items-center gap-3">
+                <DollarSign className="h-8 w-8 text-emerald-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Économies potentielles</p>
+                  <p className="text-xl font-bold">{projectSummary.totalPotentialSavings} TND</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+              <CardContent className="pt-4 flex items-center gap-3">
+                <TrendingUp className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Approuvées</p>
+                  <p className="text-xl font-bold">{projectSummary.approvedSavings} TND</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white">
+              <CardContent className="pt-4 flex items-center gap-3">
+                <Sparkles className="h-8 w-8 text-green-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Réalisées</p>
+                  <p className="text-xl font-bold">{projectSummary.realizedSavings} TND</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
+              <CardContent className="pt-4 flex items-center gap-3">
+                <AlertTriangle className="h-8 w-8 text-orange-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Incidents ouverts</p>
+                  <p className="text-xl font-bold">{openProjectIncidents.length}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Incident banner */}
+        {openProjectIncidents.length > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-orange-800">
+                {openProjectIncidents.length} incident(s) ouvert(s) sur ce projet
+              </p>
+              <p className="text-sm text-orange-600 mt-0.5">
+                {criticalProjectIncidents.length} critique(s)/élevé(s) · Des recommandations ont été générées pour réduire leur impact sur le budget et les délais.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Recommendations */}
+        <Tabs defaultValue="all" className="space-y-3">
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="all">Toutes ({projectRecs.length})</TabsTrigger>
+            <TabsTrigger value="budget">Budget ({projectRecs.filter(r => r.type === 'budget').length})</TabsTrigger>
+            <TabsTrigger value="timeline">Délais ({projectRecs.filter(r => r.type === 'timeline').length})</TabsTrigger>
+            <TabsTrigger value="task_distribution">Tâches ({projectRecs.filter(r => r.type === 'task_distribution').length})</TabsTrigger>
+            <TabsTrigger value="resource_allocation">Ressources ({projectRecs.filter(r => r.type === 'resource_allocation').length})</TabsTrigger>
+            <TabsTrigger value="incidents">
+              Incidents
+              {openProjectIncidents.length > 0 && (
+                <Badge className="bg-orange-500 text-white text-xs px-1.5 py-0 ml-1">{openProjectIncidents.length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {['all', 'budget', 'timeline', 'task_distribution', 'resource_allocation'].map(type => (
+            <TabsContent key={type} value={type}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="capitalize">{type === 'all' ? 'Toutes les recommandations' : type.replace('_', ' ')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RecommendationsList
+                    recommendations={projectRecs}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    onImplement={handleImplement}
+                    loading={projectRecsLoading}
+                    filter={type === 'all' ? undefined : type}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+
+          <TabsContent value="incidents">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-500" />
+                    Recommandations liées aux incidents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RecommendationsList
+                    recommendations={projectRecs.filter(r => r.type === 'budget' || r.type === 'timeline' || r.type === 'resource_allocation')}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    onImplement={handleImplement}
+                    loading={projectRecsLoading}
+                  />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-red-500" />
+                    Incidents du projet ({projectIncidents.length})
+                    {openProjectIncidents.length > 0 && (
+                      <Badge className="bg-orange-100 text-orange-800 ml-2">{openProjectIncidents.length} ouverts</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {projectIncidents.length === 0 ? (
+                    <p className="text-center text-gray-500 py-6">Aucun incident pour ce projet</p>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {projectIncidents.map((incident: Incident) => {
+                        const sevConfig: Record<string, { color: string; label: string }> = {
+                          critical: { color: 'bg-red-100 text-red-800', label: '🔴 Critique' },
+                          high:     { color: 'bg-orange-100 text-orange-800', label: '🟠 Élevé' },
+                          medium:   { color: 'bg-yellow-100 text-yellow-800', label: '🟡 Moyen' },
+                          low:      { color: 'bg-green-100 text-green-800', label: '🟢 Faible' },
+                        };
+                        const sev = sevConfig[incident.severity] || sevConfig.low;
+                        const isOpen = incident.status === 'open' || incident.status === 'investigating';
+                        return (
+                          <Card key={incident._id} className={`border ${isOpen ? 'border-orange-200' : 'border-gray-200'}`}>
+                            <CardContent className="pt-4 space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-semibold text-sm">{incident.title}</span>
+                                <Badge className={sev.color}>{sev.label}</Badge>
+                              </div>
+                              {incident.description && <p className="text-xs text-gray-500">{incident.description}</p>}
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                <span className="capitalize">{incident.type}</span>
+                                <span>•</span>
+                                <span className={isOpen ? 'text-orange-600 font-medium' : 'text-green-600'}>
+                                  {incident.status === 'open' ? 'Ouvert' : incident.status === 'investigating' ? 'En investigation' : incident.status === 'resolved' ? 'Résolu' : 'Fermé'}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+
   if (currentPage !== 'overview') {
     return (
       <div className="space-y-4 p-6">
@@ -502,33 +881,84 @@ export const ResourceOptimizationDashboard: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            {/* View mode toggle */}
+            <div className="flex rounded-lg border-2 border-indigo-200 overflow-hidden bg-white shadow-sm">
+              <button
+                onClick={() => setViewMode('site')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'site'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-indigo-600 hover:bg-indigo-50'
+                }`}
+              >
+                <Building2 className="h-4 w-4" />
+                Par Site
+              </button>
+              <button
+                onClick={() => setViewMode('project')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'project'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-indigo-600 hover:bg-indigo-50'
+                }`}
+              >
+                <Briefcase className="h-4 w-4" />
+                Par Projet
+              </button>
+            </div>
+
             {/* Site Selector */}
-            <Select value={effectiveSiteId} onValueChange={handleSiteChange}>
-              <SelectTrigger className="w-72 bg-white border-2 border-indigo-200 hover:border-indigo-300 transition-colors shadow-sm">
-                <SelectValue placeholder="🏗️ Select a site" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeSites.map((s) => {
-                  const siteId = getSiteId(s);
-                  return (
-                    <SelectItem key={siteId} value={siteId}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">🏗️</span>
-                        <span>{s.nom}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <Button 
-              size="lg" 
-              className="gap-2 shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 hover:shadow-xl hover:scale-105" 
-              onClick={handleGenerateRecommendations} 
-              disabled={isGenerating}
+            {viewMode === 'site' && (
+              <Select value={effectiveSiteId} onValueChange={handleSiteChange}>
+                <SelectTrigger className="w-72 bg-white border-2 border-indigo-200 hover:border-indigo-300 transition-colors shadow-sm">
+                  <SelectValue placeholder="🏗️ Sélectionner un site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeSites.map((s) => {
+                    const siteId = getSiteId(s);
+                    return (
+                      <SelectItem key={siteId} value={siteId}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🏗️</span>
+                          <span>{s.nom}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Project Selector */}
+            {viewMode === 'project' && (
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger className="w-72 bg-white border-2 border-indigo-200 hover:border-indigo-300 transition-colors shadow-sm">
+                  <SelectValue placeholder="📁 Sélectionner un projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(projects || []).map((p) => {
+                    const pid = getProjectId(p);
+                    return (
+                      <SelectItem key={pid} value={pid}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">📁</span>
+                          <span>{p.name}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+
+            <Button
+              size="lg"
+              className="gap-2 shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 hover:shadow-xl hover:scale-105"
+              onClick={viewMode === 'project' ? handleGenerateProjectRecommendations : handleGenerateRecommendations}
+              disabled={isGenerating || (viewMode === 'project' ? !selectedProjectId : !effectiveSiteId)}
             >
               <Zap className={`h-5 w-5 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Generating...' : 'Generate AI Insights'}
+              {isGenerating ? 'Génération...' : 'Générer les insights IA'}
             </Button>
           </div>
         </div>
@@ -640,7 +1070,12 @@ export const ResourceOptimizationDashboard: React.FC = () => {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recommendations" className="gap-2">
             <Lightbulb className="h-4 w-4" />
-            Recommendations ({recommendations.length})
+            Recommendations ({viewMode === 'site' ? recommendations.length : projectRecs.length})
+            {(viewMode === 'site' ? openIncidents : openProjectIncidents).length > 0 && (
+              <Badge className="bg-orange-500 text-white text-xs px-1.5 py-0 ml-1">
+                {(viewMode === 'site' ? openIncidents : openProjectIncidents).length} incidents
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -653,28 +1088,199 @@ export const ResourceOptimizationDashboard: React.FC = () => {
         </TabsList>
 
         <TabsContent value="recommendations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Site Recommendations</CardTitle>
-                  <CardDescription>
-                    {recommendations.length} proposal(s) — approve to freeze a reading; implement to
-                    compare indicators in Analytics.
-                  </CardDescription>
-                </div>
+          {/* Incident alert banner */}
+          {(viewMode === 'site' ? openIncidents : openProjectIncidents).length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-orange-800">
+                  {(viewMode === 'site' ? openIncidents : openProjectIncidents).length} incident(s) ouvert(s) — impact sur budget et délais
+                </p>
+                <p className="text-sm text-orange-600 mt-0.5">
+                  {(viewMode === 'site' ? criticalIncidents : criticalProjectIncidents).length} critique(s)/élevé(s) · Des recommandations ont été générées pour réduire leur impact.
+                </p>
               </div>
-            </CardHeader>
-            <CardContent>
-              <RecommendationsList
-                recommendations={recommendations}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onImplement={handleImplement}
-                loading={recommendationsLoading}
-              />
-            </CardContent>
-          </Card>
+            </div>
+          )}
+
+          {/* Project info banner */}
+          {viewMode === 'project' && selectedProject && (
+            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white">
+              <CardContent className="pt-4 flex items-center gap-4">
+                <Briefcase className="h-8 w-8 text-purple-600" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-purple-900">{selectedProject.name}</h3>
+                  <div className="flex items-center gap-4 text-sm text-purple-700 mt-1">
+                    <span>Budget: {(selectedProject.budget || 0).toLocaleString()} TND</span>
+                    <span>•</span>
+                    <span>{projectSites.length} site(s)</span>
+                    <span>•</span>
+                    <span className="capitalize">{selectedProject.status}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recommendations tabs by type */}
+          <Tabs defaultValue="all" className="space-y-3">
+            <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="all">
+                Toutes ({viewMode === 'site' ? recommendations.length : projectRecs.length})
+              </TabsTrigger>
+              <TabsTrigger value="budget">
+                Budget ({(viewMode === 'site' ? recommendations : projectRecs).filter(r => r.type === 'budget').length})
+              </TabsTrigger>
+              <TabsTrigger value="timeline">
+                Délais ({(viewMode === 'site' ? recommendations : projectRecs).filter(r => r.type === 'timeline').length})
+              </TabsTrigger>
+              <TabsTrigger value="task_distribution">
+                Tâches ({(viewMode === 'site' ? recommendations : projectRecs).filter(r => r.type === 'task_distribution').length})
+              </TabsTrigger>
+              <TabsTrigger value="resource_allocation">
+                Ressources ({(viewMode === 'site' ? recommendations : projectRecs).filter(r => r.type === 'resource_allocation').length})
+              </TabsTrigger>
+              <TabsTrigger value="incidents">
+                <span className="flex items-center gap-1">
+                  Incidents
+                  {(viewMode === 'site' ? openIncidents : openProjectIncidents).length > 0 && (
+                    <Badge className="bg-orange-500 text-white text-xs px-1.5 py-0 ml-1">
+                      {(viewMode === 'site' ? openIncidents : openProjectIncidents).length}
+                    </Badge>
+                  )}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Toutes les recommandations</CardTitle>
+                  <CardDescription>
+                    {(viewMode === 'site' ? recommendations : projectRecs).length} proposition(s) — approuvez pour figer une lecture ; implémentez pour comparer dans Analytics.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RecommendationsList
+                    recommendations={viewMode === 'site' ? recommendations : projectRecs}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    onImplement={handleImplement}
+                    loading={viewMode === 'site' ? recommendationsLoading : projectRecsLoading}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {['budget', 'timeline', 'task_distribution', 'resource_allocation'].map(type => (
+              <TabsContent key={type} value={type}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="capitalize">{type.replace('_', ' ')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RecommendationsList
+                      recommendations={viewMode === 'site' ? recommendations : projectRecs}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      onImplement={handleImplement}
+                      loading={viewMode === 'site' ? recommendationsLoading : projectRecsLoading}
+                      filter={type}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ))}
+
+            <TabsContent value="incidents">
+              <div className="space-y-4">
+                {/* Incident-driven recommendations */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      Recommandations liées aux incidents
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RecommendationsList
+                      recommendations={(viewMode === 'site' ? recommendations : projectRecs).filter(r =>
+                        r.type === 'budget' || r.type === 'timeline' || r.type === 'resource_allocation'
+                      )}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      onImplement={handleImplement}
+                      loading={viewMode === 'site' ? recommendationsLoading : projectRecsLoading}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Incidents list */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShieldAlert className="h-5 w-5 text-red-500" />
+                      Incidents {viewMode === 'project' ? 'du projet' : 'du site'} ({(viewMode === 'site' ? incidents : projectIncidents).length})
+                      {(viewMode === 'site' ? openIncidents : openProjectIncidents).length > 0 && (
+                        <Badge className="bg-orange-100 text-orange-800 ml-2">
+                          {(viewMode === 'site' ? openIncidents : openProjectIncidents).length} ouverts
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(viewMode === 'site' ? incidents : projectIncidents).length === 0 ? (
+                      <p className="text-center text-gray-500 py-6">Aucun incident</p>
+                    ) : (
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {(viewMode === 'site' ? incidents : projectIncidents).map((incident: Incident) => {
+                          const sevConfig: Record<string, { color: string; label: string }> = {
+                            critical: { color: 'bg-red-100 text-red-800', label: '🔴 Critique' },
+                            high:     { color: 'bg-orange-100 text-orange-800', label: '🟠 Élevé' },
+                            medium:   { color: 'bg-yellow-100 text-yellow-800', label: '🟡 Moyen' },
+                            low:      { color: 'bg-green-100 text-green-800', label: '🟢 Faible' },
+                          };
+                          const sev = sevConfig[incident.severity] || sevConfig.low;
+                          const isOpen = incident.status === 'open' || incident.status === 'investigating';
+                          const typeIcon: Record<string, React.ReactNode> = {
+                            safety:  <ShieldAlert className="h-4 w-4 text-red-500" />,
+                            quality: <Star className="h-4 w-4 text-yellow-500" />,
+                            delay:   <Clock className="h-4 w-4 text-orange-500" />,
+                            other:   <AlertTriangle className="h-4 w-4 text-gray-500" />,
+                          };
+                          return (
+                            <Card key={incident._id} className={`border ${isOpen ? 'border-orange-200' : 'border-gray-200'}`}>
+                              <CardContent className="pt-4 space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    {typeIcon[incident.type]}
+                                    <span className="font-semibold text-sm">{incident.title}</span>
+                                  </div>
+                                  <Badge className={sev.color}>{sev.label}</Badge>
+                                </div>
+                                {incident.description && (
+                                  <p className="text-xs text-gray-500">{incident.description}</p>
+                                )}
+                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                  <span className="capitalize">{incident.type}</span>
+                                  <span>•</span>
+                                  <span className={isOpen ? 'text-orange-600 font-medium' : 'text-green-600'}>
+                                    {incident.status === 'open' ? 'Ouvert'
+                                      : incident.status === 'investigating' ? 'En investigation'
+                                      : incident.status === 'resolved' ? 'Résolu' : 'Fermé'}
+                                  </span>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">

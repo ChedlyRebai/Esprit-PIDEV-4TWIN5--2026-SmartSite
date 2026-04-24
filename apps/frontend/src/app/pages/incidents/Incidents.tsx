@@ -60,9 +60,9 @@ const incidentsApi = axios.create({
   timeout: 10000,
 });
 
-// API pour les projets (port 3007)
+// API pour les projets (port 3010)
 const projectsApi = axios.create({
-  baseURL: "http://localhost:3007",
+  baseURL: "http://localhost:3010",
   timeout: 10000,
 });
 

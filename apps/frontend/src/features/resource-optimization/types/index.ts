@@ -15,7 +15,31 @@ export const getSiteId = (site: any): string => {
   return site?._id || site?.id || '';
 };
 
+export const getProjectId = (project: any): string => {
+  return project?._id || project?.id || '';
+};
+
 // ============ EXTERNAL API TYPES ============
+
+// Types from gestion-projects (port 3007)
+export interface Project {
+  _id: string;
+  id?: string;
+  name: string;
+  description?: string;
+  status: 'planning' | 'in_progress' | 'completed' | 'en_cours' | 'terminé' | 'en_retard';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  budget?: number;
+  actualCost?: number;
+  progress: number;
+  startDate?: Date;
+  endDate?: Date;
+  deadline?: string;
+  siteCount?: number;
+  teamSize?: number;
+  clientName?: string;
+  projectManagerName?: string;
+}
 
 // Types from gestion-site (port 3001)
 export interface Site {
@@ -79,6 +103,27 @@ export interface Milestone {
   updatedAt: Date;
 }
 
+// Types from incident-management
+export type IncidentType = 'safety' | 'quality' | 'delay' | 'other';
+export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type IncidentStatus = 'open' | 'investigating' | 'resolved' | 'closed';
+
+export interface Incident {
+  _id: string;
+  type: IncidentType;
+  severity: IncidentSeverity;
+  title: string;
+  description?: string;
+  status: IncidentStatus;
+  siteId?: string;
+  projectId?: string;
+  reporterName?: string;
+  assignedToCin?: string;
+  assignedUserRole?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ============ INTERNAL TYPES ============
 
 // Resource Analysis Interfaces
@@ -135,12 +180,16 @@ export interface ResourceAnalysis {
 }
 
 // Recommendation Interfaces
-export type RecommendationType = 'energy' | 'workforce' | 'equipment' | 'scheduling' | 'environmental';
+export type RecommendationType =
+  | 'energy' | 'workforce' | 'equipment' | 'scheduling' | 'environmental'
+  | 'budget' | 'timeline' | 'task_distribution' | 'resource_allocation' | 'individual_task_management';
 export type RecommendationStatus = 'pending' | 'approved' | 'rejected' | 'implemented';
 
 export interface Recommendation {
   _id: string;
-  siteId: string;
+  siteId?: string;
+  projectId?: string;
+  scope?: 'project' | 'site';
   type: RecommendationType;
   title: string;
   description: string;
@@ -150,6 +199,9 @@ export interface Recommendation {
   estimatedCO2Reduction: number;
   confidenceScore: number;
   actionItems: string[];
+  targetMember?: string;
+  currentTasks?: string[];
+  suggestedDuration?: number;
   createdAt: Date;
   approvedAt?: Date;
   implementedAt?: Date;

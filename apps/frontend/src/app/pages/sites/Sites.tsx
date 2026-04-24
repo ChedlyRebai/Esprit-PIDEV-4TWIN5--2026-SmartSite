@@ -121,7 +121,7 @@ export default function Sites() {
 
   useEffect(() => {
     if (isProjectContext && currentProjectId) {
-      axios.get(`http://localhost:3007/projects/${currentProjectId}`)
+      axios.get(`http://localhost:3010/projects/${currentProjectId}`)
         .then(res => {
           if (res.data?.siteCount !== undefined) {
             setProjectSiteLimit(res.data.siteCount);
