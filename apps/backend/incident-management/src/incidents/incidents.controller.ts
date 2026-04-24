@@ -13,11 +13,33 @@ import { UpdateIncidentDto } from "./dto/update-incident.dto";
 
 @Controller("incidents")
 export class IncidentsController {
-  constructor(private readonly incidentsService: IncidentsService) {}
+  constructor(private readonly incidentsService: IncidentsService) { }
 
   @Get()
   findAll() {
     return this.incidentsService.findAll();
+  }
+
+  @Get("by-site/:siteId")
+  findBySite(@Param("siteId") siteId: string) {
+    return this.incidentsService.findBySite(siteId);
+  }
+
+  @Get("by-project/:projectId")
+  findByProject(@Param("projectId") projectId: string) {
+    return this.incidentsService.findByProject(projectId);
+  }
+
+  @Get("count-by-site/:siteId")
+  async countBySite(@Param("siteId") siteId: string) {
+    const count = await this.incidentsService.countBySite(siteId);
+    return { count, siteId };
+  }
+
+  @Get("count-by-project/:projectId")
+  async countByProject(@Param("projectId") projectId: string) {
+    const count = await this.incidentsService.countByProject(projectId);
+    return { count, projectId };
   }
 
   @Get(":id")

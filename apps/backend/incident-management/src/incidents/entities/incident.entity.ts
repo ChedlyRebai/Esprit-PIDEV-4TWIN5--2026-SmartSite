@@ -51,6 +51,9 @@ export class Incident {
   @Prop()
   assignedToCin?: string;
 
+  @Prop({ type: Types.ObjectId, ref: "Project", required: false })
+  project?: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: "Site", required: false })
   site?: Types.ObjectId;
 

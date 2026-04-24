@@ -33,6 +33,30 @@ export class ExternalDataController {
     return this.externalDataService.getAllSiteData(siteId);
   }
 
+  @Get('project/:projectId')
+  async getProject(@Param('projectId') projectId: string) {
+    this.logger.log(`Fetching project data for project: ${projectId}`);
+    return this.externalDataService.getProjectData(projectId);
+  }
+
+  @Get('project/:projectId/sites')
+  async getProjectSites(@Param('projectId') projectId: string) {
+    return this.externalDataService.getProjectSites(projectId);
+  }
+
+  @Get('project/:projectId/all')
+  async getProjectContext(@Param('projectId') projectId: string) {
+    return this.externalDataService.getProjectContext(projectId);
+  }
+
+  @Get('project/:projectId/site/:siteId')
+  async getProjectContextForSite(
+    @Param('projectId') projectId: string,
+    @Param('siteId') siteId: string,
+  ) {
+    return this.externalDataService.getProjectContext(projectId, siteId);
+  }
+
   @Get('users')
   async getUsers() {
     return this.externalDataService.getUsers();

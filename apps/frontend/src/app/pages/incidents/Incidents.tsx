@@ -45,6 +45,8 @@ import { toast } from "sonner";
 import axios from "axios";
 import { trackAuditEvent } from "../../action/audit.action";
 import { incidentMatchesSearch } from "../../utils/incidentSearchFilter";
+import { incidentEvents } from "../../components/IncidentBadge";
+import { NotificationPanel } from "../../components/NotificationPanel";
 
 // API pour rechercher des utilisateurs
 const api = axios.create({
@@ -52,10 +54,22 @@ const api = axios.create({
   timeout: 10000, // 10 secondes timeout
 });
 
-// API pour les incidents (port différent)
+// API pour les incidents (port 3003)
 const incidentsApi = axios.create({
   baseURL: "http://localhost:3003",
-  timeout: 10000, // 10 secondes timeout
+  timeout: 10000,
+});
+
+// API pour les projets (port 3007)
+const projectsApi = axios.create({
+  baseURL: "http://localhost:3007",
+  timeout: 10000,
+});
+
+// API pour les sites (port 3001 avec préfixe /api)
+const sitesApi = axios.create({
+  baseURL: "http://localhost:3001/api",
+  timeout: 10000,
 });
 
 // Récupérer le token depuis plusieurs sources (store persist + clé directe)
@@ -170,7 +184,15 @@ export default function Incidents() {
     assignedUserCin: "", // Champ optionnel pour assignation directe
     assignedUserRole: "all", // Champ optionnel pour filtre par rôle avec valeur par défaut
     incidentName: "", // Nouveau champ pour le nom de l'incident
+    projectId: "", // Champ pour assigner à un projet
+    siteId: "", // Champ pour assigner à un site
   });
+
+  // États pour les listes de projets et sites
+  const [projects, setProjects] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [isLoadingSites, setIsLoadingSites] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<any>(null);
   const [targetUserCin, setTargetUserCin] = useState("");
@@ -277,7 +299,7 @@ export default function Incidents() {
     );
   }, [allUsers, userSearchTerm, selectedRole]);
 
-  // Charger tous les utilisateurs au démarrage - UNE SEULE FOIS
+  // Charger tous les utilisateurs, projets et sites au démarrage - UNE SEULE FOIS
   useEffect(() => {
     console.log("🔄 Frontend: useEffect déclenché!");
 
@@ -409,29 +431,119 @@ export default function Incidents() {
     };
 
     loadIncidents();
-  }, []); // Tableau vide = s'exécute UNE SEULE FOIS au montage
 
+    // Écouter les événements du badge (quand un incident est traité/supprimé depuis /sites)
+    const unsubscribeUpdated = incidentEvents.on('updated', (data) => {
+      console.log('📢 Incident page received update:', data);
+      toast.success('✅ Incident traité', {
+        description: `L'incident a été marqué comme traité depuis la page Sites/Projets`,
+        duration: 5000,
+      });
+      // Rafraîchir la liste
+      loadIncidents();
+    });
+
+    const unsubscribeDeleted = incidentEvents.on('deleted', (data) => {
+      console.log('📢 Incident page received delete:', data);
+      toast.error('🗑️ Incident supprimé', {
+        description: `L'incident a été supprimé depuis la page Sites/Projets`,
+        duration: 5000,
+      });
+      // Rafraîchir la liste
+      loadIncidents();
+    });
+
+    // Charger les projets depuis le service gestion-projects (port 3007)
+    const loadProjects = async () => {
+      try {
+        setIsLoadingProjects(true);
+        const token = getAuthToken();
+        const response = await projectsApi.get("/projects", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        // Gérer différents formats de réponse
+        let projectsData = response.data;
+        if (!Array.isArray(projectsData)) {
+          // Si c'est un objet avec une propriété data
+          projectsData = projectsData?.data || projectsData?.projects || [];
+        }
+        if (!Array.isArray(projectsData)) {
+          projectsData = [];
+        }
+        setProjects(projectsData);
+        console.log("✅ Frontend: Projets chargés:", projectsData.length);
+        console.log("🔍 Premier projet:", projectsData[0]);
+      } catch (error) {
+        console.error("❌ Frontend: Erreur chargement projets:", error);
+        console.error("   URL:", error.config?.url);
+        console.error("   Status:", error.response?.status);
+        setProjects([]);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+    loadProjects();
+
+    // Charger les sites depuis le service gestion-site (port 3001)
+    const loadSites = async () => {
+      try {
+        setIsLoadingSites(true);
+        const token = getAuthToken();
+        const response = await sitesApi.get("/gestion-sites", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        // Gérer différents formats de réponse
+        let sitesData = response.data;
+        if (!Array.isArray(sitesData)) {
+          // Si c'est un objet avec une propriété data
+          sitesData = sitesData?.data || sitesData?.sites || [];
+        }
+        if (!Array.isArray(sitesData)) {
+          sitesData = [];
+        }
+        setSites(sitesData);
+        console.log("✅ Frontend: Sites chargés:", sitesData.length);
+        console.log("🔍 Premier site:", sitesData[0]);
+      } catch (error) {
+        console.error("❌ Frontend: Erreur chargement sites:", error);
+        console.error("   URL:", error.config?.url);
+        setSites([]);
+      } finally {
+        setIsLoadingSites(false);
+      }
+    };
+    loadSites();
+
+    return () => {
+      unsubscribeUpdated();
+      unsubscribeDeleted();
+    };
+  }, []);
+
+  // Fonction pour ajouter un incident
   const handleAddIncident = async () => {
-    if (!newIncident.type || !newIncident.description) {
-      toast.error("All fields are required");
-      return;
-    }
-
     try {
       // Créer l'objet incident pour l'API
-      const incidentData = {
+      const incidentData: any = {
         title: newIncident.incidentName || newIncident.type, // Utiliser le nom personnalisé ou le type
         type: newIncident.type, // Backend attend aussi 'type'
         description: newIncident.description,
         severity: newIncident.severity,
         reportedBy: user?.cin || "Unknown",
-        siteId: "default-site",
         assignedToCin: newIncident.assignedUserCin || null, // Utiliser le bon champ
         assignedUserRole:
           newIncident.assignedUserRole !== "all"
             ? newIncident.assignedUserRole
             : null,
       };
+
+      // Ajouter projectId et siteId seulement si renseignés
+      if (newIncident.projectId) {
+        incidentData.projectId = newIncident.projectId;
+      }
+      if (newIncident.siteId) {
+        incidentData.siteId = newIncident.siteId;
+      }
 
       console.log("🔍 Frontend: Envoi incident vers API:", incidentData);
 
@@ -476,6 +588,8 @@ export default function Incidents() {
         assignedUserCin: "",
         assignedUserRole: "all",
         incidentName: "",
+        projectId: "",
+        siteId: "",
       });
 
       toast.success("Incident enregistré avec succès dans la base de données");
@@ -748,290 +862,386 @@ Pour toute question, veuillez contacter l'administrateur système.
             Incident Management
           </h1>
           <p className="text-gray-500 mt-1">
-            Track and resolve safety and quality incidents
+            Document a safety or quality incident
           </p>
         </div>
-        {canManageIncidents ? (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                + Report Incident
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Report New Incident</DialogTitle>
-                <DialogDescription>
-                  Document a safety or quality incident
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="incident-type">Incident Type</Label>
-                  <Select
-                    value={newIncident.type}
-                    onValueChange={(value) =>
-                      setNewIncident({ ...newIncident, type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="e.g., Safety Hazard, Quality Issue" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="safety">Safety Hazard</SelectItem>
-                      <SelectItem value="quality">Quality Issue</SelectItem>
-                      <SelectItem value="delay">Delay</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reportedByCin">
-                    Your CIN (non-modifiable)
-                  </Label>
-                  <Input
-                    id="reportedByCin"
-                    value={user?.cin || ""}
-                    disabled
-                    className="bg-gray-100"
-                    placeholder="Your CIN will be automatically filled"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <div className="space-y-2">
-                    <Textarea
-                      id="description"
-                      placeholder="Describe the incident in detail..."
-                      value={newIncident.description}
-                      onChange={(e) =>
-                        setNewIncident({
-                          ...newIncident,
-                          description: e.target.value,
-                        })
-                      }
-                      rows={3}
-                    />
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={generateDescriptionWithAI}
-                        disabled={isGeneratingDescription}
-                        className="flex items-center gap-2"
-                      >
-                        {isGeneratingDescription ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4" />
-                            Générer avec l'IA
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="incidentName">Nom de l'incident</Label>
-                  <Input
-                    id="incidentName"
-                    placeholder="Donnez un nom à cet incident (optionnel)"
-                    value={newIncident.incidentName}
-                    onChange={(e) =>
-                      setNewIncident({
-                        ...newIncident,
-                        incidentName: e.target.value,
-                      })
-                    }
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="assignedUserCin">
-                    Assigner à un utilisateur (optionnel)
-                  </Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <Select
-                      value={assignRoleFilter}
-                      onValueChange={setAssignRoleFilter}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="🎭 Filtrer par rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">🎭 Tous les rôles ({assignableUsers.length})</SelectItem>
-                        {assignableRoles.map((role) => {
-                          const count = assignableUsers.filter(u => u.role?.name === role).length;
-                          return (
-                            <SelectItem key={role} value={role}>
-                              🎭 {role} ({count})
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    <div className="relative">
-                      <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                      <Input
-                        placeholder="🔍 Rechercher nom ou CIN"
-                        value={assignCinSearch}
-                        onChange={(e) => setAssignCinSearch(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  <Select
-                    value={newIncident.assignedUserCin || "none"}
-                    onValueChange={(value) =>
-                      setNewIncident({
-                        ...newIncident,
-                        assignedUserCin: value === "none" ? "" : value,
-                        assignedUserRole:
-                          value === "none"
-                            ? "all"
-                            : assignableUsers.find((u) => u.cin === value)?.role
-                              ?.name || "all",
-                      })
-                    }
-                  >
-                    <SelectTrigger id="assignedUserCin">
-                      <SelectValue placeholder="👤 Sélectionner un utilisateur" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">🚫 Non assigné</SelectItem>
-                      {filteredAssignableUsers.map((u) => (
-                        <SelectItem key={u._id} value={u.cin}>
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">
-                              {(u.firstname || u.firstName || "") + " " + (u.lastname || u.lastName || "")}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              CIN: {u.cin} • {u.role?.name || "No role"} • {u.email || "No email"}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    id="manualCin"
-                    placeholder="Ou entrer manuellement un CIN"
-                    value={newIncident.assignedUserCin}
-                    onChange={(e) =>
-                      setNewIncident({
-                        ...newIncident,
-                        assignedUserCin: e.target.value,
-                        assignedUserRole:
-                          assignableUsers.find((u) => u.cin === e.target.value)
-                            ?.role?.name || "all",
-                      })
-                    }
-                  />
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <p>
-                      💡 <strong>Utilisateurs disponibles:</strong> {filteredAssignableUsers.length} sur {assignableUsers.length}
-                    </p>
-                    <p>
-                      Choisir depuis la base, filtrer par rôle, ou saisir directement le CIN.
-                    </p>
-                    {assignCinSearch && (
-                      <p>
-                        🔍 Recherche: "{assignCinSearch}" - {filteredAssignableUsers.length} résultat(s)
-                      </p>
-                    )}
-                    {assignRoleFilter !== "all" && (
-                      <p>
-                        🎭 Filtre rôle: {assignRoleFilter} - {filteredAssignableUsers.length} utilisateur(s)
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="severity">Severity</Label>
-                  <Select
-                    value={newIncident.severity}
-                    onValueChange={(value) =>
-                      setNewIncident({ ...newIncident, severity: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select severity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="image">Upload Image (optional)</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        setNewIncident({
-                          ...newIncident,
-                          image: e.target.files?.[0] || null,
-                        })
-                      }
-                      className="flex-1"
-                    />
-                    <Upload className="h-4 w-4 text-gray-400" />
-                  </div>
-                  {newIncident.image && (
-                    <p className="text-xs text-green-600">
-                      Image selected: {newIncident.image.name}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pdfReport">
-                    Upload PDF Report (optional)
-                  </Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="pdfReport"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) =>
-                        setNewIncident({
-                          ...newIncident,
-                          pdfReport: e.target.files?.[0] || null,
-                        })
-                      }
-                      className="flex-1"
-                    />
-                    <FileText className="h-4 w-4 text-gray-400" />
-                  </div>
-                  {newIncident.pdfReport && (
-                    <p className="text-xs text-green-600">
-                      PDF selected: {newIncident.pdfReport.name}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                  onClick={handleAddIncident}
-                >
+        <div className="flex items-center gap-3">
+          <NotificationPanel />
+          {canManageIncidents ? (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
                   Report Incident
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        ) : (
-          <Button disabled className="opacity-50 cursor-not-allowed">
-            + Report Incident (No Permission)
-          </Button>
-        )}
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Report New Incident</DialogTitle>
+                  <DialogDescription>
+                    Document a safety or quality incident
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="incident-type">Incident Type</Label>
+                    <Select
+                      value={newIncident.type}
+                      onValueChange={(value) =>
+                        setNewIncident({ ...newIncident, type: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="e.g., Safety Hazard, Quality Issue" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="safety">Safety Hazard</SelectItem>
+                        <SelectItem value="quality">Quality Issue</SelectItem>
+                        <SelectItem value="delay">Delay</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reportedByCin">
+                      Your CIN (non-modifiable)
+                    </Label>
+                    <Input
+                      id="reportedByCin"
+                      value={user?.cin || ""}
+                      disabled
+                      className="bg-gray-100"
+                      placeholder="Your CIN will be automatically filled"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <div className="space-y-2">
+                      <Textarea
+                        id="description"
+                        placeholder="Describe the incident in detail..."
+                        value={newIncident.description}
+                        onChange={(e) =>
+                          setNewIncident({
+                            ...newIncident,
+                            description: e.target.value,
+                          })
+                        }
+                        rows={3}
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateDescriptionWithAI}
+                          disabled={isGeneratingDescription}
+                          className="flex items-center gap-2"
+                        >
+                          {isGeneratingDescription ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4" />
+                              Générer avec l'IA
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="incidentName">Nom de l'incident</Label>
+                    <Input
+                      id="incidentName"
+                      placeholder="Donnez un nom à cet incident (optionnel)"
+                      value={newIncident.incidentName}
+                      onChange={(e) =>
+                        setNewIncident({
+                          ...newIncident,
+                          incidentName: e.target.value,
+                        })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                  {/* Sélection du Projet */}
+                  <div className="space-y-2">
+                    <Label htmlFor="projectId">
+                      📁 Projet (optionnel)
+                    </Label>
+                    <Select
+                      value={newIncident.projectId || "none"}
+                      onValueChange={(value) =>
+                        setNewIncident({
+                          ...newIncident,
+                          projectId: value === "none" ? "" : value,
+                          // Reset site si on change de projet
+                          siteId: "",
+                        })
+                      }
+                      disabled={isLoadingProjects}
+                    >
+                      <SelectTrigger id="projectId">
+                        <SelectValue placeholder={isLoadingProjects ? "Chargement..." : "Sélectionner un projet"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">🚫 Aucun projet</SelectItem>
+                        {Array.isArray(projects) && projects.map((p) => (
+                          <SelectItem key={p._id || p.id} value={p._id || p.id}>
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{p.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {p.description?.substring(0, 50) || "Pas de description"}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {projects.length === 0 && !isLoadingProjects && (
+                      <p className="text-xs text-gray-500">
+                        ⚠️ Aucun projet disponible
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Sélection du Site */}
+                  <div className="space-y-2">
+                    <Label htmlFor="siteId">
+                      🏗️ Site (optionnel)
+                    </Label>
+                    <Select
+                      value={newIncident.siteId || "none"}
+                      onValueChange={(value) =>
+                        setNewIncident({
+                          ...newIncident,
+                          siteId: value === "none" ? "" : value,
+                        })
+                      }
+                      disabled={isLoadingSites}
+                    >
+                      <SelectTrigger id="siteId">
+                        <SelectValue placeholder={isLoadingSites ? "Chargement..." : "Sélectionner un site"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">🚫 Aucun site</SelectItem>
+                        {Array.isArray(sites) && sites
+                          .filter((s) =>
+                            // Si un projet est sélectionné, ne montrer que les sites de ce projet
+                            !newIncident.projectId ||
+                            s.projectId === newIncident.projectId ||
+                            (s.project?.id || s.project?._id) === newIncident.projectId
+                          )
+                          .map((s) => (
+                            <SelectItem key={s._id || s.id} value={s._id || s.id}>
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">{s.nom || s.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {s.localisation || s.address || "Pas d'adresse"}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {sites.length === 0 && !isLoadingSites && (
+                      <p className="text-xs text-gray-500">
+                        ⚠️ Aucun site disponible
+                      </p>
+                    )}
+                    {newIncident.projectId && (
+                      <p className="text-xs text-gray-500">
+                        💡 Sites filtrés par le projet sélectionné
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="assignedUserCin">
+                      Assigner à un utilisateur (optionnel)
+                    </Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <Select
+                        value={assignRoleFilter}
+                        onValueChange={setAssignRoleFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="🎭 Filtrer par rôle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">🎭 Tous les rôles ({assignableUsers.length})</SelectItem>
+                          {assignableRoles.map((role) => {
+                            const count = assignableUsers.filter(u => u.role?.name === role).length;
+                            return (
+                              <SelectItem key={role} value={role}>
+                                🎭 {role} ({count})
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <div className="relative">
+                        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          placeholder="🔍 Rechercher nom ou CIN"
+                          value={assignCinSearch}
+                          onChange={(e) => setAssignCinSearch(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Select
+                      value={newIncident.assignedUserCin || "none"}
+                      onValueChange={(value) =>
+                        setNewIncident({
+                          ...newIncident,
+                          assignedUserCin: value === "none" ? "" : value,
+                          assignedUserRole:
+                            value === "none"
+                              ? "all"
+                              : assignableUsers.find((u) => u.cin === value)?.role
+                                ?.name || "all",
+                        })
+                      }
+                    >
+                      <SelectTrigger id="assignedUserCin">
+                        <SelectValue placeholder="👤 Sélectionner un utilisateur" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">🚫 Non assigné</SelectItem>
+                        {filteredAssignableUsers.map((u) => (
+                          <SelectItem key={u._id} value={u.cin}>
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">
+                                {(u.firstname || u.firstName || "") + " " + (u.lastname || u.lastName || "")}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                CIN: {u.cin} • {u.role?.name || "No role"} • {u.email || "No email"}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="manualCin"
+                      placeholder="Ou entrer manuellement un CIN"
+                      value={newIncident.assignedUserCin}
+                      onChange={(e) =>
+                        setNewIncident({
+                          ...newIncident,
+                          assignedUserCin: e.target.value,
+                          assignedUserRole:
+                            assignableUsers.find((u) => u.cin === e.target.value)
+                              ?.role?.name || "all",
+                        })
+                      }
+                    />
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <p>
+                        💡 <strong>Utilisateurs disponibles:</strong> {filteredAssignableUsers.length} sur {assignableUsers.length}
+                      </p>
+                      <p>
+                        Choisir depuis la base, filtrer par rôle, ou saisir directement le CIN.
+                      </p>
+                      {assignCinSearch && (
+                        <p>
+                          🔍 Recherche: "{assignCinSearch}" - {filteredAssignableUsers.length} résultat(s)
+                        </p>
+                      )}
+                      {assignRoleFilter !== "all" && (
+                        <p>
+                          🎭 Filtre rôle: {assignRoleFilter} - {filteredAssignableUsers.length} utilisateur(s)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="severity">Severity</Label>
+                    <Select
+                      value={newIncident.severity}
+                      onValueChange={(value) =>
+                        setNewIncident({ ...newIncident, severity: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select severity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="image">Upload Image (optional)</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setNewIncident({
+                            ...newIncident,
+                            image: e.target.files?.[0] || null,
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      <Upload className="h-4 w-4 text-gray-400" />
+                    </div>
+                    {newIncident.image && (
+                      <p className="text-xs text-green-600">
+                        Image selected: {newIncident.image.name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pdfReport">
+                      Upload PDF Report (optional)
+                    </Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="pdfReport"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) =>
+                          setNewIncident({
+                            ...newIncident,
+                            pdfReport: e.target.files?.[0] || null,
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      <FileText className="h-4 w-4 text-gray-400" />
+                    </div>
+                    {newIncident.pdfReport && (
+                      <p className="text-xs text-green-600">
+                        PDF selected: {newIncident.pdfReport.name}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                    onClick={handleAddIncident}
+                  >
+                    Report Incident
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button disabled className="opacity-50 cursor-not-allowed">
+              + Report Incident (No Permission)
+            </Button>
+          )}
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -1186,41 +1396,43 @@ Pour toute question, veuillez contacter l'administrateur système.
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Précédent
-          </Button>
+      {
+        totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Précédent
+            </Button>
 
-          <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, index) => (
-              <Button
-                key={index + 1}
-                variant={currentPage === index + 1 ? "default" : "outline"}
-                size="sm"
-                className="w-8 h-8 p-0"
-                onClick={() => setCurrentPage(index + 1)}
-              >
-                {index + 1}
-              </Button>
-            ))}
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, index) => (
+                <Button
+                  key={index + 1}
+                  variant={currentPage === index + 1 ? "default" : "outline"}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => setCurrentPage(index + 1)}
+                >
+                  {index + 1}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Suivant
+            </Button>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Suivant
-          </Button>
-        </div>
-      )}
+        )
+      }
 
       {/* Dialogue d'assignation d'incident */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
@@ -1701,6 +1913,6 @@ Pour toute question, veuillez contacter l'administrateur système.
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

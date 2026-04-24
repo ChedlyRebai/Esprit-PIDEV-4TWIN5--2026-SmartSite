@@ -1,4 +1,5 @@
 import { Briefcase, AlertCircle } from "lucide-react";
+import { IncidentBadge } from "../../components/IncidentBadge";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import axios from "axios";
@@ -43,7 +44,7 @@ export default function Projects() {
     siteCount: 0,
   });
   const [createError, setCreateError] = useState<string | null>(null);
-  const [sites, setSites] = useState<{_id: string; name: string}[]>([]);
+  const [sites, setSites] = useState<{ _id: string; name: string }[]>([]);
   const [selectedSites, setSelectedSites] = useState<string[]>([]);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -180,13 +181,13 @@ export default function Projects() {
         status: editData.status,
         progress: editData.progress,
       });
-      
+
       // Reload projects from database to ensure fresh data
       const reloadResponse = await axios.get(`${API_URL}/projects`, {
         params: { limit: 100, page: 1 }
       });
       setProjects(reloadResponse.data.projects || []);
-      
+
       setEditOpen(false);
       toast.success("Project updated successfully!");
     } catch (error) {
@@ -220,7 +221,7 @@ export default function Projects() {
         </div>
         {canManageProjects ? (
           <div className="flex gap-2">
-            <Button 
+            <Button
               variant="outline"
               onClick={handleExportPdf}
             >
@@ -232,70 +233,70 @@ export default function Projects() {
                   + New Project
                 </Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
-                <DialogDescription>
-                  Add a new construction project to your portfolio
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project-name">Project Name</Label>
-                  <Input
-                    id="project-name"
-                    placeholder="e.g., Downtown Office Tower"
-                    value={newProject.name}
-                    onChange={(e) => {
-                      setNewProject({ ...newProject, name: e.target.value });
-                      setCreateError(null);
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Budget (DT)</Label>
-                  <Input
-                    id="budget"
-                    type="number"
-                    placeholder="e.g., 1500000"
-                    value={newProject.budget}
-                    onChange={(e) =>
-                      setNewProject({ ...newProject, budget: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="site-count">Number of Sites</Label>
-                  <Input
-                    id="site-count"
-                    type="number"
-                    min="1"
-                    placeholder="e.g., 5"
-                    value={newProject.siteCount}
-                    onChange={(e) => {
-                      setNewProject({ ...newProject, siteCount: parseInt(e.target.value) || 0 });
-                      setCreateError(null);
-                    }}
-                  />
-                </div>
-                {createError && (
-                  <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-semibold text-red-700 text-sm">Cannot create project</p>
-                      <p className="text-sm text-red-600 mt-0.5">{createError}</p>
-                    </div>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Project</DialogTitle>
+                  <DialogDescription>
+                    Add a new construction project to your portfolio
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-name">Project Name</Label>
+                    <Input
+                      id="project-name"
+                      placeholder="e.g., Downtown Office Tower"
+                      value={newProject.name}
+                      onChange={(e) => {
+                        setNewProject({ ...newProject, name: e.target.value });
+                        setCreateError(null);
+                      }}
+                    />
                   </div>
-                )}
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                  onClick={handleAddProject}
-                >
-                  Create Project
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">Budget (DT)</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      placeholder="e.g., 1500000"
+                      value={newProject.budget}
+                      onChange={(e) =>
+                        setNewProject({ ...newProject, budget: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="site-count">Number of Sites</Label>
+                    <Input
+                      id="site-count"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 5"
+                      value={newProject.siteCount}
+                      onChange={(e) => {
+                        setNewProject({ ...newProject, siteCount: parseInt(e.target.value) || 0 });
+                        setCreateError(null);
+                      }}
+                    />
+                  </div>
+                  {createError && (
+                    <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-red-700 text-sm">Cannot create project</p>
+                        <p className="text-sm text-red-600 mt-0.5">{createError}</p>
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                    onClick={handleAddProject}
+                  >
+                    Create Project
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : (
           <Button disabled className="opacity-50 cursor-not-allowed">
@@ -317,12 +318,13 @@ export default function Projects() {
           projects.map((project) => (
             <Card key={project._id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 cursor-pointer hover:text-blue-600"
-                    onClick={() => navigate(`/projects/${project._id}/sites`)}>
-                    <Briefcase className="h-5 w-5" />
-                    {project.name}
-                  </CardTitle>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-xl font-bold text-blue-600">
+                      {project.name}
+                    </CardTitle>
+                    <IncidentBadge projectId={project._id} size="sm" />
+                  </div>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}
                   >
