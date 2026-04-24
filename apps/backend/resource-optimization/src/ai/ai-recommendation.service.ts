@@ -8,6 +8,7 @@ export interface RecommendationRequest {
   sites?: any[];
   tasks: any[];
   teams: any[];
+  incidents?: any[];
   budget: number;
   budgetScope?: 'project' | 'site';
   totalSitesBudget?: number;
@@ -42,6 +43,7 @@ export class AIRecommendationService {
         ...this.generateTimelineRecommendations(analysis),
         ...this.generateResourceAllocationRecommendations(analysis),
         ...this.generateIndividualTaskManagementRecommendations(analysis),
+        ...this.generateIncidentRecommendations(request.incidents || [], request.budget, request.budgetScope || 'site', request.siteId || request.projectId),
       ];
 
       // Tri par priorité
@@ -53,7 +55,9 @@ export class AIRecommendationService {
   }
 
   private analyzeProjectData(request: RecommendationRequest) {
-    const { tasks, teams, budget, budgetScope, totalSitesBudget } = request;
+    const tasks: any[] = Array.isArray(request.tasks) ? request.tasks : [];
+    const teams: any[] = Array.isArray(request.teams) ? request.teams : [];
+    const { budget, budgetScope, totalSitesBudget } = request;
 
     // Analyse de la répartition des tâches
     const taskAnalysis = this.analyzeTaskDistribution(tasks, teams);
@@ -72,6 +76,8 @@ export class AIRecommendationService {
       budgetAnalysis,
       timelineAnalysis,
       resourceAnalysis,
+      teams,
+      tasks,
       totalTeamMembers: teams.length,
       budgetPerTask: tasks.length > 0 ? budget / tasks.length : 0,
       budgetPerTeamMember: teams.length > 0 ? budget / teams.length : 0,
@@ -145,8 +151,16 @@ export class AIRecommendationService {
 
   private analyzeTimeline(tasks: any[]) {
     const now = new Date();
-    const taskAnalysis = tasks.map(task => {
-      const dueDate = new Date(task.dueDate || task.dueDate);
+
+    // Ne considérer que les tâches non complétées avec une dueDate valide
+    const activeTasks = tasks.filter(t =>
+      t.status !== 'completed' &&
+      t.dueDate &&
+      !isNaN(new Date(t.dueDate).getTime())
+    );
+
+    const taskAnalysis = activeTasks.map(task => {
+      const dueDate = new Date(task.dueDate);
       const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const isOverdue = daysUntilDue < 0;
       const isUrgent = daysUntilDue <= 3 && daysUntilDue >= 0;
@@ -163,7 +177,12 @@ export class AIRecommendationService {
 
     const overdueTasks = taskAnalysis.filter(task => task.isOverdue);
     const urgentTasks = taskAnalysis.filter(task => task.isUrgent);
-    const avgDaysUntilDue = tasks.length > 0 ? taskAnalysis.reduce((sum, task) => sum + Math.max(0, task.daysUntilDue), 0) / tasks.length : 0;
+
+    // Moyenne uniquement sur les tâches futures (daysUntilDue > 0)
+    const futureTasks = taskAnalysis.filter(t => t.daysUntilDue > 0);
+    const avgDaysUntilDue = futureTasks.length > 0
+      ? futureTasks.reduce((sum, task) => sum + task.daysUntilDue, 0) / futureTasks.length
+      : 999; // Pas de tâches futures → pas d'alerte délai
 
     return {
       taskAnalysis,
@@ -336,11 +355,11 @@ export class AIRecommendationService {
       });
     }
 
-    if (timelineAnalysis.avgDaysUntilDue < 5) {
+    if (timelineAnalysis.avgDaysUntilDue < 3 && timelineAnalysis.avgDaysUntilDue < 999) {
       recommendations.push({
         type: 'timeline',
-        title: 'Délais trop courts',
-        description: 'Le délai moyen restant est critique',
+        title: 'Délais critiques — moins de 3 jours en moyenne',
+        description: `Le délai moyen restant sur les tâches actives est de ${timelineAnalysis.avgDaysUntilDue.toFixed(0)} jour(s). Risque élevé de retards en cascade.`,
         priority: 'high',
         estimatedSavings: analysis.budgetPerTask * 0.25,
         actionItems: [
@@ -348,7 +367,7 @@ export class AIRecommendationService {
           'Prioriser les tâches critiques',
           'Considérer l\'ajout de personnel',
         ],
-        reasoning: 'Les délais optimistes créent des risques de retards en cascade',
+        reasoning: 'Les délais très courts créent des risques de retards en cascade',
       });
     }
 
@@ -388,6 +407,158 @@ export class AIRecommendationService {
           'Automatiser les tâches répétitives',
         ],
         reasoning: 'La surcharge mène à une baisse de qualité et au burn-out',
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Générer des recommandations basées sur les incidents assignés au site/projet
+   */
+  private generateIncidentRecommendations(
+    incidents: any[],
+    budget: number,
+    scopeLabel: 'project' | 'site',
+  ): AIRecommendation[] {
+    const recommendations: AIRecommendation[] = [];
+    if (!incidents || incidents.length === 0) return recommendations;
+
+    // Ne prendre en compte QUE les incidents actifs (open ou investigating)
+    // Les routes /by-site/ et /by-project/ garantissent déjà le bon scope
+    const relevantIncidents = incidents.filter(i =>
+      i.status === 'open' || i.status === 'investigating'
+    );
+
+    if (relevantIncidents.length === 0) return recommendations;
+
+    const criticalIncidents = relevantIncidents.filter(i => i.severity === 'critical');
+    const highIncidents = relevantIncidents.filter(i => i.severity === 'high');
+    const safetyIncidents = relevantIncidents.filter(i => i.type === 'safety');
+    const delayIncidents = relevantIncidents.filter(i => i.type === 'delay');
+    const qualityIncidents = relevantIncidents.filter(i => i.type === 'quality');
+
+    // Incidents critiques non résolus → risque budget et délai majeur
+    if (criticalIncidents.length > 0) {
+      const budgetImpact = Math.round(budget * 0.15 * criticalIncidents.length);
+      recommendations.push({
+        type: 'budget',
+        title: `${criticalIncidents.length} incident(s) critique(s) — risque budget élevé`,
+        description: `Des incidents critiques non résolus peuvent entraîner des surcoûts estimés à ${budgetImpact} TND. Résolution prioritaire requise.`,
+        priority: 'urgent',
+        estimatedSavings: budgetImpact,
+        actionItems: [
+          'Affecter immédiatement une équipe dédiée à la résolution',
+          'Évaluer l\'impact financier de chaque incident critique',
+          'Mettre en place un suivi quotidien jusqu\'à résolution',
+          'Documenter les causes racines pour éviter la récurrence',
+        ],
+        reasoning: `${criticalIncidents.length} incident(s) critique(s) actif(s) génèrent un risque direct sur le budget ${scopeLabel}`,
+      });
+    }
+
+    // Incidents de sécurité → arrêt potentiel du chantier = perte de temps
+    if (safetyIncidents.length > 0) {
+      const openSafety = safetyIncidents.filter(i => i.status === 'open' || i.status === 'investigating');
+      if (openSafety.length > 0) {
+        const timeSavingsDays = openSafety.length * 2; // 2 jours perdus par incident sécurité
+        const timeSavingsBudget = Math.round(budget * 0.05 * openSafety.length);
+        recommendations.push({
+          type: 'timeline',
+          title: `${openSafety.length} incident(s) sécurité ouverts — risque d'arrêt chantier`,
+          description: `Les incidents de sécurité non résolus peuvent provoquer des arrêts de chantier estimés à ${timeSavingsDays} jours de retard et ${timeSavingsBudget} TND de surcoût.`,
+          priority: 'urgent',
+          estimatedSavings: timeSavingsBudget,
+          actionItems: [
+            'Résoudre immédiatement les incidents sécurité ouverts',
+            'Mettre en place des mesures préventives sur le chantier',
+            'Former les équipes aux procédures de sécurité',
+            'Inspecter les zones à risque identifiées',
+          ],
+          reasoning: 'Les incidents sécurité non traités entraînent des arrêts réglementaires coûteux',
+        });
+      }
+    }
+
+    // Incidents de délai → impact direct sur le planning
+    if (delayIncidents.length > 0) {
+      const openDelays = delayIncidents.filter(i => i.status === 'open' || i.status === 'investigating');
+      if (openDelays.length > 0) {
+        const delaySavings = Math.round(budget * 0.08 * openDelays.length);
+        recommendations.push({
+          type: 'timeline',
+          title: `${openDelays.length} incident(s) de retard — optimisation du planning nécessaire`,
+          description: `${openDelays.length} incident(s) de type "délai" actifs. Réorganiser le planning pour récupérer ${openDelays.length * 3} jours estimés et économiser ${delaySavings} TND.`,
+          priority: 'high',
+          estimatedSavings: delaySavings,
+          actionItems: [
+            'Identifier les tâches bloquées par ces incidents',
+            'Réorganiser le planning pour paralléliser les tâches non bloquées',
+            'Allouer des ressources supplémentaires aux tâches critiques',
+            'Négocier des délais avec les parties prenantes si nécessaire',
+          ],
+          reasoning: 'Les incidents de délai non traités ont un effet cascade sur le planning global',
+        });
+      }
+    }
+
+    // Incidents qualité → reprises coûteuses
+    if (qualityIncidents.length > 0) {
+      const openQuality = qualityIncidents.filter(i => i.status === 'open' || i.status === 'investigating');
+      if (openQuality.length > 0) {
+        const qualitySavings = Math.round(budget * 0.06 * openQuality.length);
+        recommendations.push({
+          type: 'budget',
+          title: `${openQuality.length} incident(s) qualité — réduction des reprises`,
+          description: `Les incidents qualité non résolus génèrent des reprises estimées à ${qualitySavings} TND. Mise en place de contrôles qualité recommandée.`,
+          priority: 'high',
+          estimatedSavings: qualitySavings,
+          actionItems: [
+            'Mettre en place des points de contrôle qualité intermédiaires',
+            'Identifier les causes des non-conformités récurrentes',
+            'Former les équipes aux standards qualité du projet',
+            'Documenter les procédures pour éviter les reprises',
+          ],
+          reasoning: 'Les reprises dues aux incidents qualité représentent 6-12% du budget projet',
+        });
+      }
+    }
+
+    // Trop d'incidents ouverts en général → surcharge équipe
+    if (relevantIncidents.length > 5) {
+      const overloadSavings = Math.round(budget * 0.04);
+      recommendations.push({
+        type: 'resource_allocation',
+        title: `${relevantIncidents.length} incidents ouverts — surcharge de l'équipe de gestion`,
+        description: `Un volume élevé d'incidents ouverts (${relevantIncidents.length}) indique une surcharge. Renforcer l'équipe de gestion des incidents pour économiser ${overloadSavings} TND.`,
+        priority: 'medium',
+        estimatedSavings: overloadSavings,
+        actionItems: [
+          'Prioriser les incidents par impact budget et délai',
+          'Affecter un responsable dédié à la gestion des incidents',
+          'Mettre en place un tableau de bord de suivi des incidents',
+          'Définir des SLA de résolution par niveau de sévérité',
+        ],
+        reasoning: 'Un backlog d\'incidents élevé ralentit la résolution et augmente les coûts',
+      });
+    }
+
+    // Incidents récurrents (high + critical) → problème systémique
+    if (highIncidents.length + criticalIncidents.length > 3) {
+      const systemicSavings = Math.round(budget * 0.10);
+      recommendations.push({
+        type: 'resource_allocation',
+        title: 'Incidents graves récurrents — analyse systémique recommandée',
+        description: `${highIncidents.length + criticalIncidents.length} incidents graves détectés. Une analyse des causes racines permettrait d'économiser ${systemicSavings} TND sur le long terme.`,
+        priority: 'high',
+        estimatedSavings: systemicSavings,
+        actionItems: [
+          'Conduire une analyse des causes racines (RCA)',
+          'Identifier les patterns récurrents entre incidents',
+          'Mettre en place des mesures préventives systémiques',
+          'Réviser les processus de travail pour éliminer les risques',
+        ],
+        reasoning: 'Les incidents graves récurrents signalent des problèmes systémiques non adressés',
       });
     }
 
@@ -435,19 +606,16 @@ export class AIRecommendationService {
    */
   private generateIndividualTaskManagementRecommendations(analysis: any): AIRecommendation[] {
     const recommendations: AIRecommendation[] = [];
-    const { teams, tasks } = analysis;
+    const teams: any[] = Array.isArray(analysis.teams) ? analysis.teams : [];
+    const tasks: any[] = Array.isArray(analysis.tasks) ? analysis.tasks : [];
 
-    // Analyser chaque membre de chaque équipe
     teams.forEach((team: any) => {
       if (team.members && Array.isArray(team.members)) {
         team.members.forEach((member: any) => {
-          // Récupérer les tâches assignées à ce membre
           const memberTasks = tasks.filter((task: any) =>
             task.assignedTo === member._id ||
             (task.assignedMembers && task.assignedMembers.includes(member._id))
           );
-
-          // Générer des recommandations basées sur les tâches du membre
           const memberRecommendations = this.analyzeMemberTasks(member, memberTasks, analysis);
           recommendations.push(...memberRecommendations);
         });

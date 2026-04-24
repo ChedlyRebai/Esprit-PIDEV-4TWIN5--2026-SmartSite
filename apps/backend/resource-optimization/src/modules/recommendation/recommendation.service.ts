@@ -603,6 +603,7 @@ export class RecommendationService {
         sites: context.sites,
         tasks: context.tasks,
         teams: context.teams,
+        incidents: context.incidents,
         budget: Number(context.project?.budget) || 0,
         budgetScope: 'project',
         totalSitesBudget: context.projectStats.totalSitesBudget,
@@ -616,6 +617,7 @@ export class RecommendationService {
 
     if (context.site && siteId) {
       const siteTasks = context.tasks.filter(t => t.siteId === siteId);
+      const siteIncidents = context.incidents.filter(i => i.siteId === siteId);
       const siteRecs = await this.aiRecommendationService.generateRecommendations({
         projectId,
         siteId,
@@ -624,6 +626,7 @@ export class RecommendationService {
         sites: context.sites,
         tasks: siteTasks,
         teams: context.teams,
+        incidents: siteIncidents,
         budget: Number(context.site?.budget) || 0,
         budgetScope: 'site',
       });
@@ -660,12 +663,25 @@ export class RecommendationService {
       site: context.site,
       tasks: context.tasks,
       teams: context.teams,
+      incidents: context.incidents,
       budget: Number(context.site?.budget) || 0,
       budgetScope: 'site',
     });
 
     for (const rec of siteRecs) {
       const dto = this.mapAIToCreateDto(rec, 'site', undefined, siteId);
+      saved.push(await this.create(dto));
+    }
+
+    // Recommandations basées sur les milestones
+    const milestoneRecs = this.buildMilestoneRecommendations(siteId, context.milestones, context.site);
+    for (const dto of milestoneRecs) {
+      saved.push(await this.create(dto));
+    }
+
+    // Recommandations basées sur les tâches
+    const taskRecs = this.buildTaskRecommendations(siteId, context.tasks, context.site);
+    for (const dto of taskRecs) {
       saved.push(await this.create(dto));
     }
 
@@ -684,5 +700,137 @@ export class RecommendationService {
     }
 
     return saved;
+  }
+
+  private buildMilestoneRecommendations(siteId: string, milestones: any[]): CreateRecommendationDto[] {
+    const recs: CreateRecommendationDto[] = [];
+    if (!milestones || milestones.length === 0) return recs;
+
+    const now = new Date();
+    const overdue = milestones.filter(m =>
+      m.status !== 'completed' && m.dueDate && new Date(m.dueDate) < now
+    );
+    const upcoming = milestones.filter(m =>
+      m.status !== 'completed' && m.dueDate &&
+      new Date(m.dueDate) >= now &&
+      (new Date(m.dueDate).getTime() - now.getTime()) < 7 * 24 * 60 * 60 * 1000
+    );
+    const completed = milestones.filter(m => m.status === 'completed');
+    const completionRate = milestones.length > 0 ? (completed.length / milestones.length) * 100 : 0;
+
+    if (overdue.length > 0) {
+      recs.push({
+        type: 'timeline',
+        title: `${overdue.length} jalon(s) en retard — action requise`,
+        description: `${overdue.length} jalon(s) sur ${milestones.length} sont dépassés. Taux de complétion actuel : ${completionRate.toFixed(0)}%. Réorganisation du planning recommandée.`,
+        priority: 9,
+        estimatedSavings: overdue.length * 500,
+        estimatedCO2Reduction: 0,
+        confidenceScore: 85,
+        actionItems: [
+          'Identifier les causes de retard pour chaque jalon',
+          'Réaffecter des ressources aux jalons critiques',
+          'Négocier des extensions de délais si nécessaire',
+          'Mettre en place un suivi hebdomadaire des jalons',
+        ],
+        siteId,
+        scope: 'site',
+      });
+    }
+
+    if (upcoming.length > 0) {
+      recs.push({
+        type: 'timeline',
+        title: `${upcoming.length} jalon(s) à échéance dans 7 jours`,
+        description: `${upcoming.length} jalon(s) arrivent à échéance cette semaine. Vérifiez l'avancement et mobilisez les équipes.`,
+        priority: 7,
+        estimatedSavings: upcoming.length * 200,
+        estimatedCO2Reduction: 0,
+        confidenceScore: 80,
+        actionItems: [
+          'Vérifier l\'avancement de chaque jalon urgent',
+          'Mobiliser les équipes concernées',
+          'Préparer les livrables en avance',
+        ],
+        siteId,
+        scope: 'site',
+      });
+    }
+
+    if (completionRate < 30 && milestones.length >= 3) {
+      recs.push({
+        type: 'resource_allocation',
+        title: `Faible taux de complétion des jalons (${completionRate.toFixed(0)}%)`,
+        description: `Seulement ${completed.length} jalon(s) sur ${milestones.length} sont complétés. Renforcement des ressources recommandé.`,
+        priority: 8,
+        estimatedSavings: milestones.length * 300,
+        estimatedCO2Reduction: 0,
+        confidenceScore: 75,
+        actionItems: [
+          'Analyser les blocages sur les jalons en cours',
+          'Renforcer les équipes sur les jalons prioritaires',
+          'Réviser le planning global du site',
+        ],
+        siteId,
+        scope: 'site',
+      });
+    }
+
+    return recs;
+  }
+
+  private buildTaskRecommendations(siteId: string, tasks: any[]): CreateRecommendationDto[] {
+    const recs: CreateRecommendationDto[] = [];
+    if (!tasks || tasks.length === 0) return recs;
+
+    const now = new Date();
+    const completed = tasks.filter(t => t.status === 'completed' || t.status === 'done');
+    const inProgress = tasks.filter(t => t.status === 'in_progress' || t.status === 'in progress');
+    const overdue = tasks.filter(t =>
+      t.status !== 'completed' && t.status !== 'done' &&
+      t.endDate && new Date(t.endDate) < now
+    );
+    const completionRate = tasks.length > 0 ? (completed.length / tasks.length) * 100 : 0;
+
+    if (overdue.length > 0) {
+      recs.push({
+        type: 'task_distribution',
+        title: `${overdue.length} tâche(s) en retard sur ${tasks.length} au total`,
+        description: `${overdue.length} tâche(s) ont dépassé leur date de fin. Taux de complétion : ${completionRate.toFixed(0)}%. Redistribution des priorités recommandée.`,
+        priority: 8,
+        estimatedSavings: overdue.length * 150,
+        estimatedCO2Reduction: 0,
+        confidenceScore: 80,
+        actionItems: [
+          'Prioriser les tâches en retard',
+          'Identifier les dépendances bloquantes',
+          'Redistribuer la charge de travail',
+          'Mettre à jour les dates de fin réalistes',
+        ],
+        siteId,
+        scope: 'site',
+      });
+    }
+
+    if (inProgress.length > 10) {
+      recs.push({
+        type: 'task_distribution',
+        title: `Trop de tâches en cours simultanément (${inProgress.length})`,
+        description: `${inProgress.length} tâches sont en cours en même temps. Limiter le travail en cours améliore la productivité.`,
+        priority: 6,
+        estimatedSavings: inProgress.length * 100,
+        estimatedCO2Reduction: 0,
+        confidenceScore: 70,
+        actionItems: [
+          'Appliquer la méthode Kanban pour limiter le WIP',
+          'Terminer les tâches en cours avant d\'en commencer de nouvelles',
+          'Prioriser les tâches à fort impact',
+        ],
+        siteId,
+        scope: 'site',
+      });
+    }
+
+    return recs;
   }
 }

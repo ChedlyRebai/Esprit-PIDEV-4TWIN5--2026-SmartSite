@@ -75,17 +75,33 @@ export interface MilestoneData {
   completedAt?: Date;
 }
 
+export interface IncidentData {
+  _id: string;
+  type: 'safety' | 'quality' | 'delay' | 'other';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description?: string;
+  status: 'open' | 'investigating' | 'resolved' | 'closed';
+  siteId?: string;
+  projectId?: string;
+  createdAt?: string;
+  resolvedAt?: string;
+}
+
 export interface ExternalDataResponse {
   site: SiteData | null;
   teams: UserData[];
   tasks: TaskData[];
   milestones: MilestoneData[];
+  incidents: IncidentData[];
   siteStats: {
     totalBudget: number;
     teamSize: number;
     activeTasks: number;
     completedTasks: number;
     pendingMilestones: number;
+    openIncidents: number;
+    criticalIncidents: number;
   };
 }
 
@@ -96,12 +112,15 @@ export interface ProjectContextResponse {
   teams: UserData[];
   tasks: TaskData[];
   milestones: MilestoneData[];
+  incidents: IncidentData[];
   projectStats: {
     totalBudget: number;
     totalSitesBudget: number;
     taskCount: number;
     completedTasks: number;
     pendingMilestones: number;
+    openIncidents: number;
+    criticalIncidents: number;
   };
   siteStats?: ExternalDataResponse['siteStats'];
 }
@@ -114,27 +133,31 @@ export class ExternalDataService {
   private readonly GESTION_PROJECT_URL: string;
   private readonly AUTH_API_URL: string;
   private readonly PLANNING_URL: string;
+  private readonly INCIDENT_URL: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
     this.GESTION_SITE_URL = this.configService.get('GESTION_SITE_URL') || 'http://localhost:3001/api';
-    this.GESTION_PROJECT_URL = this.configService.get('GESTION_PROJECT_URL') || 'http://localhost:3003/api';
+    this.GESTION_PROJECT_URL = this.configService.get('GESTION_PROJECT_URL') || 'http://localhost:3010';
     this.AUTH_API_URL = this.configService.get('AUTH_API_URL') || 'http://localhost:3000';
     this.PLANNING_URL = this.configService.get('PLANNING_URL') || 'http://localhost:3002';
+    this.INCIDENT_URL = this.configService.get('INCIDENT_URL') || 'http://localhost:3005';
   }
 
   async getSiteData(siteId: string): Promise<SiteData | null> {
     if (!siteId) return null;
     
     try {
+      const url = `${this.GESTION_SITE_URL}/gestion-sites/${siteId}`;
+      this.logger.log(`Fetching site from: ${url}`);
       const response = await firstValueFrom(
-        this.httpService.get(`${this.GESTION_SITE_URL}/gestion-sites/${siteId}`)
+        this.httpService.get(url)
       );
       return response.data;
     } catch (error) {
-      this.logger.error(`Failed to fetch site ${siteId}: ${error.message}`);
+      this.logger.error(`Failed to fetch site ${siteId}: ${error.message} — URL: ${this.GESTION_SITE_URL}/gestion-sites/${siteId}`);
       return null;
     }
   }
@@ -157,10 +180,29 @@ export class ExternalDataService {
     if (!siteId) return [];
     
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<{ data: TaskData[] }>(`${this.PLANNING_URL}/task?siteId=${siteId}&limit=100`)
+      // Tasks are linked to milestones, not directly to sites
+      // Get milestones for the site first, then get tasks for each milestone
+      const milestones = await this.getSiteMilestones(siteId);
+      if (!milestones.length) return [];
+
+      const taskArrays = await Promise.all(
+        milestones.map(async (m) => {
+          try {
+            const response = await firstValueFrom(
+              this.httpService.get<any[]>(`${this.PLANNING_URL}/task/milestone/${m._id}`)
+            );
+            const raw = response.data || [];
+            // flatten grouped response if needed
+            if (Array.isArray(raw) && raw.length > 0 && raw[0]?.tasks) {
+              return raw.flatMap((g: any) => g.tasks || []);
+            }
+            return raw;
+          } catch {
+            return [];
+          }
+        })
       );
-      return response.data?.data || [];
+      return taskArrays.flat();
     } catch (error) {
       this.logger.error(`Failed to fetch tasks for site ${siteId}: ${error.message}`);
       return [];
@@ -172,38 +214,72 @@ export class ExternalDataService {
     
     try {
       const response = await firstValueFrom(
-        this.httpService.get<{ data: MilestoneData[] }>(`${this.PLANNING_URL}/milestone?siteId=${siteId}&limit=100`)
+        this.httpService.get<MilestoneData[]>(`${this.PLANNING_URL}/milestone?siteId=${siteId}&limit=100`)
       );
-      return response.data?.data || [];
+      return response.data || [];
     } catch (error) {
       this.logger.error(`Failed to fetch milestones for site ${siteId}: ${error.message}`);
       return [];
     }
   }
 
+  async getSiteIncidents(siteId: string): Promise<IncidentData[]> {
+    if (!siteId) return [];
+    
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<IncidentData[]>(`${this.INCIDENT_URL}/incidents/by-site/${siteId}`)
+      );
+      return response.data || [];
+    } catch (error) {
+      this.logger.error(`Failed to fetch incidents for site ${siteId}: ${error.message}`);
+      return [];
+    }
+  }
+
+  async getProjectIncidents(projectId: string): Promise<IncidentData[]> {
+    if (!projectId) return [];
+    
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<IncidentData[]>(`${this.INCIDENT_URL}/incidents/by-project/${projectId}`)
+      );
+      return response.data || [];
+    } catch (error) {
+      this.logger.error(`Failed to fetch incidents for project ${projectId}: ${error.message}`);
+      return [];
+    }
+  }
+
   async getAllSiteData(siteId: string): Promise<ExternalDataResponse> {
-    const [site, teams, tasks, milestones] = await Promise.all([
+    const [site, teams, tasks, milestones, incidents] = await Promise.all([
       this.getSiteData(siteId),
       this.getSiteTeams(siteId),
       this.getSiteTasks(siteId),
       this.getSiteMilestones(siteId),
+      this.getSiteIncidents(siteId),
     ]);
 
     const activeTasks = tasks.filter(t => t.status === 'in_progress').length;
     const completedTasks = tasks.filter(t => t.status === 'completed').length;
     const pendingMilestones = milestones.filter(m => m.status !== 'completed').length;
+    const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'investigating').length;
+    const criticalIncidents = incidents.filter(i => i.severity === 'critical' || i.severity === 'high').length;
 
     return {
       site,
       teams,
       tasks,
       milestones,
+      incidents,
       siteStats: {
         totalBudget: site?.budget || 0,
         teamSize: teams.length,
         activeTasks,
         completedTasks,
         pendingMilestones,
+        openIncidents,
+        criticalIncidents,
       },
     };
   }
@@ -275,30 +351,45 @@ export class ExternalDataService {
   }
 
   async getProjectContext(projectId: string, siteId?: string): Promise<ProjectContextResponse> {
-    const [project, sites, tasks, milestones, site, teams] = await Promise.all([
+    const [project, sites, tasks, milestones, site, teams, projectIncidents, siteIncidents] = await Promise.all([
       this.getProjectData(projectId),
       this.getProjectSites(projectId),
       this.getProjectTasks(projectId),
       this.getProjectMilestones(projectId),
       siteId ? this.getSiteData(siteId) : Promise.resolve(null),
       siteId ? this.getSiteTeams(siteId) : Promise.resolve([]),
+      this.getProjectIncidents(projectId),
+      siteId ? this.getSiteIncidents(siteId) : Promise.resolve([]),
     ]);
+
+    // Merge incidents (deduplicate by _id)
+    const incidentMap = new Map<string, IncidentData>();
+    [...projectIncidents, ...siteIncidents].forEach(i => incidentMap.set(i._id, i));
+    const incidents = Array.from(incidentMap.values());
 
     const completedTasks = tasks.filter(t => t.status === 'completed').length;
     const pendingMilestones = milestones.filter(m => m.status !== 'completed').length;
     const totalSitesBudget = sites.reduce((sum, s) => sum + (Number(s.budget) || 0), 0);
+    const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'investigating').length;
+    const criticalIncidents = incidents.filter(i => i.severity === 'critical' || i.severity === 'high').length;
 
     const siteTasks = siteId ? tasks.filter(t => t.siteId === siteId) : [];
     const siteMilestones = siteId ? milestones.filter(m => m.siteId === siteId) : [];
+    const siteIncidentsFiltered = siteId ? incidents.filter(i => i.siteId === siteId) : [];
     const siteActiveTasks = siteTasks.filter(t => t.status === 'in_progress').length;
     const siteCompletedTasks = siteTasks.filter(t => t.status === 'completed').length;
     const sitePendingMilestones = siteMilestones.filter(m => m.status !== 'completed').length;
+    const siteOpenIncidents = siteIncidentsFiltered.filter(i => i.status === 'open' || i.status === 'investigating').length;
+    const siteCriticalIncidents = siteIncidentsFiltered.filter(i => i.severity === 'critical' || i.severity === 'high').length;
+
     const siteStats = siteId ? {
       totalBudget: Number(site?.budget) || 0,
       teamSize: teams.length,
       activeTasks: siteActiveTasks,
       completedTasks: siteCompletedTasks,
       pendingMilestones: sitePendingMilestones,
+      openIncidents: siteOpenIncidents,
+      criticalIncidents: siteCriticalIncidents,
     } : undefined;
 
     return {
@@ -308,12 +399,15 @@ export class ExternalDataService {
       teams,
       tasks,
       milestones,
+      incidents,
       projectStats: {
         totalBudget: Number(project?.budget) || 0,
         totalSitesBudget,
         taskCount: tasks.length,
         completedTasks,
         pendingMilestones,
+        openIncidents,
+        criticalIncidents,
       },
       siteStats,
     };
