@@ -60,9 +60,9 @@ const incidentsApi = axios.create({
   timeout: 10000,
 });
 
-// API pour les projets (port 3007)
+// API pour les projets (port 3010)
 const projectsApi = axios.create({
-  baseURL: "http://localhost:3007",
+  baseURL: "http://localhost:3010",
   timeout: 10000,
 });
 
@@ -876,14 +876,15 @@ Pour toute question, veuillez contacter l'administrateur système.
                   Report Incident
                 </Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
+              <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 flex flex-col">
+                <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
                   <DialogTitle>Report New Incident</DialogTitle>
                   <DialogDescription>
                     Document a safety or quality incident
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto px-6 py-4">
+                  <div className="space-y-4 pb-2">
                   <div className="space-y-2">
                     <Label htmlFor="incident-type">Incident Type</Label>
                     <Select
@@ -1234,6 +1235,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   >
                     Report Incident
                   </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>

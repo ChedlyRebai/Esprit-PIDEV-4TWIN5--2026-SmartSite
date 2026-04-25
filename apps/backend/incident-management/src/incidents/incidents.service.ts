@@ -9,12 +9,14 @@ import {
   IncidentSeverity,
   IncidentStatus,
 } from "./entities/incident.entity";
+import { IncidentEventsService } from "./incidents-events.service";
 
 @Injectable()
 export class IncidentsService {
   constructor(
     @InjectModel(Incident.name)
     private readonly incidentModel: Model<IncidentDocument>,
+    private readonly eventsService: IncidentEventsService,
   ) { }
 
   async findAll(): Promise<Incident[]> {
@@ -64,7 +66,14 @@ export class IncidentsService {
     }
 
     const created = new this.incidentModel(payload);
-    return created.save();
+    const saved = await created.save();
+
+    // Emit notification if assigned to a user
+    if ((payload as any).assignedToCin) {
+      this.eventsService.notifyIncidentAssigned((payload as any).assignedToCin, saved);
+    }
+
+    return saved;
   }
 
   async update(id: string, dto: UpdateIncidentDto): Promise<Incident> {
@@ -103,6 +112,20 @@ export class IncidentsService {
     if (!updated) {
       throw new NotFoundException("Incident not found");
     }
+
+    // Emit notification based on what was updated
+    if (updatePayload.assignedToCin) {
+      // New assignment
+      this.eventsService.notifyIncidentAssigned(updatePayload.assignedToCin, updated);
+    } else if (updatePayload.status === IncidentStatus.RESOLVED || updatePayload.status === 'resolved') {
+      // Incident resolved - notify whoever had it assigned
+      if ((updated as any).assignedToCin) {
+        this.eventsService.notifyIncidentUpdated((updated as any).assignedToCin, updated, 'resolved');
+      }
+      // Broadcast to everyone
+      this.eventsService.broadcastIncidentUpdate(updated, 'resolved');
+    }
+
     return updated;
   }
 
@@ -149,6 +172,20 @@ export class IncidentsService {
     }
     return this.incidentModel
       .countDocuments({ project: new Types.ObjectId(projectId) })
+      .exec();
+  }
+
+  async findOpenByAssignedUserCin(userCin: string): Promise<Incident[]> {
+    if (!userCin) {
+      return [];
+    }
+
+    return this.incidentModel
+      .find({
+        assignedToCin: userCin,
+        status: { $ne: IncidentStatus.RESOLVED },
+      })
+      .sort({ createdAt: -1 })
       .exec();
   }
 }

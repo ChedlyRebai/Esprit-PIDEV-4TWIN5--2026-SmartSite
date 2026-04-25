@@ -148,7 +148,7 @@ export const ResourceOptimizationDashboard: React.FC = () => {
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-indigo-300 to-purple-300 rounded-full -mr-36 -mt-36 opacity-20" />
             <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-blue-300 to-indigo-300 rounded-full -ml-28 -mb-28 opacity-20" />
-            
+
             <div className="relative z-10 flex items-start gap-5">
               <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl">
                 <BarChart3 className="h-10 w-10 text-white" />
@@ -302,10 +302,10 @@ export const ResourceOptimizationDashboard: React.FC = () => {
                     <h3 className="text-2xl font-bold text-gray-800">{previewSite.nom}</h3>
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setPreviewSite(null)} 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setPreviewSite(null)}
                   className="hover:bg-white/80 rounded-full"
                   aria-label="Close site preview"
                 >
@@ -375,8 +375,8 @@ export const ResourceOptimizationDashboard: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-3 pt-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setPreviewSite(null)}
                     className="px-6 border-2 hover:bg-gray-50"
                   >
@@ -467,24 +467,24 @@ export const ResourceOptimizationDashboard: React.FC = () => {
   return (
     <div className="space-y-6 p-6">
       {effectiveSiteId && (
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={() => {
             setSelectedSiteId('');
             setSearchParams({});
-          }} 
+          }}
           className="mb-2 gap-2 hover:bg-gray-100"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to All Sites
         </Button>
       )}
-      
+
       <div className="rounded-2xl border-2 border-border/60 bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-8 py-6 shadow-xl relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full -mr-32 -mt-32 opacity-20" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-200 to-indigo-200 rounded-full -ml-24 -mb-24 opacity-20" />
-        
+
         <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
@@ -521,10 +521,10 @@ export const ResourceOptimizationDashboard: React.FC = () => {
                 })}
               </SelectContent>
             </Select>
-            <Button 
-              size="lg" 
-              className="gap-2 shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 hover:shadow-xl hover:scale-105" 
-              onClick={handleGenerateRecommendations} 
+            <Button
+              size="lg"
+              className="gap-2 shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 hover:shadow-xl hover:scale-105"
+              onClick={handleGenerateRecommendations}
               disabled={isGenerating}
             >
               <Zap className={`h-5 w-5 ${isGenerating ? 'animate-spin' : ''}`} />
@@ -564,16 +564,15 @@ export const ResourceOptimizationDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
-                  site.status === 'in_progress' ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200' :
-                  site.status === 'planning' ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200' :
-                  site.status === 'completed' ? 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200' :
-                  'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200'
-                }`}>
+                <span className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${site.status === 'in_progress' ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200' :
+                    site.status === 'planning' ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200' :
+                      site.status === 'completed' ? 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200' :
+                        'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200'
+                  }`}>
                   {site.status === 'in_progress' ? '🚧 In Progress' :
-                   site.status === 'planning' ? '📋 Planning' :
-                   site.status === 'completed' ? '✅ Completed' :
-                   '⚠️ ' + site.status}
+                    site.status === 'planning' ? '📋 Planning' :
+                      site.status === 'completed' ? '✅ Completed' :
+                        '⚠️ ' + site.status}
                 </span>
               </div>
             </div>
@@ -583,8 +582,8 @@ export const ResourceOptimizationDashboard: React.FC = () => {
 
       {/* Quick Access Cards - Improved Design (Only 2 cards) */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card 
-          className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300 bg-gradient-to-br from-amber-50 to-white overflow-hidden relative" 
+        <Card
+          className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300 bg-gradient-to-br from-amber-50 to-white overflow-hidden relative"
           onClick={() => setCurrentPage('recommendations')}
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-300" />
@@ -605,8 +604,8 @@ export const ResourceOptimizationDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-red-300 bg-gradient-to-br from-red-50 to-white overflow-hidden relative" 
+        <Card
+          className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-red-300 bg-gradient-to-br from-red-50 to-white overflow-hidden relative"
           onClick={() => setCurrentPage('alerts')}
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-red-100 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-300" />

@@ -408,7 +408,7 @@ export const useDashboard = (siteId: string) => {
 export const useResourceOptimization = (siteId: string) => {
   // Guard against empty siteId
   const hasValidSiteId = !!siteId && siteId !== 'undefined' && siteId !== '';
-  
+
   const recommendations = useRecommendations(hasValidSiteId ? siteId : '');
   const alerts = useAlerts(hasValidSiteId ? siteId : '');
   const dashboard = useDashboard(hasValidSiteId ? siteId : '');
@@ -429,7 +429,7 @@ export const useResourceOptimization = (siteId: string) => {
     dashboardLoading: dashboard.isLoading,
     fullAnalysis: fullAnalysis.data,
     fullAnalysisLoading: fullAnalysis.isLoading,
-    
+
     // External data from microservices
     site: site.data,
     siteLoading: site.isLoading,
@@ -437,7 +437,7 @@ export const useResourceOptimization = (siteId: string) => {
     siteTeamsLoading: siteTeams.isLoading,
     tasks: tasks.data || [],
     tasksLoading: tasks.isLoading,
-    
+
     // Mutations
     generateRecommendations: useGenerateRecommendations(hasValidSiteId ? siteId : ''),
     generateAlerts: useGenerateAlerts(hasValidSiteId ? siteId : ''),

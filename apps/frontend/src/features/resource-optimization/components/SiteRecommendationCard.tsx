@@ -72,10 +72,14 @@ export const SiteRecommendationCard: React.FC<SiteRecommendationCardProps> = ({
           const data = await response.json();
           setRecommendations(Array.isArray(data) ? data : []);
         } else {
-          setError('Erreur lors du chargement des recommandations');
+          // Graceful fallback: don't show error for 500, just empty state
+          console.warn(`Recommendations API returned ${response.status} for site ${siteId}`);
+          setRecommendations([]);
         }
       } catch (err) {
-        setError('Erreur de connexion au serveur');
+        // Service likely down - fail silently
+        console.warn('Recommendations service unavailable:', err);
+        setRecommendations([]);
       } finally {
         setLoading(false);
       }
@@ -149,8 +153,8 @@ export const SiteRecommendationCard: React.FC<SiteRecommendationCardProps> = ({
               <CardTitle className="text-xl">{site.nom}</CardTitle>
               <Badge className={
                 site.status === 'in_progress' ? 'bg-green-100 text-green-800' :
-                site.status === 'planning' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
+                  site.status === 'planning' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
               }>
                 {site.status}
               </Badge>
@@ -207,9 +211,9 @@ export const SiteRecommendationCard: React.FC<SiteRecommendationCardProps> = ({
                 {Math.round((siteStats.implementedRecommendations / siteStats.totalRecommendations) * 100)}%
               </small>
             </div>
-            <Progress 
-              value={(siteStats.implementedRecommendations / siteStats.totalRecommendations) * 100} 
-              className="h-2" 
+            <Progress
+              value={(siteStats.implementedRecommendations / siteStats.totalRecommendations) * 100}
+              className="h-2"
             />
           </div>
         )}

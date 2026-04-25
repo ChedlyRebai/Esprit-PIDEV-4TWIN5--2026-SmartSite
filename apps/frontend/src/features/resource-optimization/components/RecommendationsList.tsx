@@ -35,6 +35,7 @@ interface RecommendationCardProps {
     estimatedCO2Reduction: number;
     priority: number;
     confidenceScore: number;
+    actionItems?: string[];
     targetMember?: string;
     currentTasks?: string[];
     suggestedDuration?: number;
@@ -50,7 +51,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   onReject,
   onImplement,
 }) => {
-  const typeIcons = {
+  const typeIcons: Record<string, React.ReactNode> = {
     energy: <Zap className="h-5 w-5" />,
     equipment: <Briefcase className="h-5 w-5" />,
     workforce: <Users className="h-5 w-5" />,
@@ -153,6 +154,24 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           <div className="text-sm font-semibold mb-2">Priorité: {rec.priority}/10</div>
           <Progress value={rec.priority * 10} className="h-2" />
         </div>
+
+        {/* Action Items */}
+        {rec.actionItems && rec.actionItems.length > 0 && (
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Actions recommandées :</p>
+            <ul className="space-y-1">
+              {rec.actionItems.slice(0, 3).map((item, i) => (
+                <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                  <span className="text-emerald-500 mt-0.5">•</span>
+                  {item}
+                </li>
+              ))}
+              {rec.actionItems.length > 3 && (
+                <li className="text-xs text-gray-400">+{rec.actionItems.length - 3} autres actions</li>
+              )}
+            </ul>
+          </div>
+        )}
 
         {/* Action Buttons */}
         {rec.status === 'pending' && (
