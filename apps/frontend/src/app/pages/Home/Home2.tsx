@@ -4,6 +4,7 @@ import { Facebook, Github, Instagram, Twitter, Dribbble, Menu } from "lucide-rea
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { ThemeButton } from "@/app/components/ThemeButton";
 import { NavbarAccessibilityButton } from "@/app/components/NavbarAccessibilityButton";
+import { TextSizeButton } from "@/app/components/TextSizeButton";
 import { DemoModal } from "@/app/components/DemoModal";
 import { useTranslation } from "@/app/hooks/useTranslation";
 import styles from "./Home2.module.css";
@@ -154,6 +155,7 @@ export default function Home2() {
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
             <NavbarAccessibilityButton />
+            <TextSizeButton />
             <ThemeButton />
             <LanguageSelector />
             <a
@@ -251,7 +253,7 @@ export default function Home2() {
                   </div>
 
                   <div className="mr-auto w-44 flex-none space-y-8 sm:mr-0 sm:pt-52 lg:pt-36">
-                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.2s'}}>
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{ animationDelay: '0.2s' }}>
                       <img
                         src="https://www.deltek.com/-/media/deltekblogs/lead-images/2023/construction-supervisor-with-digital-tablet-on-site.ashx"
                         alt="Construction supervisor checking site progress on mobile tablet"
@@ -260,7 +262,7 @@ export default function Home2() {
                       <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-900/10" />
                     </div>
 
-                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.4s'}}>
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{ animationDelay: '0.4s' }}>
                       <img
                         src="https://www.deltek.com/-/media/deltekblogs/lead-images/2023/750x500-ae-ipad.ashx"
                         alt="Construction worker capturing photos and data on iPad at construction site"
@@ -271,7 +273,7 @@ export default function Home2() {
                   </div>
 
                   <div className="w-44 flex-none space-y-8 pt-32 sm:pt-0">
-                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.6s'}}>
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{ animationDelay: '0.6s' }}>
                       <img
                         src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=600&fit=crop&crop=faces"
                         alt="Project planning dashboard with timeline and scheduling tools"
@@ -280,7 +282,7 @@ export default function Home2() {
                       <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-900/10" />
                     </div>
 
-                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{animationDelay: '0.8s'}}>
+                    <div className={`${styles.imageShowcase} ${styles.floatingImage}`} style={{ animationDelay: '0.8s' }}>
                       <img
                         src="https://www.openspace.ai/wp-content/uploads/2025/10/Hero.png"
                         alt="Construction site progress dashboard with AI and SmartSite alerts"
@@ -435,7 +437,7 @@ export default function Home2() {
                   {t("cta.startTrial")}
                 </button>
 
-                <button 
+                <button
                   onClick={() => setIsDemoOpen(true)}
                   className="border border-white text-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg transition"
                 >

@@ -138,28 +138,28 @@ export default function Sites() {
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'progress' | 'priority' | 'budget'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showProblemsOnly, setShowProblemsOnly] = useState(false);
-  
+
   // Sites data
   const [sites, setSites] = useState<Site[]>([]);
   const [sitesWithTeams, setSitesWithTeams] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
-  
+
   const canManageSites = true;
   const currentSiteCount = sites.filter(s => s.projectId === currentProjectId).length;
   const isLimitReached = projectSiteLimit !== null && currentSiteCount >= projectSiteLimit;
-  
+
   // Real-time refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  
+
   // Form state
   const [newSite, setNewSite] = useState({ name: '', address: '', area: '', budget: '', clientName: '' });
   const [selectedStatusEdit, setSelectedStatusEdit] = useState('all');
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
-  const [nearbyFournisseurs, setNearbyFournisseurs] = useState<Array<{_id: string; nom: string; adresse: string; telephone: string; categories: string[]}>>([]);
-  
+  const [nearbyFournisseurs, setNearbyFournisseurs] = useState<Array<{ _id: string; nom: string; adresse: string; telephone: string; categories: string[] }>>([]);
+
   // Dialog state
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
@@ -169,14 +169,14 @@ export default function Sites() {
   const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
   const [issuesDialogOpen, setIssuesDialogOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  
+
   // Manage data
-  const [manageData, setManageData] = useState({ 
-    status: '', 
-    progress: 0, 
-    name: '', 
-    address: '', 
-    area: 0, 
+  const [manageData, setManageData] = useState({
+    status: '',
+    progress: 0,
+    name: '',
+    address: '',
+    area: 0,
     budget: 0,
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
     clientName: '',
@@ -189,32 +189,32 @@ export default function Sites() {
   const [errors, setErrors] = useState<{ name?: string; address?: string; area?: string; budget?: string }>({});
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [availableTeams, setAvailableTeams] = useState<Array<{_id: string; name: string}>>([]);
-  
+  const [availableTeams, setAvailableTeams] = useState<Array<{ _id: string; name: string }>>([]);
+
   // Comments state
   const [newComment, setNewComment] = useState('');
-  const [siteComments, setSiteComments] = useState<Record<string, Array<{id: string; text: string; author: string; createdAt: string}>>>(() => {
+  const [siteComments, setSiteComments] = useState<Record<string, Array<{ id: string; text: string; author: string; createdAt: string }>>>(() => {
     // Load comments from localStorage on initial render
     const saved = localStorage.getItem('siteComments');
     return saved ? JSON.parse(saved) : {};
   });
-  
+
   // Issues state
   const [newIssue, setNewIssue] = useState({ type: 'other', severity: 'medium', description: '' });
-  const [siteIssues, setSiteIssues] = useState<Record<string, Array<{id: string; type: string; severity: string; description: string; createdAt: string; resolved: boolean}>>>(() => {
+  const [siteIssues, setSiteIssues] = useState<Record<string, Array<{ id: string; type: string; severity: string; description: string; createdAt: string; resolved: boolean }>>>(() => {
     // Load issues from localStorage on initial render
     const saved = localStorage.getItem('siteIssues');
     return saved ? JSON.parse(saved) : {};
   });
-  
+
   // Export history state
   const [exportHistoryOpen, setExportHistoryOpen] = useState(false);
-  const [exportHistory, setExportHistory] = useState<Array<{id: string; format: string; filename: string; siteCount: number; downloadedAt: string; downloadedBy: string}>>(() => {
+  const [exportHistory, setExportHistory] = useState<Array<{ id: string; format: string; filename: string; siteCount: number; downloadedAt: string; downloadedBy: string }>>(() => {
     // Load export history from localStorage on initial render
     const saved = localStorage.getItem('exportHistory');
     return saved ? JSON.parse(saved) : [];
   });
-  
+
   // Team management state
   const [siteTeams, setSiteTeams] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -257,8 +257,8 @@ export default function Sites() {
       }
       // Load all teams from the database
       const teams = response.data
-        .map((team: any) => ({ 
-          _id: team._id, 
+        .map((team: any) => ({
+          _id: team._id,
           name: team.name
         }));
       setAvailableTeams(teams);
@@ -276,21 +276,21 @@ export default function Sites() {
     try {
       setLoading(true);
       setError(null);
-      
-      const filters: any = { 
+
+      const filters: any = {
         limit: 100,
         status: selectedStatus === 'all' ? undefined : selectedStatus
       };
-      
+
       if (currentProjectId) {
         filters.projectId = currentProjectId;
       }
-      
+
       const [response, sitesWithTeamsData] = await Promise.all([
         fetchSites(filters),
         getAllSitesWithTeams()
       ]);
-      
+
       console.log('Sites loaded from API:', response.data);
       console.log('Sites with teams:', sitesWithTeamsData);
       setSites(response.data);
@@ -312,14 +312,14 @@ export default function Sites() {
       toast.warning('Veuillez entrer une adresse plus complète');
       return;
     }
-    
+
     setAddressSearchLoading(true);
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=tn`
       );
       const data = await response.json();
-      
+
       if (data && data.length > 0) {
         const result = data[0];
         const newPosition = {
@@ -329,7 +329,7 @@ export default function Sites() {
         setMapPosition(newPosition);
         setErrors(prev => ({ ...prev, address: undefined }));
         toast.success(`Localisation trouvée!`);
-        
+
         // Search for nearby fournisseurs
         await searchNearbyFournisseurs(newPosition);
       } else {
@@ -351,7 +351,7 @@ export default function Sites() {
       // Get all active fournisseurs from API
       const response = await fetch('/api/fournisseurs?actif=true');
       let fournisseurs = [];
-      
+
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -360,7 +360,7 @@ export default function Sites() {
           fournisseurs = data.data;
         }
       }
-      
+
       // Filter fournisseurs that have coordinates and calculate distance
       const fournisseursWithDistance = fournisseurs
         .filter((f: any) => f.coordinates?.lat && f.coordinates?.lng)
@@ -369,14 +369,14 @@ export default function Sites() {
           const fLng = f.coordinates.lng;
           // Simple distance calculation (approximate)
           const distance = Math.sqrt(
-            Math.pow((fLat - position.lat) * 111, 2) + 
+            Math.pow((fLat - position.lat) * 111, 2) +
             Math.pow((fLng - position.lng) * 111 * Math.cos(position.lat * Math.PI / 180), 2)
           );
           return { ...f, distance };
         })
         .sort((a: any, b: any) => a.distance - b.distance)
         .slice(0, 10); // Top 10 nearest
-      
+
       setNearbyFournisseurs(fournisseursWithDistance.map((f: any) => ({
         _id: f._id,
         nom: f.nom || '',
@@ -384,7 +384,7 @@ export default function Sites() {
         telephone: f.telephone || '',
         categories: f.categories || []
       })));
-      
+
       if (fournisseursWithDistance.length > 0) {
         toast.info(`${fournisseursWithDistance.length} fournisseurs trouvés à proximité`);
       }
@@ -402,22 +402,22 @@ export default function Sites() {
     .filter(site => {
       const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         site.address.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       // Check priority filter
       const matchesPriority = selectedPriority === 'all' || site.priority === selectedPriority;
-      
+
       // Check for problems (issues or delays)
       const hasIssues = siteIssues[site.id]?.some(issue => !issue.resolved) || false;
       const isOverdue = site.status !== 'completed' && new Date(site.workEndDate || site.workStartDate) < new Date();
       const hasProblems = hasIssues || isOverdue;
-      
+
       if (showProblemsOnly && !hasProblems) return false;
       if (!matchesPriority) return false;
       return matchesSearch;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'name':
           comparison = a.name.localeCompare(b.name);
@@ -436,14 +436,14 @@ export default function Sites() {
           comparison = a.budget - b.budget;
           break;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
   // Format budget in Tunisian Dinar
   const formatBudget = (budget: number) => {
-    return new Intl.NumberFormat('fr-TN', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('fr-TN', {
+      style: 'currency',
       currency: 'TND',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
@@ -462,14 +462,14 @@ export default function Sites() {
   // Handle add comment
   const handleAddComment = () => {
     if (!selectedSite || !newComment.trim()) return;
-    
+
     const comment = {
       id: Date.now().toString(),
       text: newComment,
       author: user?.firstName || 'User',
       createdAt: new Date().toISOString()
     };
-    
+
     setSiteComments(prev => {
       const newComments = {
         ...prev,
@@ -478,15 +478,15 @@ export default function Sites() {
       localStorage.setItem('siteComments', JSON.stringify(newComments));
       return newComments;
     });
-    
+
     setNewComment('');
     toast.success('Comment added');
   };
-  
+
   // Handle add issue
   const handleAddIssue = () => {
     if (!selectedSite || !newIssue.description.trim()) return;
-    
+
     const issue = {
       id: Date.now().toString(),
       type: newIssue.type,
@@ -495,7 +495,7 @@ export default function Sites() {
       createdAt: new Date().toISOString(),
       resolved: false
     };
-    
+
     setSiteIssues(prev => {
       const newIssues = {
         ...prev,
@@ -504,15 +504,15 @@ export default function Sites() {
       localStorage.setItem('siteIssues', JSON.stringify(newIssues));
       return newIssues;
     });
-    
+
     setNewIssue({ type: 'other', severity: 'medium', description: '' });
     toast.success('Issue reported');
   };
-  
+
   // Handle resolve issue
   const handleResolveIssue = (issueId: string) => {
     if (!selectedSite) return;
-    
+
     setSiteIssues(prev => {
       const newIssues = {
         ...prev,
@@ -529,54 +529,54 @@ export default function Sites() {
   // Validate new site form
   const validateForm = () => {
     const newErrors: { name?: string; address?: string; area?: string; budget?: string } = {};
-    
+
     if (!newSite.name.trim()) {
       newErrors.name = 'Site name is required';
     }
-    
+
     if (!newSite.address.trim()) {
       newErrors.address = 'Address is required';
     }
-    
+
     if (!newSite.area) {
       newErrors.area = 'Area is required';
     } else if (parseInt(newSite.area) <= 0) {
       newErrors.area = 'Area must be greater than 0';
     }
-    
+
     if (!newSite.budget) {
       newErrors.budget = 'Budget is required';
     } else if (parseInt(newSite.budget) <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
     }
-    
+
     if (!mapPosition) {
       toast.error('Please select a location on the map');
       return false;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   const validateEditForm = () => {
     const newErrors: { name?: string; address?: string; area?: string; budget?: string } = {};
-    
+
     if (!manageData.name.trim()) {
       newErrors.name = 'Site name is required';
     }
-    
+
     if (!manageData.address.trim()) {
       newErrors.address = 'Address is required';
     }
-    
+
     if (!manageData.area || manageData.area <= 0) {
       newErrors.area = 'Area must be greater than 0';
     }
-    
+
     if (!manageData.budget || manageData.budget <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -602,14 +602,14 @@ export default function Sites() {
       toast.error('Please select a team to assign');
       return;
     }
-    
+
     // Get the team details to check if it has members
     const team = availableTeams.find((t: any) => t._id === selectedUserId);
     if (!team) {
       toast.error('Team not found');
       return;
     }
-    
+
     // Check if team has members - this is a requirement
     // We need to fetch the team details to check members count
     try {
@@ -621,13 +621,13 @@ export default function Sites() {
           return;
         }
       }
-      
+
       // First, assign team to site in gestion-sites (site knows about the team)
       await assignTeamToSite(selectedSite.id, selectedUserId);
-      
+
       // Also update the team to record which site it's assigned to (team knows about the site)
       await assignSiteToTeam(selectedUserId, selectedSite.id);
-      
+
       toast.success('Team assigned successfully');
       const teams = await getTeamsAssignedToSite(selectedSite.id);
       setSiteTeams(teams || []);
@@ -692,10 +692,10 @@ export default function Sites() {
           clientName: newSite.clientName || undefined,
           coordinates: mapPosition || { lat: 0, lng: 0 },
         };
-        
+
         const createdSite = await createSite(site);
         setSites([...sites, createdSite]);
-        
+
         // Assign team to site if selected
         if (selectedTeam && createdSite.id) {
           try {
@@ -741,12 +741,12 @@ export default function Sites() {
 
   const handleManageSite = (site: Site) => {
     setSelectedSite(site);
-    setManageData({ 
-      status: site.status, 
-      progress: site.progress, 
-      name: site.name, 
-      address: site.address, 
-      area: site.area, 
+    setManageData({
+      status: site.status,
+      progress: site.progress,
+      name: site.name,
+      address: site.address,
+      area: site.area,
       budget: site.budget,
       priority: site.priority || 'medium',
       clientName: site.clientName || '',
@@ -768,7 +768,7 @@ export default function Sites() {
 
   const confirmDelete = async () => {
     if (!selectedSite) return;
-    
+
     try {
       if (useMockData) {
         setSites(sites.filter(s => s.id !== selectedSite.id));
@@ -792,21 +792,21 @@ export default function Sites() {
       toast.error('Please correct the form errors');
       return;
     }
-    
+
     try {
       if (useMockData) {
-        setSites(sites.map(s => 
-          s.id === selectedSite.id 
-            ? { 
-                ...s, 
-                status: manageData.status as 'planning' | 'in_progress' | 'on_hold' | 'completed', 
-                progress: manageData.progress,
-                name: manageData.name,
-                address: manageData.address,
-                area: manageData.area,
-                budget: manageData.budget,
-                coordinates: editMapPosition || s.coordinates
-              }
+        setSites(sites.map(s =>
+          s.id === selectedSite.id
+            ? {
+              ...s,
+              status: manageData.status as 'planning' | 'in_progress' | 'on_hold' | 'completed',
+              progress: manageData.progress,
+              name: manageData.name,
+              address: manageData.address,
+              area: manageData.area,
+              budget: manageData.budget,
+              coordinates: editMapPosition || s.coordinates
+            }
             : s
         ));
         setManageDialogOpen(false);
@@ -822,9 +822,9 @@ export default function Sites() {
           clientName: manageData.clientName,
           ...(manageData.teamId && { teamIds: [manageData.teamId] }),
         });
-        
-        setSites(sites.map(s => 
-          s.id === selectedSite.id 
+
+        setSites(sites.map(s =>
+          s.id === selectedSite.id
             ? updatedSite
             : s
         ));
@@ -849,7 +849,7 @@ export default function Sites() {
     try {
       // Fetch fresh data directly from the API
       const sitesData = await getAllSitesWithTeams();
-      
+
       if (sitesData && sitesData.length > 0) {
         exportSitesToPDF(sitesData as Site[], `smartsite-sites-${new Date().toISOString().split('T')[0]}.pdf`);
         toast.success('PDF exported successfully with ' + sitesData.length + ' sites!');
@@ -866,10 +866,10 @@ export default function Sites() {
   const handleExport = async (format: 'pdf' | 'csv' | 'excel' | 'json') => {
     try {
       const sitesData = await getAllSitesWithTeams();
-      
+
       console.log('Sites data for export:', sitesData);
       console.log('First site teams:', sitesData[0]?.teams);
-      
+
       if (!sitesData || sitesData.length === 0) {
         toast.error('No sites found in database');
         return;
@@ -878,7 +878,7 @@ export default function Sites() {
       const dateStr = new Date().toISOString().split('T')[0];
       const formatLabels = { pdf: 'PDF', csv: 'CSV', excel: 'Excel', json: 'JSON' };
       let filename = '';
-      
+
       switch (format) {
         case 'pdf':
           filename = `smartsite-sites-${dateStr}.pdf`;
@@ -901,7 +901,7 @@ export default function Sites() {
           toast.success('JSON exported with ' + sitesData.length + ' sites!');
           break;
       }
-      
+
       // Record export in history
       const exportRecord = {
         id: Date.now().toString(),
@@ -916,7 +916,7 @@ export default function Sites() {
         localStorage.setItem('exportHistory', JSON.stringify(newHistory));
         return newHistory;
       });
-      
+
     } catch (error) {
       console.error('Error exporting:', error);
       toast.error('Failed to export - please ensure backend is running');
@@ -942,7 +942,7 @@ export default function Sites() {
             {isProjectContext ? `Sites - Project` : 'Sites'}
           </h1>
           <p className="text-sm sm:text-base text-gray-500 mt-1">
-            {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} • 
+            {filteredAndSortedSites.length} site{filteredAndSortedSites.length !== 1 ? 's' : ''} •
             <span className="ml-1">
               {sites.filter(s => s.status === 'in_progress').length} in progress
             </span>
@@ -989,7 +989,7 @@ export default function Sites() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             {/* Export History Button */}
             <Button
               variant="outline"
@@ -1005,275 +1005,275 @@ export default function Sites() {
                 </Badge>
               )}
             </Button>
-            
+
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLimitReached}
-                title={isLimitReached ? `Limite de ${projectSiteLimit} site(s) atteinte` : undefined}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Site
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl">Add New Site</DialogTitle>
-                <DialogDescription>
-                  Fill in the information below to create a new site
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-6 py-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="site-name" className="text-sm font-medium">
-                      Site Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="site-name"
-                      placeholder="e.g., Downtown Office Tower"
-                      value={newSite.name}
-                      onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
-                      className={errors.name ? 'border-red-500 focus:ring-red-500' : ''}
-                    />
-                    {errors.name && (
-                      <p className="text-red-500 text-sm flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.name}
+              <DialogTrigger asChild>
+                <Button
+                  className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLimitReached}
+                  title={isLimitReached ? `Limite de ${projectSiteLimit} site(s) atteinte` : undefined}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Site
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl">Add New Site</DialogTitle>
+                  <DialogDescription>
+                    Fill in the information below to create a new site
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="site-name" className="text-sm font-medium">
+                        Site Name <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="site-name"
+                        placeholder="e.g., Downtown Office Tower"
+                        value={newSite.name}
+                        onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
+                        className={errors.name ? 'border-red-500 focus:ring-red-500' : ''}
+                      />
+                      {errors.name && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.name}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="address" className="text-sm font-medium">
+                        Address <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Input
+                            id="address"
+                            placeholder="e.g., 123 Main Street, City, Tunisia"
+                            value={newSite.address}
+                            onChange={(e) => handleAddressChange(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                searchAddressOnMap(newSite.address);
+                              }
+                            }}
+                            className={errors.address ? 'border-red-500 focus:ring-red-500' : ''}
+                          />
+                          {errors.address && (
+                            <p className="text-red-500 text-sm flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {errors.address}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => searchAddressOnMap(newSite.address)}
+                          disabled={addressSearchLoading || !newSite.address.trim()}
+                          className="whitespace-nowrap"
+                        >
+                          {addressSearchLoading ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <MapPin className="h-4 w-4 mr-1" />
+                              Chercher
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Tapez l'adresse et cliquez sur "Chercher" pour localiser automatiquement sur la carte
                       </p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="address" className="text-sm font-medium">
-                      Address <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="area" className="text-sm font-medium">
+                          Area (m²) <span className="text-red-500">*</span>
+                        </Label>
                         <Input
-                          id="address"
-                          placeholder="e.g., 123 Main Street, City, Tunisia"
-                          value={newSite.address}
-                          onChange={(e) => handleAddressChange(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              searchAddressOnMap(newSite.address);
-                            }
-                          }}
-                          className={errors.address ? 'border-red-500 focus:ring-red-500' : ''}
+                          id="area"
+                          type="number"
+                          min="1"
+                          placeholder="e.g., 5000"
+                          value={newSite.area}
+                          onChange={(e) => setNewSite({ ...newSite, area: e.target.value })}
+                          className={errors.area ? 'border-red-500 focus:ring-red-500' : ''}
                         />
-                        {errors.address && (
+                        {errors.area && (
                           <p className="text-red-500 text-sm flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            {errors.address}
+                            {errors.area}
                           </p>
                         )}
                       </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => searchAddressOnMap(newSite.address)}
-                        disabled={addressSearchLoading || !newSite.address.trim()}
-                        className="whitespace-nowrap"
-                      >
-                        {addressSearchLoading ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4 mr-1" />
-                            Chercher
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Tapez l'adresse et cliquez sur "Chercher" pour localiser automatiquement sur la carte
-                    </p>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="area" className="text-sm font-medium">
-                        Area (m²) <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="area"
-                        type="number"
-                        min="1"
-                        placeholder="e.g., 5000"
-                        value={newSite.area}
-                        onChange={(e) => setNewSite({ ...newSite, area: e.target.value })}
-                        className={errors.area ? 'border-red-500 focus:ring-red-500' : ''}
-                      />
-                      {errors.area && (
-                        <p className="text-red-500 text-sm flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.area}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="budget" className="text-sm font-medium">
-                        Budget (TND) <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="budget"
-                        type="number"
-                        min="1"
-                        placeholder="e.g., 2500000"
-                        value={newSite.budget}
-                        onChange={(e) => { setNewSite({ ...newSite, budget: e.target.value }); setBudgetError(null); }}
-                        className={errors.budget ? 'border-red-500 focus:ring-red-500' : ''}
-                      />
-                      {errors.budget && (
-                        <p className="text-red-500 text-sm flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.budget}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="clientName" className="text-sm font-medium">
-                      Client Name <span className="text-gray-500">(Optional)</span>
-                    </Label>
-                    <Input
-                      id="clientName"
-                      placeholder="e.g., ABC Corporation"
-                      value={newSite.clientName}
-                      onChange={(e) => setNewSite({ ...newSite, clientName: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="team" className="text-sm font-medium">
-                      Team <span className="text-gray-500">(Optional)</span>
-                    </Label>
-                    <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                      <SelectTrigger id="team" className="w-full">
-                        <SelectValue placeholder="Select a team" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableTeams.length > 0 ? (
-                          availableTeams.map((team) => (
-                            <SelectItem key={team._id} value={team._id}>
-                              {team.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-teams" disabled>
-                            No teams available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500">
-                      Assign a team to this site (Workers / Team Leader)
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Location on Map <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors">
-                      <MapContainer
-                        center={mapPosition ? [mapPosition.lat, mapPosition.lng] : TUNISIA_CENTER}
-                        zoom={mapPosition ? 15 : 7}
-                        style={{ height: '100%', width: '100%' }}
-                      >
-                        <TileLayer
-                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          attribution="&copy; OpenStreetMap contributors"
+                      <div className="space-y-2">
+                        <Label htmlFor="budget" className="text-sm font-medium">
+                          Budget (TND) <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="budget"
+                          type="number"
+                          min="1"
+                          placeholder="e.g., 2500000"
+                          value={newSite.budget}
+                          onChange={(e) => { setNewSite({ ...newSite, budget: e.target.value }); setBudgetError(null); }}
+                          className={errors.budget ? 'border-red-500 focus:ring-red-500' : ''}
                         />
-                        <MapPicker position={mapPosition} setPosition={setMapPosition} onLocationSelect={(pos) => searchNearbyFournisseurs(pos)} />
-                      </MapContainer>
+                        {errors.budget && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {errors.budget}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {mapPosition ? (
-                      <p className="text-sm text-green-600 flex items-center gap-1">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Selected position: {mapPosition.lat.toFixed(4)}, {mapPosition.lng.toFixed(4)}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="clientName" className="text-sm font-medium">
+                        Client Name <span className="text-gray-500">(Optional)</span>
+                      </Label>
+                      <Input
+                        id="clientName"
+                        placeholder="e.g., ABC Corporation"
+                        value={newSite.clientName}
+                        onChange={(e) => setNewSite({ ...newSite, clientName: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="team" className="text-sm font-medium">
+                        Team <span className="text-gray-500">(Optional)</span>
+                      </Label>
+                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                        <SelectTrigger id="team" className="w-full">
+                          <SelectValue placeholder="Select a team" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTeams.length > 0 ? (
+                            availableTeams.map((team) => (
+                              <SelectItem key={team._id} value={team._id}>
+                                {team.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-teams" disabled>
+                              No teams available
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">
+                        Assign a team to this site (Workers / Team Leader)
                       </p>
-                    ) : (
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        Click on the map to select a location
-                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        Location on Map <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors">
+                        <MapContainer
+                          center={mapPosition ? [mapPosition.lat, mapPosition.lng] : TUNISIA_CENTER}
+                          zoom={mapPosition ? 15 : 7}
+                          style={{ height: '100%', width: '100%' }}
+                        >
+                          <TileLayer
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution="&copy; OpenStreetMap contributors"
+                          />
+                          <MapPicker position={mapPosition} setPosition={setMapPosition} onLocationSelect={(pos) => searchNearbyFournisseurs(pos)} />
+                        </MapContainer>
+                      </div>
+                      {mapPosition ? (
+                        <p className="text-sm text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Selected position: {mapPosition.lat.toFixed(4)}, {mapPosition.lng.toFixed(4)}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          Click on the map to select a location
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Nearby Fournisseurs Section */}
+                    {nearbyFournisseurs.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Fournisseurs à proximité <span className="text-xs font-normal text-gray-500">({nearbyFournisseurs.length} trouvés)</span>
+                        </Label>
+                        <div className="bg-blue-50 rounded-lg border border-blue-200 max-h-48 overflow-y-auto">
+                          {nearbyFournisseurs.map((fournisseur, index) => (
+                            <div
+                              key={fournisseur._id || index}
+                              className="p-3 border-b border-blue-100 last:border-b-0 hover:bg-blue-100 transition-colors"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm text-blue-900">{fournisseur.nom}</p>
+                                  <p className="text-xs text-gray-600 mt-0.5">{fournisseur.adresse}</p>
+                                  {fournisseur.telephone && (
+                                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                      <span>📞</span> {fournisseur.telephone}
+                                    </p>
+                                  )}
+                                </div>
+                                {fournisseur.categories && fournisseur.categories.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 justify-end">
+                                    {fournisseur.categories.slice(0, 2).map((cat, i) => (
+                                      <Badge key={i} variant="outline" className="text-xs py-0 h-5 bg-white">
+                                        {cat}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  {/* Nearby Fournisseurs Section */}
-                  {nearbyFournisseurs.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        Fournisseurs à proximité <span className="text-xs font-normal text-gray-500">({nearbyFournisseurs.length} trouvés)</span>
-                      </Label>
-                      <div className="bg-blue-50 rounded-lg border border-blue-200 max-h-48 overflow-y-auto">
-                        {nearbyFournisseurs.map((fournisseur, index) => (
-                          <div 
-                            key={fournisseur._id || index} 
-                            className="p-3 border-b border-blue-100 last:border-b-0 hover:bg-blue-100 transition-colors"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium text-sm text-blue-900">{fournisseur.nom}</p>
-                                <p className="text-xs text-gray-600 mt-0.5">{fournisseur.adresse}</p>
-                                {fournisseur.telephone && (
-                                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                    <span>📞</span> {fournisseur.telephone}
-                                  </p>
-                                )}
-                              </div>
-                              {fournisseur.categories && fournisseur.categories.length > 0 && (
-                                <div className="flex flex-wrap gap-1 justify-end">
-                                  {fournisseur.categories.slice(0, 2).map((cat, i) => (
-                                    <Badge key={i} variant="outline" className="text-xs py-0 h-5 bg-white">
-                                      {cat}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                  <div className="flex gap-3 pt-4">
+                    {budgetError && (
+                      <div className="w-full flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-1">
+                        <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-semibold text-red-700 text-sm">Budget exceeded</p>
+                          <p className="text-sm text-red-600 mt-0.5">{budgetError}</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setAddDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                      onClick={handleAddSite}
+                    >
+                      Create Site
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="flex gap-3 pt-4">
-                  {budgetError && (
-                    <div className="w-full flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-1">
-                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="font-semibold text-red-700 text-sm">Budget exceeded</p>
-                        <p className="text-sm text-red-600 mt-0.5">{budgetError}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setAddDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                    onClick={handleAddSite}
-                  >
-                    Create Site
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : null}
       </div>
@@ -1306,7 +1306,7 @@ export default function Sites() {
                 className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
               />
             </div>
-            
+
             {/* Sort Dropdown */}
             <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
               <SelectTrigger className="w-[160px] border-gray-200">
@@ -1320,7 +1320,7 @@ export default function Sites() {
                 <SelectItem value="budget">Budget</SelectItem>
               </SelectContent>
             </Select>
-            
+
             {/* Sort Order */}
             <Button
               variant="outline"
@@ -1330,7 +1330,7 @@ export default function Sites() {
             >
               {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
             </Button>
-            
+
             {/* Problems Filter Toggle */}
             <Button
               variant={showProblemsOnly ? "destructive" : "outline"}
@@ -1341,7 +1341,7 @@ export default function Sites() {
               <AlertTriangle className="h-4 w-4 mr-2" />
               Problems
             </Button>
-            
+
             {/* Auto-refresh Toggle */}
             <Button
               variant={autoRefresh ? "default" : "outline"}
@@ -1352,7 +1352,7 @@ export default function Sites() {
               <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
               {autoRefresh ? 'Live' : 'Static'}
             </Button>
-            
+
             {/* Status/Priority Filter */}
             <Dialog>
               <DialogTrigger asChild>
@@ -1422,7 +1422,7 @@ export default function Sites() {
               </DialogContent>
             </Dialog>
           </div>
-          
+
           {/* Active Filters Display */}
           {(selectedStatus !== 'all' || selectedPriority !== 'all' || showProblemsOnly || searchTerm) && (
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
@@ -1458,9 +1458,9 @@ export default function Sites() {
                   </button>
                 </Badge>
               )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setSearchTerm('');
                   setSelectedStatus('all');
@@ -1473,7 +1473,7 @@ export default function Sites() {
               </Button>
             </div>
           )}
-          
+
           {/* Last updated timestamp */}
           {lastUpdated && autoRefresh && (
             <p className="text-xs text-gray-400 mt-2">
@@ -1578,10 +1578,10 @@ export default function Sites() {
             const priorityConfig = PRIORITY_CONFIG[site.priority || 'medium'];
             const siteIssueCount = siteIssues[site.id]?.filter(i => !i.resolved).length || 0;
             const siteCommentCount = siteComments[site.id]?.length || 0;
-            
+
             return (
-              <Card 
-                key={site.id} 
+              <Card
+                key={site.id}
                 className="group hover:shadow-xl transition-all duration-300 border-none shadow-md overflow-hidden"
               >
                 <div className={`h-1 ${statusConfig.progressColor}`} />
@@ -1607,7 +1607,7 @@ export default function Sites() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge 
+                      <Badge
                         variant={statusConfig.variant}
                         className={`flex items-center gap-1 px-2 py-1 ${statusConfig.color}`}
                       >
@@ -1624,13 +1624,13 @@ export default function Sites() {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
                     <p className="text-gray-600 line-clamp-2">{site.address}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Area</p>
@@ -1651,7 +1651,7 @@ export default function Sites() {
                       <span className="font-semibold text-gray-900 dark:text-white">{site.progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full ${statusConfig.progressColor} transition-all duration-300`}
                         style={{ width: `${site.progress}%` }}
                       />
@@ -1722,9 +1722,9 @@ export default function Sites() {
                     >
                       <Users className="h-4 w-4 mr-1" />
                     </Button>
-                    
-                    <Button 
-                      size="sm" 
+
+                    <Button
+                      size="sm"
                       variant="destructive"
                       className="hover:bg-red-600 transition-colors"
                       onClick={() => handleDeleteSite(site)}
@@ -1767,7 +1767,7 @@ export default function Sites() {
                   </p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit-address" className="text-sm font-medium">
                   Address <span className="text-red-500">*</span>
@@ -1806,7 +1806,7 @@ export default function Sites() {
                     </p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-budget" className="text-sm font-medium">
                     Budget (TND)
@@ -2159,7 +2159,7 @@ export default function Sites() {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            
+
             {/* Comments list */}
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {siteComments[selectedSite?.id || '']?.length === 0 ? (
@@ -2229,8 +2229,8 @@ export default function Sites() {
                   onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
                   className="flex-1"
                 />
-                <Button 
-                  onClick={handleAddIssue} 
+                <Button
+                  onClick={handleAddIssue}
                   disabled={!newIssue.description.trim()}
                   className="bg-amber-600 hover:bg-amber-700"
                 >
@@ -2238,7 +2238,7 @@ export default function Sites() {
                 </Button>
               </div>
             </div>
-            
+
             {/* Issues list */}
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {siteIssues[selectedSite?.id || '']?.length === 0 ? (
@@ -2247,25 +2247,23 @@ export default function Sites() {
                 siteIssues[selectedSite?.id || '']?.map((issue) => {
                   const issueConfig = ISSUE_CONFIG[issue.type as keyof typeof ISSUE_CONFIG];
                   return (
-                    <div 
-                      key={issue.id} 
-                      className={`rounded-lg p-3 border ${
-                        issue.resolved 
-                          ? 'bg-gray-50 border-gray-200 opacity-60' 
+                    <div
+                      key={issue.id}
+                      className={`rounded-lg p-3 border ${issue.resolved
+                          ? 'bg-gray-50 border-gray-200 opacity-60'
                           : 'bg-red-50 border-red-200'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs px-2 py-0.5 rounded ${issueConfig?.color || ''}`}>
                             {issueConfig?.label || issue.type}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            issue.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                            issue.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-                            issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
+                          <span className={`text-xs px-2 py-0.5 rounded ${issue.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                              issue.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                                issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-gray-100 text-gray-700'
+                            }`}>
                             {issue.severity}
                           </span>
                           {issue.resolved && (
@@ -2322,12 +2320,11 @@ export default function Sites() {
                 {exportHistory.map((record) => (
                   <div key={record.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        record.format === 'PDF' ? 'bg-red-100 text-red-600' :
-                        record.format === 'Excel' ? 'bg-green-100 text-green-600' :
-                        record.format === 'CSV' ? 'bg-blue-100 text-blue-600' :
-                        'bg-purple-100 text-purple-600'
-                      }`}>
+                      <div className={`p-2 rounded-lg ${record.format === 'PDF' ? 'bg-red-100 text-red-600' :
+                          record.format === 'Excel' ? 'bg-green-100 text-green-600' :
+                            record.format === 'CSV' ? 'bg-blue-100 text-blue-600' :
+                              'bg-purple-100 text-purple-600'
+                        }`}>
                         <FileDown className="h-4 w-4" />
                       </div>
                       <div>
@@ -2350,7 +2347,7 @@ export default function Sites() {
                 ))}
               </div>
             )}
-            
+
             {exportHistory.length > 0 && (
               <div className="flex justify-between items-center pt-2 border-t">
                 <p className="text-sm text-gray-500">
@@ -2360,9 +2357,9 @@ export default function Sites() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                  setExportHistory([]);
-                  localStorage.setItem('exportHistory', JSON.stringify([]));
-                }}
+                    setExportHistory([]);
+                    localStorage.setItem('exportHistory', JSON.stringify([]));
+                  }}
                 >
                   Clear History
                 </Button>

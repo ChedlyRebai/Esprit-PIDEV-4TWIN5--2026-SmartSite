@@ -2,11 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import type {
   Site,
-  Project,
   User,
   Task,
   Milestone,
-  Incident,
   ResourceAnalysis,
   IdleEquipment,
   PeakConsumptionPeriod,
@@ -23,96 +21,11 @@ import type {
 // ============ EXTERNAL MICROSERVICE CONFIG ============
 
 const GESTION_SITE_URL = import.meta.env.VITE_GESTION_SITE_URL || 'http://localhost:3001/api';
-const GESTION_PROJECTS_URL = import.meta.env.VITE_GESTION_PROJECTS_URL || 'http://localhost:3010';
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3000';
-const PLANNING_URL = 'http://localhost:3002';
-const INCIDENT_URL = import.meta.env.VITE_INCIDENT_URL || 'http://localhost:3003';
+const PLANNING_URL = 'http://localhost:3001';
+/** Dev: '' → `/api` via proxy Vite → :3007 ; prod: URL absolue ex. https://api.example/resource-opt/api */
 const RO_RAW = import.meta.env.VITE_RESOURCE_OPTIMIZATION_URL;
 const API_BASE_URL = (RO_RAW && String(RO_RAW).replace(/\/$/, '')) || '/api';
-
-// ============ PROJECTS HOOKS (gestion-projects:3007) ============
-
-export const useProjects = () => {
-  return useQuery({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const response = await axios.get<{ projects: Project[] }>(
-        `${GESTION_PROJECTS_URL}/projects?limit=100&page=1`
-      );
-      return response.data.projects || [];
-    },
-  });
-};
-
-export const useProjectById = (projectId: string) => {
-  return useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => {
-      const response = await axios.get<Project>(
-        `${GESTION_PROJECTS_URL}/projects/${projectId}`
-      );
-      return response.data;
-    },
-    enabled: !!projectId && projectId !== 'undefined' && projectId !== '',
-  });
-};
-
-export const useProjectSites = (projectId: string) => {
-  return useQuery({
-    queryKey: ['project-sites', projectId],
-    queryFn: async () => {
-      const response = await axios.get<{ data: Site[] }>(
-        `${GESTION_SITE_URL}/gestion-sites?projectId=${projectId}&limit=200`
-      );
-      return response.data?.data || [];
-    },
-    enabled: !!projectId && projectId !== 'undefined' && projectId !== '',
-  });
-};
-
-export const useRecommendationsByProject = (projectId: string) => {
-  return useQuery({
-    queryKey: ['recommendations', 'project', projectId],
-    queryFn: async () => {
-      const response = await axios.get<Recommendation[]>(
-        `${API_BASE_URL}/recommendations?projectId=${projectId}&scope=project`
-      );
-      return response.data || [];
-    },
-    enabled: !!projectId && projectId !== 'undefined' && projectId !== '',
-  });
-};
-
-export const useProjectSummary = (projectId: string) => {
-  return useQuery({
-    queryKey: ['recommendations', 'project-summary', projectId],
-    queryFn: async () => {
-      const response = await axios.get<RecommendationsSummary>(
-        `${API_BASE_URL}/recommendations/project/${projectId}/summary`
-      );
-      return response.data;
-    },
-    enabled: !!projectId && projectId !== 'undefined' && projectId !== '',
-  });
-};
-
-export const useGenerateRecommendationsForProject = (projectId: string, siteId?: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const body: any = { projectId };
-      if (siteId) body.siteId = siteId;
-      const response = await axios.post<{ recommendations?: Recommendation[] }>(
-        `${API_BASE_URL}/recommendations/generate`,
-        body,
-      );
-      return response.data?.recommendations ?? [];
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recommendations'], exact: false });
-    },
-  });
-};
 
 // ============ SITES HOOKS (gestion-site:3001) ============
 
@@ -199,11 +112,10 @@ export const useTasksBySite = (siteId: string) => {
   return useQuery({
     queryKey: ['tasks', 'site', siteId],
     queryFn: async () => {
-      // Tasks are linked to milestones — fetch via external-data service
-      const response = await axios.get<Task[]>(`${API_BASE_URL}/external-data/tasks/${siteId}`);
-      return response.data || [];
+      const response = await axios.get<Task[]>(`${PLANNING_URL}/task?siteId=${siteId}`);
+      return response.data;
     },
-    enabled: !!siteId && siteId !== 'undefined' && siteId !== '',
+    enabled: !!siteId,
   });
 };
 
@@ -211,34 +123,10 @@ export const useMilestonesBySite = (siteId: string) => {
   return useQuery({
     queryKey: ['milestones', 'site', siteId],
     queryFn: async () => {
-      const response = await axios.get<Milestone[]>(`${API_BASE_URL}/external-data/milestones/${siteId}`);
-      return response.data || [];
+      const response = await axios.get<Milestone[]>(`${PLANNING_URL}/milestone?siteId=${siteId}`);
+      return response.data;
     },
-    enabled: !!siteId && siteId !== 'undefined' && siteId !== '',
-  });
-};
-
-// ============ INCIDENTS HOOKS (incident-management:3005) ============
-
-export const useIncidentsBySite = (siteId: string) => {
-  return useQuery({
-    queryKey: ['incidents', 'site', siteId],
-    queryFn: async () => {
-      const response = await axios.get<Incident[]>(`${INCIDENT_URL}/incidents/by-site/${siteId}`);
-      return response.data || [];
-    },
-    enabled: !!siteId && siteId !== 'undefined' && siteId !== '',
-  });
-};
-
-export const useIncidentsByProject = (projectId: string) => {
-  return useQuery({
-    queryKey: ['incidents', 'project', projectId],
-    queryFn: async () => {
-      const response = await axios.get<Incident[]>(`${INCIDENT_URL}/incidents/by-project/${projectId}`);
-      return response.data || [];
-    },
-    enabled: !!projectId && projectId !== 'undefined' && projectId !== '',
+    enabled: !!siteId,
   });
 };
 
@@ -340,7 +228,7 @@ export const useGenerateRecommendations = (siteId: string) => {
       return response.data?.recommendations ?? [];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recommendations'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['recommendations', siteId] });
     },
   });
 };
@@ -517,19 +405,21 @@ export const useDashboard = (siteId: string) => {
 // ============ COMBINED HOOKS ============
 
 export const useResourceOptimization = (siteId: string) => {
+  // Guard against empty siteId
   const hasValidSiteId = !!siteId && siteId !== 'undefined' && siteId !== '';
-  
+
   const recommendations = useRecommendations(hasValidSiteId ? siteId : '');
   const alerts = useAlerts(hasValidSiteId ? siteId : '');
   const dashboard = useDashboard(hasValidSiteId ? siteId : '');
   const fullAnalysis = useFullAnalysis(hasValidSiteId ? siteId : '');
 
+  // External data
   const site = useSiteById(hasValidSiteId ? siteId : '');
   const siteTeams = useSiteTeams(hasValidSiteId ? siteId : '');
   const tasks = useTasksBySite(hasValidSiteId ? siteId : '');
-  const incidents = useIncidentsBySite(hasValidSiteId ? siteId : '');
 
   return {
+    // Internal data
     recommendations: recommendations.data || [],
     recommendationsLoading: recommendations.isLoading,
     alerts: alerts.data || [],
@@ -538,14 +428,16 @@ export const useResourceOptimization = (siteId: string) => {
     dashboardLoading: dashboard.isLoading,
     fullAnalysis: fullAnalysis.data,
     fullAnalysisLoading: fullAnalysis.isLoading,
+
+    // External data from microservices
     site: site.data,
     siteLoading: site.isLoading,
     siteTeams: siteTeams.data || [],
     siteTeamsLoading: siteTeams.isLoading,
     tasks: tasks.data || [],
     tasksLoading: tasks.isLoading,
-    incidents: incidents.data || [],
-    incidentsLoading: incidents.isLoading,
+
+    // Mutations
     generateRecommendations: useGenerateRecommendations(hasValidSiteId ? siteId : ''),
     generateAlerts: useGenerateAlerts(hasValidSiteId ? siteId : ''),
     updateRecommendationStatus: useUpdateRecommendationStatus(),
