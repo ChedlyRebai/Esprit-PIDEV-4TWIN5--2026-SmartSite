@@ -4033,6 +4033,7 @@
     ],
     "imports": [
       "react",
+      "lucide-react",
       "react-hot-toast"
     ]
   },
@@ -4044,6 +4045,7 @@
     "imports": [
       "react",
       "axios",
+      "lucide-react",
       "react-hot-toast",
       "@/lib/auth-api-url",
       "@/app/hooks/useTranslation"
@@ -7548,6 +7550,17 @@
       "@/components/ui/progress",
       "@/components/ui/tabs",
       "axios"
+    ]
+  },
+  "apps\\frontend\\src\\app\\components\\IncidentBiDashboard.tsx": {
+    "purpose": "component",
+    "exports": [
+      "IncidentBiDashboard"
+    ],
+    "imports": [
+      "react",
+      "axios",
+      "socket.io-client"
     ]
   }
 }
