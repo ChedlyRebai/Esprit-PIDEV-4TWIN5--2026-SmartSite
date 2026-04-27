@@ -15,7 +15,6 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { getProjectsWithSites, type ProjectWithSites, gestionProjectsApi } from '../../action/synced-project.action';
-import { getAllSitesWithTeams } from '../../action/site.action';
 
 interface SiteData {
   id: string;
@@ -29,11 +28,6 @@ interface SiteData {
   teamIds: any[];
   projectId?: string;
   clientName?: string;
-}
-
-interface ExpandedProject {
-  id: string;
-  name: string;
 }
 
 export default function SitesTable() {
@@ -56,24 +50,25 @@ export default function SitesTable() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [projectsData, sitesData] = await Promise.all([
-        getProjectsWithSites(),
-        getAllSitesWithTeams(),
-      ]);
+      const projectsData = await getProjectsWithSites();
       setProjectsWithSites(projectsData);
 
-      const activeProjects = projectsData.filter((p: ProjectWithSites) => p.status !== 'completed' && p.status !== 'archived');
-      const activeProjectIds = new Set(activeProjects.map((p: ProjectWithSites) => p.id));
+      // Compute stats from the unified projectsData (already contains sites)
+      const activeProjects = projectsData.filter(
+        (p: ProjectWithSites) => p.status !== 'completed' && p.status !== 'archived'
+      );
 
-      const activeSitesData = (sitesData as SiteData[]).filter((site: SiteData) => {
-        const siteProjectId = site.projectId;
-        return siteProjectId && activeProjectIds.has(String(siteProjectId));
-      });
+      const projectsBudget = activeProjects.reduce(
+        (sum: number, p: ProjectWithSites) => sum + (p.budget || 0),
+        0
+      );
+      const sitesBudget = activeProjects.reduce(
+        (sum: number, p: ProjectWithSites) => sum + (p.totalSitesBudget || 0),
+        0
+      );
 
-      const sitesBudget = activeSitesData.reduce((sum: number, site: SiteData) => sum + (site.budget || 0), 0);
-      const projectsBudget = activeProjects.reduce((sum: number, p: ProjectWithSites) => sum + (p.budget || 0), 0);
-      setTotalSitesBudget(sitesBudget);
       setTotalProjectsBudget(projectsBudget);
+      setTotalSitesBudget(sitesBudget);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -175,7 +170,10 @@ export default function SitesTable() {
             <CardTitle className="text-sm font-medium text-gray-500">Total Projects</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{projectsWithSites.length}</p>
+            <p className="text-2xl font-bold">
+              {projectsWithSites.filter(p => p.status !== 'completed' && p.status !== 'archived').length}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">{projectsWithSites.length} total incl. archived</p>
           </CardContent>
         </Card>
         <Card>
@@ -184,7 +182,12 @@ export default function SitesTable() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {projectsWithSites.reduce((sum, p) => sum + p.sites.length, 0)}
+              {projectsWithSites
+                .filter(p => p.status !== 'completed' && p.status !== 'archived')
+                .reduce((sum, p) => sum + p.sites.length, 0)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {projectsWithSites.reduce((sum, p) => sum + p.sites.length, 0)} total incl. archived
             </p>
           </CardContent>
         </Card>
@@ -196,6 +199,7 @@ export default function SitesTable() {
             <p className="text-2xl font-bold text-green-600">
               {formatBudget(totalProjectsBudget)}
             </p>
+            <p className="text-xs text-gray-400 mt-1">active projects only</p>
           </CardContent>
         </Card>
         <Card>
@@ -206,6 +210,7 @@ export default function SitesTable() {
             <p className="text-2xl font-bold text-blue-600">
               {formatBudget(totalSitesBudget)}
             </p>
+            <p className="text-xs text-gray-400 mt-1">active projects only</p>
           </CardContent>
         </Card>
       </div>
@@ -276,7 +281,12 @@ export default function SitesTable() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-5 w-5 text-blue-600" />
-                          <span className="font-semibold text-lg">{project.name}</span>
+                          <button
+                            onClick={() => toggleProject(project.id)}
+                            className="font-semibold text-lg text-blue-700 hover:underline hover:text-blue-900 cursor-pointer bg-transparent border-none p-0 text-left"
+                          >
+                            {project.name}
+                          </button>
                           {project.status === 'completed' && (
                             <Badge variant="secondary" className="ml-2">Archived</Badge>
                           )}
@@ -345,6 +355,15 @@ export default function SitesTable() {
                     </TableRow>
 
                     {/* Expanded Sites Details */}
+                    {isExpanded && projectSites.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="p-0 bg-gray-50">
+                          <div className="p-6 text-center text-gray-500 text-sm">
+                            No sites assigned to this project yet.
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {isExpanded && projectSites.length > 0 && (
                       <TableRow>
                         <TableCell colSpan={9} className="p-0 bg-gray-50">
