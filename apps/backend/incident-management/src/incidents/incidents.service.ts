@@ -96,11 +96,11 @@ export class IncidentsService {
       (payload as any).site = new Types.ObjectId(dto.siteId);
     }
 
-    // Gérer reportedBy - utiliser la chaîne directement si fournie
-    if (dto.reportedBy && typeof dto.reportedBy === 'string') {
-      (payload as any).reportedBy = dto.reportedBy;
-      console.log('✅ reportedBy défini comme chaîne:', dto.reportedBy);
-    }
+      // Gérer reportedBy - utiliser la chaîne directement (CIN) si fournie
+      if (dto.reportedBy) {
+        (payload as any).reportedBy = String(dto.reportedBy);
+        console.log('✅ reportedBy défini comme chaîne:', dto.reportedBy);
+      }
 
     if (dto.assignedTo && Types.ObjectId.isValid(dto.assignedTo)) {
       (payload as any).assignedTo = new Types.ObjectId(dto.assignedTo);
@@ -140,11 +140,15 @@ export class IncidentsService {
       delete updatePayload.siteId;
     }
 
-    if (dto.reportedBy && Types.ObjectId.isValid(dto.reportedBy)) {
-      updatePayload.reportedBy = new Types.ObjectId(dto.reportedBy);
+    // Handle reportedBy as string (CIN)
+    if (dto.reportedBy !== undefined) {
+      updatePayload.reportedBy = String(dto.reportedBy);
     }
     if (dto.assignedTo && Types.ObjectId.isValid(dto.assignedTo)) {
       updatePayload.assignedTo = new Types.ObjectId(dto.assignedTo);
+    }
+    if (dto.assignedUserRole !== undefined) {
+      updatePayload.assignedUserRole = dto.assignedUserRole;
     }
 
     const updated = await this.incidentModel
@@ -168,6 +172,11 @@ export class IncidentsService {
     }
 
     return updated;
+  }
+
+  async removeAll() {
+    const res = await this.incidentModel.deleteMany({}).exec();
+    return { deletedCount: res.deletedCount };
   }
 
   async remove(id: string): Promise<{ removed: boolean }> {
