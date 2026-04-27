@@ -182,56 +182,55 @@ export default function SitesTable() {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Projects</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {projectsWithSites.filter(p => p.status !== 'completed' && p.status !== 'archived').length}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">{projectsWithSites.length} total incl. archived</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Sites</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {projectsWithSites
-                .filter(p => p.status !== 'completed' && p.status !== 'archived')
-                .reduce((sum, p) => sum + p.sites.length, 0)}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {projectsWithSites.reduce((sum, p) => sum + p.sites.length, 0)} total incl. archived
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Projects Budget</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {formatBudget(totalProjectsBudget)}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">active projects only</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Sites Budget</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              {formatBudget(totalSitesBudget)}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">active projects only</p>
-          </CardContent>
-        </Card>
+      {/* ── Header banner ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 text-white shadow-xl px-6 py-5">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-blue-200">Sites BI</p>
+            <h2 className="text-2xl font-bold">Welcome to Smart Site — Sites Overview</h2>
+            <p className="text-blue-100 text-sm mt-1">Real-time analytics across all projects and sites.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── KPI cards ── */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            title: "Active Projects",
+            value: projectsWithSites.filter(p => p.status !== 'completed' && p.status !== 'archived').length,
+            sub: `${projectsWithSites.length} total incl. archived`,
+            tone: "from-blue-600 to-cyan-500",
+            icon: Building2,
+          },
+          {
+            title: "Total Sites",
+            value: projectsWithSites
+              .filter(p => p.status !== 'completed' && p.status !== 'archived')
+              .reduce((sum, p) => sum + p.sites.length, 0),
+            sub: `${projectsWithSites.reduce((sum, p) => sum + p.sites.length, 0)} total incl. archived`,
+            tone: "from-violet-600 to-fuchsia-500",
+            icon: MapPin,
+          },
+        ].map((card) => (
+          <div
+            key={card.title}
+            className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${card.tone} p-5 shadow-lg hover:shadow-xl transition-shadow duration-300`}
+          >
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
+            <div className="absolute -right-1 -bottom-6 h-16 w-16 rounded-full bg-white/10" />
+            <div className="relative flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{card.title}</p>
+                <p className="mt-2 text-3xl font-extrabold text-white leading-none">{card.value}</p>
+                <p className="text-xs text-white/60 mt-1">{card.sub}</p>
+              </div>
+              <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-sm">
+                <card.icon className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Search */}
