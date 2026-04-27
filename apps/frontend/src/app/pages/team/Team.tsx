@@ -184,6 +184,14 @@ export default function Team() {
     }
   }, [memberDialogOpen]);
 
+  // Also load when edit dialog opens
+  useEffect(() => {
+    if (editDialogOpen) {
+      loadAvailableUsers();
+      loadBusyMembers();
+    }
+  }, [editDialogOpen]);
+
   const loadAvailableUsers = async () => {
     try {
       setUserLoadingError(false);
@@ -766,44 +774,55 @@ export default function Team() {
                     const firstName = member.firstName || member.firstname || "";
                     const lastName = member.lastName || member.lastname || "";
                     const fullName = `${firstName} ${lastName}`.trim() || member.email || "Unknown";
+                    const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+                    const roleName = member.role?.name || 'user';
+                    const roleColors: Record<string, string> = {
+                      admin: 'bg-red-100 text-red-700',
+                      manager: 'bg-purple-100 text-purple-700',
+                      chef_projet: 'bg-blue-100 text-blue-700',
+                      technicien: 'bg-green-100 text-green-700',
+                      worker: 'bg-amber-100 text-amber-700',
+                      user: 'bg-gray-100 text-gray-600',
+                    };
+                    const roleColor = roleColors[roleName] || roleColors.user;
                     return (
                       <div
                         key={member._id}
-                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                        className="flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
                       >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-7 w-7">
-                            <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
-                              {getInitials(fullName)}
-                            </AvatarFallback>
-                          </Avatar>
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                            {initials || '?'}
+                          </div>
                           <div>
-                            <p className="text-sm font-medium">{fullName}</p>
-                            {member.email && (
-                              <p className="text-xs text-gray-500">{member.email}</p>
-                            )}
+                            <p className="text-sm font-semibold text-gray-900">{fullName}</p>
+                            {member.email && <p className="text-xs text-gray-400">{member.email}</p>}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={async () => {
-                            if (!editTeam) return;
-                            try {
-                              const response = await removeMemberFromTeam(editTeam._id, member._id);
-                              const updated = { ...editTeam, members: response.data.members ?? editTeam.members.filter((m: any) => m._id !== member._id) };
-                              setEditTeam(updated);
-                              setTeams(teams.map((t) => t._id === editTeam._id ? updated : t));
-                              toast.success("Member removed");
-                            } catch {
-                              toast.error("Error removing member");
-                            }
-                          }}
-                          title="Remove member"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>
+                            {roleName}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={async () => {
+                              if (!editTeam) return;
+                              try {
+                                const response = await removeMemberFromTeam(editTeam._id, member._id);
+                                const updated = { ...editTeam, members: response.data.members ?? editTeam.members.filter((m: any) => m._id !== member._id) };
+                                setEditTeam(updated);
+                                setTeams(teams.map((t) => t._id === editTeam._id ? updated : t));
+                                toast.success("Member removed");
+                              } catch {
+                                toast.error("Error removing member");
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
@@ -812,67 +831,96 @@ export default function Team() {
                 <p className="text-sm text-gray-400 italic">No members yet</p>
               )}
 
-              {/* Add member */}
-              <div className="flex gap-2 pt-1">
-                <Select value={editMemberUserId} onValueChange={setEditMemberUserId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select a member to add" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(() => {
-                      const filtered = availableUsers.filter((u) => {
-                        // Exclude already in this team
-                        if (editTeam?.members?.some((m: any) => m._id === u._id)) return false;
-                        // Exclude if member belongs to a team assigned to an active (non-completed) site
-                        const busyInActiveTeam = Object.entries(teamSiteAssignments).find(
-                          ([teamId, assignment]) => {
-                            const team = teams.find((t) => t._id === teamId);
-                            const isMember = team?.members?.some((m: any) => m._id === u._id);
-                            return isMember && assignment.status !== "completed";
-                          }
-                        );
-                        return !busyInActiveTeam;
-                      });
+              {/* Add member — scrollable list */}
+              <div className="border rounded-xl overflow-hidden">
+                <div className="max-h-56 overflow-y-auto divide-y divide-gray-100">
+                  {availableUsers.length === 0 ? (
+                    <div className="py-6 flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent" />
+                      <p className="text-sm text-gray-400">Loading users...</p>
+                    </div>
+                  ) : (() => {
+                    const filtered = availableUsers.filter((u) => {
+                      if (editTeam?.members?.some((m: any) => m._id === u._id)) return false;
+                      if (busyMemberIds.has(u._id)) return false;
+                      return true;
+                    });
 
-                      if (filtered.length === 0) {
-                        return (
-                          <div className="py-4 px-2 text-sm text-gray-500 text-center">
-                            No available members
-                          </div>
-                        );
-                      }
-                      return filtered.map((user) => (
-                        <SelectItem key={user._id} value={user._id}>
-                          {user.firstName} {user.lastName}
-                          {user.email ? ` (${user.email})` : ""}
-                        </SelectItem>
-                      ));
-                    })()}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0"
-                  disabled={!editMemberUserId}
-                  onClick={async () => {
-                    if (!editTeam || !editMemberUserId) return;
-                    try {
-                      const response = await addMemberToTeam(editTeam._id, editMemberUserId);
-                      const updated = response.data;
-                      setEditTeam(updated);
-                      setTeams(teams.map((t) => t._id === editTeam._id ? updated : t));
-                      setEditMemberUserId("");
-                      toast.success("Member added");
-                    } catch {
-                      toast.error("Error adding member");
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="py-6 text-sm text-gray-400 text-center">
+                          No available members
+                        </div>
+                      );
                     }
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
+
+                    return filtered.map((user) => {
+                      const isSelected = editMemberUserId === user._id;
+                      const initials = `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
+                      const roleName = user.role?.name || 'user';
+                      const roleColors: Record<string, string> = {
+                        admin: 'bg-red-100 text-red-700',
+                        manager: 'bg-purple-100 text-purple-700',
+                        chef_projet: 'bg-blue-100 text-blue-700',
+                        technicien: 'bg-green-100 text-green-700',
+                        worker: 'bg-amber-100 text-amber-700',
+                        user: 'bg-gray-100 text-gray-600',
+                      };
+                      const roleColor = roleColors[roleName] || roleColors.user;
+                      return (
+                        <div
+                          key={user._id}
+                          onClick={() => setEditMemberUserId(isSelected ? '' : user._id)}
+                          className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors
+                            ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50 border-l-4 border-transparent'}`}
+                        >
+                          <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0
+                            ${isSelected ? 'bg-blue-500 text-white' : 'bg-gradient-to-br from-blue-400 to-purple-500 text-white'}`}>
+                            {initials || '?'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {user.firstName} {user.lastName}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${roleColor}`}>
+                            {roleName}
+                          </span>
+                          {isSelected && (
+                            <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
+
+              <Button
+                className="w-full bg-gray-900 hover:bg-gray-700 font-semibold"
+                disabled={!editMemberUserId}
+                onClick={async () => {
+                  if (!editTeam || !editMemberUserId) return;
+                  try {
+                    const response = await addMemberToTeam(editTeam._id, editMemberUserId);
+                    const updated = response.data;
+                    setEditTeam(updated);
+                    setTeams(teams.map((t) => t._id === editTeam._id ? updated : t));
+                    setEditMemberUserId("");
+                    toast.success("Member added");
+                  } catch {
+                    toast.error("Error adding member");
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
             </div>
 
             {/* Actions */}
