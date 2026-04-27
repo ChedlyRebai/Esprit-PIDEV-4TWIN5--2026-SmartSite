@@ -118,6 +118,7 @@ export default function Sites() {
   const currentProjectId = isProjectContext ? projectIdFromUrl : null;
 
   const [projectSiteLimit, setProjectSiteLimit] = useState<number | null>(null);
+  const [projectBudget, setProjectBudget] = useState<number | null>(null);
 
   useEffect(() => {
     if (isProjectContext && currentProjectId) {
@@ -125,6 +126,9 @@ export default function Sites() {
         .then(res => {
           if (res.data?.siteCount !== undefined) {
             setProjectSiteLimit(res.data.siteCount);
+          }
+          if (res.data?.budget !== undefined) {
+            setProjectBudget(res.data.budget);
           }
         })
         .catch(err => console.error('Error fetching project:', err));
@@ -548,6 +552,16 @@ export default function Sites() {
       newErrors.budget = 'Budget is required';
     } else if (parseInt(newSite.budget) <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
+    } else if (currentProjectId && projectBudget !== null) {
+      // Sum of existing sites budgets for this project
+      const existingSitesBudget = sites
+        .filter(s => s.projectId === currentProjectId)
+        .reduce((sum, s) => sum + (s.budget || 0), 0);
+      const newBudget = parseInt(newSite.budget);
+      if (existingSitesBudget + newBudget > projectBudget) {
+        const remaining = projectBudget - existingSitesBudget;
+        newErrors.budget = `Budget exceeds project limit. Remaining: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining > 0 ? remaining : 0)}`;
+      }
     }
 
     if (!mapPosition) {
@@ -1133,6 +1147,23 @@ export default function Sites() {
                             {errors.budget}
                           </p>
                         )}
+                        {!errors.budget && currentProjectId && projectBudget !== null && (() => {
+                          const existingSitesBudget = sites
+                            .filter(s => s.projectId === currentProjectId)
+                            .reduce((sum, s) => sum + (s.budget || 0), 0);
+                          const remaining = projectBudget - existingSitesBudget;
+                          const entered = parseInt(newSite.budget) || 0;
+                          const afterNew = existingSitesBudget + entered;
+                          const isOver = afterNew > projectBudget;
+                          return (
+                            <p className={`text-xs flex items-center gap-1 ${isOver ? 'text-red-500' : 'text-gray-500'}`}>
+                              {isOver
+                                ? `⚠ Exceeds project budget by ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(afterNew - projectBudget)}`
+                                : `Remaining project budget: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining)}`
+                              }
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
 
