@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Plus,
   Search,
@@ -7,6 +8,8 @@ import {
   Trash2,
   User,
   Building,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Card,
@@ -36,6 +39,7 @@ import {
 } from "../../components/ui/select";
 import { mockTeamMembers } from "../../utils/mockData";
 import { toast } from "sonner";
+import { TeamBiDashboard } from "../../components/TeamBiDashboard";
 import {
   getAllTeams,
   createTeam,
@@ -65,6 +69,7 @@ interface UserData {
   firstName: string;
   lastName: string;
   email: string;
+  role?: { name: string };
 }
 
 export default function Team() {
@@ -167,35 +172,97 @@ export default function Team() {
     }
   };
 
+  // busyMemberIds: set of user IDs who are in a team assigned to a site
+  // whose project is NOT completed/terminé
+  const [busyMemberIds, setBusyMemberIds] = useState<Set<string>>(new Set());
+
   // Load available users when member dialog opens
   useEffect(() => {
     if (memberDialogOpen) {
       loadAvailableUsers();
+      loadBusyMembers();
     }
   }, [memberDialogOpen]);
 
   const loadAvailableUsers = async () => {
     try {
+      setUserLoadingError(false);
       const response = await getAllUsers();
-      if (response?.status === 200 && Array.isArray(response.data)) {
+      if (response?.status === 200 && Array.isArray(response.data) && response.data.length > 0) {
         const normalizedUsers = response.data.map((user: any) => ({
           _id: String(user._id ?? user.id ?? ""),
           firstName: user.firstName || user.firstname || user.nom || "",
           lastName: user.lastName || user.lastname || user.prenom || "",
           email: user.email || "",
+          role: user.role || null,
         }));
         setAvailableUsers(normalizedUsers);
         setUserLoadingError(false);
-        return;
+      } else {
+        setUserLoadingError(true);
       }
-      // API response not valid, use mock data
-      
-      setUserLoadingError(true);
     } catch (err) {
       console.error("Error loading users:", err);
-      // Use mock data when API fails
-     
       setUserLoadingError(true);
+    }
+  };
+
+  // Build the set of "busy" member IDs:
+  // A member is busy if they belong to a team assigned to a site
+  // whose linked project is NOT completed/terminé
+  const loadBusyMembers = async () => {
+    try {
+      const SITE_URL = (import.meta as any).env?.VITE_GESTION_SITE_URL ?? "http://localhost:3001/api";
+      const PROJ_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL ?? "http://localhost:3010/api";
+
+      // 1. Fetch all sites (with projectId + teamIds)
+      const sitesRes = await axios.get(`${SITE_URL}/gestion-sites`, { params: { limit: 1000 } });
+      const allSites: any[] = sitesRes.data?.data || sitesRes.data || [];
+
+      // 2. Collect unique projectIds from sites that have teams assigned
+      const projectIds = [...new Set(
+        allSites
+          .filter((s: any) => s.teamIds?.length > 0 || s.teams?.length > 0)
+          .map((s: any) => s.projectId)
+          .filter(Boolean)
+      )];
+
+      // 3. Fetch those projects to get their status
+      const projectStatusMap: Record<string, string> = {};
+      await Promise.all(
+        projectIds.map(async (pid: string) => {
+          try {
+            const pRes = await axios.get(`${PROJ_URL}/projects/${pid}`);
+            projectStatusMap[pid] = pRes.data?.status || "";
+          } catch { /* ignore */ }
+        })
+      );
+
+      const DONE_STATUSES = ["completed", "terminé", "cancelled"];
+
+      // 4. For each site whose project is NOT done, collect all member IDs of assigned teams
+      const busy = new Set<string>();
+      allSites.forEach((site: any) => {
+        const projStatus = projectStatusMap[site.projectId] || "";
+        if (DONE_STATUSES.includes(projStatus)) return; // project done → members are free
+
+        const teamIdsOnSite: string[] = [
+          ...(site.teamIds || []).map((t: any) => String(t._id || t)),
+          ...(site.teams || []).map((t: any) => String(t._id || t)),
+        ];
+
+        teamIdsOnSite.forEach((tid) => {
+          const team = teams.find((t) => t._id === tid);
+          team?.members?.forEach((m: any) => {
+            if (m._id) busy.add(String(m._id));
+          });
+        });
+      });
+
+      setBusyMemberIds(busy);
+    } catch (err) {
+      console.error("loadBusyMembers error:", err);
+      setBusyMemberIds(new Set());
     }
   };
 
@@ -205,6 +272,19 @@ export default function Team() {
       team.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.teamCode?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  const TEAM_PAGE_SIZE = 6;
+  const [teamPage, setTeamPage] = useState(1);
+  const teamTotalPages = Math.ceil(filteredTeams.length / TEAM_PAGE_SIZE);
+  const paginatedTeams = filteredTeams.slice(
+    (teamPage - 1) * TEAM_PAGE_SIZE,
+    teamPage * TEAM_PAGE_SIZE
+  );
+
+  // Reset page when search changes
+  useEffect(() => {
+    setTeamPage(1);
+  }, [searchTerm]);
 
   // Helper function to check if a team is assigned to a site
   const isTeamAssignedToSite = (teamId: string) => {
@@ -533,64 +613,8 @@ export default function Team() {
 
   return (
     <div className="space-y-6">
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Total Teams</p>
-                <p className="text-2xl font-bold">{totalTeams}</p>
-              </div>
-              <div className="bg-white/20 rounded-full p-2">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">Active Teams</p>
-                <p className="text-2xl font-bold">{activeTeams}</p>
-              </div>
-              <div className="bg-white/20 rounded-full p-2">
-                <Building className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">Inactive Teams</p>
-                <p className="text-2xl font-bold">{inactiveTeams}</p>
-              </div>
-              <div className="bg-white/20 rounded-full p-2">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm">Total Members</p>
-                <p className="text-2xl font-bold">{totalMembers}</p>
-              </div>
-              <div className="bg-white/20 rounded-full p-2">
-                <User className="h-6 w-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* BI Dashboard */}
+      <TeamBiDashboard teams={teams} />
 
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -945,51 +969,98 @@ export default function Team() {
                         <DialogTitle>Add Member</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <Select
-                          value={selectedUserId}
-                          onValueChange={setSelectedUserId}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a member" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(() => {
-                              // Filter users: not in current team, not in team assigned to active site (not completed)
-                              const availableForSelection = availableUsers
-                                .filter((u) => {
-                                  // Not already in this team
-                                  if (selectedTeamView?.members?.some((m: any) => m._id === u._id)) {
-                                    return false;
-                                  }
-                                  // Check if user is in a team assigned to a site that's NOT completed
-                                  const userInActiveAssignedTeam = Object.entries(teamSiteAssignments).find(
-                                    ([teamId, assignment]) => {
-                                      const team = teams.find(t => t._id === teamId);
-                                      const isMemberOfTeam = team?.members?.some((m: any) => m._id === u._id);
-                                      const isSiteCompleted = assignment.status === 'completed';
-                                      return isMemberOfTeam && !isSiteCompleted;
-                                    }
-                                  );
-                                  // Allow if not in any active assigned team (site not completed)
-                                  return !userInActiveAssignedTeam;
-                                });
+                        {/* Scrollable user list */}
+                        <div className="border rounded-xl overflow-hidden">
+                          <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                            {userLoadingError ? (
+                              <div className="py-8 text-center">
+                                <p className="text-sm text-red-500 font-medium">Failed to load users</p>
+                                <button
+                                  className="text-xs text-blue-500 underline mt-1"
+                                  onClick={loadAvailableUsers}
+                                >
+                                  Retry
+                                </button>
+                              </div>
+                            ) : availableUsers.length === 0 ? (
+                              <div className="py-8 flex flex-col items-center gap-2">
+                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent" />
+                                <p className="text-sm text-gray-400">Loading users...</p>
+                              </div>
+                            ) : (() => {
+                              // Filter: exclude members already in this team
+                              // AND exclude members busy on an active project (not completed/terminé)
+                              const availableForSelection = availableUsers.filter((u) => {
+                                if (selectedTeamView?.members?.some((m: any) => m._id === u._id)) return false;
+                                if (busyMemberIds.has(u._id)) return false;
+                                return true;
+                              });
+
                               if (availableForSelection.length === 0) {
                                 return (
-                                  <div className="py-4 px-2 text-sm text-gray-500 text-center">
-                                    Aucun utilisateur disponible
+                                  <div className="py-8 text-sm text-gray-400 text-center">
+                                    No available users
                                   </div>
                                 );
                               }
-                              return availableForSelection.map((user) => (
-                                <SelectItem key={user._id} value={user._id}>
-                                  {user.firstName} {user.lastName} ({user.email})
-                                </SelectItem>
-                              ));
+
+                              return availableForSelection.map((user) => {
+                                const isSelected = selectedUserId === user._id;
+                                const initials = `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
+                                const roleName = user.role?.name || 'user';
+                                const roleColors: Record<string, string> = {
+                                  admin: 'bg-red-100 text-red-700',
+                                  manager: 'bg-purple-100 text-purple-700',
+                                  chef_projet: 'bg-blue-100 text-blue-700',
+                                  technicien: 'bg-green-100 text-green-700',
+                                  worker: 'bg-amber-100 text-amber-700',
+                                  user: 'bg-gray-100 text-gray-600',
+                                };
+                                const roleColor = roleColors[roleName] || roleColors.user;
+
+                                return (
+                                  <div
+                                    key={user._id}
+                                    onClick={() => setSelectedUserId(isSelected ? '' : user._id)}
+                                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors
+                                      ${isSelected
+                                        ? 'bg-blue-50 border-l-4 border-blue-500'
+                                        : 'hover:bg-gray-50 border-l-4 border-transparent'
+                                      }`}
+                                  >
+                                    {/* Avatar */}
+                                    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0
+                                      ${isSelected ? 'bg-blue-500 text-white' : 'bg-gradient-to-br from-blue-400 to-purple-500 text-white'}`}>
+                                      {initials || '?'}
+                                    </div>
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-gray-900 truncate">
+                                        {user.firstName} {user.lastName}
+                                      </p>
+                                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                                    </div>
+                                    {/* Role badge */}
+                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${roleColor}`}>
+                                      {roleName}
+                                    </span>
+                                    {/* Check */}
+                                    {isSelected && (
+                                      <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              });
                             })()}
-                          </SelectContent>
-                        </Select>
+                          </div>
+                        </div>
+
                         <Button
-                          className="w-full"
+                          className="w-full bg-gray-900 hover:bg-gray-700 font-semibold"
                           onClick={handleAddMember}
                           disabled={!selectedUserId}
                         >
@@ -1001,37 +1072,52 @@ export default function Team() {
                 )}
               </div>
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {selectedTeamView?.members?.map((member: any) => (
+                {selectedTeamView?.members?.map((member: any) => {
+                  const initials = `${member.firstName?.charAt(0) || ''}${member.lastName?.charAt(0) || ''}`.toUpperCase();
+                  const roleName = member.role?.name || 'user';
+                  const roleColors: Record<string, string> = {
+                    admin: 'bg-red-100 text-red-700',
+                    manager: 'bg-purple-100 text-purple-700',
+                    chef_projet: 'bg-blue-100 text-blue-700',
+                    technicien: 'bg-green-100 text-green-700',
+                    worker: 'bg-amber-100 text-amber-700',
+                    user: 'bg-gray-100 text-gray-600',
+                  };
+                  const roleColor = roleColors[roleName] || roleColors.user;
+                  return (
                   <div
                     key={member._id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                    className="flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
                   >
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
-                          {member.firstName?.charAt(0)}
-                          {member.lastName?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        {initials || '?'}
+                      </div>
                       <div>
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-semibold text-gray-900">
                           {member.firstName} {member.lastName}
                         </p>
-                        <p className="text-xs text-gray-500">{member.email}</p>
+                        <p className="text-xs text-gray-400">{member.email}</p>
                       </div>
                     </div>
-                    {canManageTeam && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleRemoveMember(member._id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>
+                        {roleName}
+                      </span>
+                      {canManageTeam && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                          onClick={() => handleRemoveMember(member._id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
                 {(!selectedTeamView?.members ||
                   selectedTeamView.members.length === 0) && (
                   <p className="text-sm text-gray-500 text-center py-4">
@@ -1072,7 +1158,7 @@ export default function Team() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTeams.map((team) => (
+                {paginatedTeams.map((team) => (
                   <Card
                     key={team._id}
                     className="hover:shadow-md transition-shadow cursor-pointer"
@@ -1157,6 +1243,44 @@ export default function Team() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {!loading && filteredTeams.length > 0 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-gray-500">
+            Showing {(teamPage - 1) * TEAM_PAGE_SIZE + 1}–{Math.min(teamPage * TEAM_PAGE_SIZE, filteredTeams.length)} of {filteredTeams.length} teams
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setTeamPage(p => Math.max(1, p - 1))}
+              disabled={teamPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: teamTotalPages }, (_, i) => i + 1).map(page => (
+              <Button
+                key={page}
+                variant={page === teamPage ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTeamPage(page)}
+                className={`h-8 w-8 p-0 ${page === teamPage ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setTeamPage(p => Math.min(teamTotalPages, p + 1))}
+              disabled={teamPage === teamTotalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
