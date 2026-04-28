@@ -21,6 +21,7 @@ export class AppController {
     resources:    (process.env.RESOURCE_OPTIMIZATION_URL ?? 'http://localhost:3007') + '/api',
     // incident-management has no global prefix
     incidents:    process.env.INCIDENT_URL                ?? 'http://localhost:3003',
+    users:       process.env.USER_AUTHENTICATION_URL       ?? 'http://localhost:3000',
   };
 
   // ── Generic proxy ───────────────────────────────────────────────────────────
@@ -149,5 +150,10 @@ export class AppController {
   @All(['incidents', 'incidents/*path'])
   handleIncidents(@Req() req: Request, @Res() res: Response) {
     return this.proxy(req, res, 'incidents', 'incidents');
+  }
+
+  @All(['users', 'users/*path'])
+  handleUsers(@Req() req: Request, @Res() res: Response) {
+    return this.proxy(req, res, 'users', 'users');
   }
 }
