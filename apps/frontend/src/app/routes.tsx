@@ -113,15 +113,9 @@ export const router = createBrowserRouter([
     path: "/",
     element: (
       <ProtectedRoute>
-<<<<<<< HEAD
-        {/* <RoutePermissionGuard> */}
-        <DashboardLayout />
-        {/* </RoutePermissionGuard> */}
-=======
-        
+        <RoutePermissionGuard>
           <DashboardLayout />
-        
->>>>>>> origin/main
+        </RoutePermissionGuard>
       </ProtectedRoute>
     ),
     children: [
@@ -194,7 +188,14 @@ export const router = createBrowserRouter([
         path: "projects",
         element: <Projects />,
       },
-      
+      {
+        path: "projects",
+        element: <Projects />,
+      },
+      {
+        path: "projects",
+        element: <Projects />,
+      },
       {
         path: "projects/:projectId/sites",
         element: <Sites />,
@@ -264,8 +265,8 @@ export const router = createBrowserRouter([
         element: <Clients />,
       },
       {
-        path: "reset-password-first-login",
-        element: <ChangePasswordFirstLogin />,
+        path:"reset-password-first-login",
+        element:<ChangePasswordFirstLogin />
       },
       {
         path: "finance",
