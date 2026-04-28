@@ -1,7 +1,7 @@
 # SmartSite Platform – Construction Site Management Application
 
 ## Overview
-This project was developed as part of the PIDEV program in the 3rd year engineering curriculum at **Esprit School of Engineering** (Academic Year 2025–2026).
+This project was developed as part of the PIDEV program in the 4rd year engineering curriculum at **Esprit School of Engineering** (Academic Year 2025–2026).
 
 SmartSite Platform is a full-stack web application designed to manage construction sites through a microservices architecture. It centralizes site operations such as project planning, materials and suppliers management, incident handling, user authentication, and resource optimization, while providing a modern frontend for operational monitoring and decision support.
 
@@ -30,7 +30,7 @@ SmartSite Platform is a full-stack web application designed to manage constructi
 - MongoDB
 - REST APIs
 - Docker
-- Jenkins and SonarQube (in several service pipelines)
+- Jenkins and SonarQube 
 
 ## Architecture
 Monorepo structure:
@@ -65,9 +65,9 @@ PIDEV – 4 TWIN 5 | 2025–2026
 
 ## Getting Started
 ### Prerequisites
-- Node.js (recommended LTS)
+- Node.js 
 - npm
-- MongoDB (local or cloud instance)
+- MongoDB 
 
 ### Installation
 1. Clone the repository
