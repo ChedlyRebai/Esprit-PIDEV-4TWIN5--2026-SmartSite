@@ -19,16 +19,6 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    proxy: {
-      '/api/fournisseurs': {
-        target: 'http://localhost:3005',
-        changeOrigin: true,
-      },
-      '/fournisseurs': {
-        target: 'http://localhost:3005',
-        changeOrigin: true,
-      },
-    },
   },
   assetsInclude: ["**/*.svg", "**/*.csv"],
   optimizeDeps: {
