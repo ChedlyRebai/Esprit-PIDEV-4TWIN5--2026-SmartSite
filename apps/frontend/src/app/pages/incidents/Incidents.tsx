@@ -233,7 +233,7 @@ export default function Incidents() {
     setCurrentPage(1); // Réinitialiser à la première page lors de la recherche
   }, [incidents, searchTerm]);
 
-  // Calculer les incidents pour la page actuelle
+  // Calculate incidents for the current page
   const indexOfLastIncident = currentPage * incidentsPerPage;
   const indexOfFirstIncident = indexOfLastIncident - incidentsPerPage;
   const currentIncidents = filteredIncidents.slice(
@@ -241,7 +241,7 @@ export default function Incidents() {
     indexOfLastIncident,
   );
 
-  // Calculer le nombre total de pages
+  // Calculate total number of pages
   const totalPages = Math.ceil(filteredIncidents.length / incidentsPerPage);
 
   // Utilisateurs disponibles pour assignation (comptes déjà créés/validés)
@@ -316,7 +316,7 @@ export default function Incidents() {
         if (!token) {
           console.error("❌ Frontend: Aucun token disponible");
           toast.error(
-            "Veuillez vous reconnecter - Token manquant dans localStorage",
+            "Please log in again - Token missing from localStorage",
           );
           return;
         }
@@ -377,7 +377,7 @@ export default function Incidents() {
           console.error("❌ Frontend: Status:", error.response.status);
           console.error("❌ Frontend: Data:", error.response.data);
         }
-        toast.error("Erreur lors du chargement des utilisateurs");
+        toast.error("Error loading users");
       }
     };
 
@@ -434,11 +434,11 @@ export default function Incidents() {
 
     loadIncidents();
 
-    // Écouter les événements du badge (quand un incident est traité/supprimé depuis /sites)
+    // Listen to badge events (when an incident is resolved/deleted from /sites)
     const unsubscribeUpdated = incidentEvents.on('updated', (data) => {
       console.log('📢 Incident page received update:', data);
-      toast.success('✅ Incident traité', {
-        description: `L'incident a été marqué comme traité depuis la page Sites/Projets`,
+      toast.success('✅ Incident resolved', {
+        description: `The incident was marked as resolved from the Sites/Projects page`,
         duration: 5000,
       });
       // Rafraîchir la liste
@@ -447,8 +447,8 @@ export default function Incidents() {
 
     const unsubscribeDeleted = incidentEvents.on('deleted', (data) => {
       console.log('📢 Incident page received delete:', data);
-      toast.error('🗑️ Incident supprimé', {
-        description: `L'incident a été supprimé depuis la page Sites/Projets`,
+      toast.error('🗑️ Incident deleted', {
+        description: `The incident was deleted from the Sites/Projects page`,
         duration: 5000,
       });
       // Rafraîchir la liste
@@ -594,7 +594,7 @@ export default function Incidents() {
         siteId: "",
       });
 
-      toast.success("Incident enregistré avec succès dans la base de données");
+      toast.success("Incident saved successfully to database");
     } catch (error:any) {
       console.error(
         "❌ Frontend: Erreur lors de la sauvegarde de l'incident:",
@@ -604,7 +604,7 @@ export default function Incidents() {
         console.error("❌ Frontend: Status:", error.response.status);
         console.error("❌ Frontend: Data:", error.response.data);
       }
-      toast.error("Erreur lors de l'enregistrement de l'incident");
+      toast.error("Error saving the incident");
     }
   };
 
@@ -630,13 +630,13 @@ export default function Incidents() {
         status: "success",
       });
 
-      toast.success("Incident marqué comme résolu");
+      toast.success("Incident marked as resolved");
     } catch (error) {
       console.error(
         "❌ Frontend: Erreur lors de la résolution de l'incident:",
         error,
       );
-      toast.error("Erreur lors de la résolution de l'incident");
+      toast.error("Error resolving the incident");
     }
   };
 
@@ -667,20 +667,20 @@ export default function Incidents() {
         status: "success",
       });
 
-      toast.success("Incident supprimé avec succès");
+      toast.success("Incident deleted successfully");
     } catch (error) {
       console.error(
         "❌ Frontend: Erreur lors de la suppression de l'incident:",
         error,
       );
-      toast.error("Erreur lors de la suppression de l'incident");
+      toast.error("Error deleting the incident");
     }
   };
 
   // Fonction pour assigner un incident à un utilisateur
   const handleAssignIncident = async () => {
     if (!selectedIncident || !targetUserCin.trim()) {
-      toast.error("Veuillez spécifier le CIN de l'utilisateur");
+      toast.error("Please specify the user's CIN");
       return;
     }
 
@@ -694,7 +694,7 @@ export default function Incidents() {
       setFoundUser(user);
       toast.success(`Incident assigné à ${user.name} (${user.cin})`);
     } else {
-      toast.error("Utilisateur non trouvé pour ce CIN");
+      toast.error("User not found for this CIN");
     }
 
     setIsSearchingUser(false);
@@ -707,17 +707,17 @@ export default function Incidents() {
     setSelectedRole("all");
   };
 
-  // Fonction pour sélectionner un utilisateur pour l'incident
+  // Function to select a user for the incident
   const selectUserForIncident = (user: any) => {
     setSelectedUserForIncident(user);
     setShowUserSelectDialog(false);
-    toast.success(`Utilisateur ${user.name} sélectionné pour l'incident`);
+    toast.success(`User ${user.name} selected for the incident`);
   };
 
-  // Fonction pour générer une description avec l'IA
+  // Function to generate a description with AI
   const generateDescriptionWithAI = async () => {
     if (!newIncident.type || !newIncident.severity) {
-      toast.error("Veuillez sélectionner le type et la gravité de l'incident");
+      toast.error("Please select the incident type and severity");
       return;
     }
 
@@ -729,36 +729,36 @@ export default function Incidents() {
 
       const descriptions = {
         safety: {
-          low: "Incident mineur de sécurité : situation contrôlée sans risque immédiat pour le personnel. Mesures préventives recommandées pour éviter récurrence.",
+          low: "Minor safety incident: controlled situation with no immediate risk to personnel. Preventive measures recommended to avoid recurrence.",
           medium:
-            "Incident de sécurité modéré : risque potentiel pour le personnel avec nécessité d'intervention immédiate. Évaluation des procédures de sécurité requise.",
-          high: "Incident de sécurité majeur : risque élevé pour le personnel avec arrêt temporaire des activités. Investigation complète et plan d'action corrective urgent.",
+            "Moderate safety incident: potential risk to personnel requiring immediate intervention. Safety procedure review required.",
+          high: "Major safety incident: high risk to personnel with temporary activity stoppage. Complete investigation and urgent corrective action required.",
           critical:
-            "Incident critique de sécurité : danger immédiat et grave pour le personnel. Évacuation et arrêt complet des activités en cours. Intervention d'urgence requise.",
+            "Critical safety incident: immediate and serious danger to personnel. Evacuation and complete activity stoppage required. Emergency intervention needed.",
         },
         quality: {
-          low: "Non-conformité qualité mineure : écart acceptable dans les tolérances standards. Action corrective simple et rapide à mettre en œuvre.",
+          low: "Minor quality non-conformity: acceptable variance within standard tolerances. Simple and quick corrective action required.",
           medium:
-            "Non-conformité qualité modérée : impact sur les spécifications du produit. Analyse des causes et mise en place de mesures correctives.",
-          high: "Non-conformité qualité majeure : impact significatif sur la performance du produit. Arrêt de production et investigation complète requise.",
+            "Moderate quality non-conformity: impact on product specifications. Root cause analysis and corrective measures implementation required.",
+          high: "Major quality non-conformity: significant impact on product performance. Production stoppage and complete investigation required.",
           critical:
-            "Non-conformité qualité critique : défaillance complète du produit. Rappel produit possible et révision complète du processus qualité.",
+            "Critical quality non-conformity: complete product failure. Product recall possible and complete quality process review required.",
         },
         delay: {
-          low: "Retard mineur : impact négligeable sur le planning. Rattrapage possible sans ressources supplémentaires.",
+          low: "Minor delay: negligible impact on schedule. Recovery possible without additional resources.",
           medium:
-            "Retard modéré : impact sur le planning avec nécessité de réorganisation. Communication aux parties prenantes requise.",
-          high: "Retard majeur : impact significatif sur le planning et budget. Plan de récupération urgent et réévaluation des délais.",
+            "Moderate delay: impact on schedule requiring reorganization. Stakeholder communication required.",
+          high: "Major delay: significant impact on schedule and budget. Urgent recovery plan and schedule re-evaluation required.",
           critical:
-            "Retard critique : arrêt du projet avec impact contractuel. Négociation avec client et révision complète du planning.",
+            "Critical delay: project stoppage with contractual impact. Client negotiation and complete schedule revision required.",
         },
         other: {
-          low: "Incident mineur : situation gérable avec les ressources actuelles. Monitoring et documentation suffisants.",
+          low: "Minor incident: manageable situation with current resources. Monitoring and documentation sufficient.",
           medium:
-            "Incident modéré : nécessite une attention particulière et des ressources additionnelles. Plan d'action à définir.",
-          high: "Incident majeur : impact significatif sur les opérations. Intervention immédiate et coordination d'équipe requise.",
+            "Moderate incident: requires special attention and additional resources. Action plan to be defined.",
+          high: "Major incident: significant operational impact. Immediate intervention and team coordination required.",
           critical:
-            "Incident critique : urgence absolue avec impact sur plusieurs départements. Mobilisation de toutes les ressources nécessaires.",
+            "Critical incident: absolute emergency with multi-department impact. Mobilization of all necessary resources required.",
         },
       };
 
@@ -766,57 +766,57 @@ export default function Incidents() {
         descriptions[newIncident.type as keyof typeof descriptions]?.[
         newIncident.severity as keyof typeof descriptions.safety
         ] ||
-        "Description générée automatiquement pour cet incident. Veuillez compléter avec les détails spécifiques.";
+        "Auto-generated description for this incident. Please complete with specific details.";
 
       setNewIncident({ ...newIncident, description: generatedDescription });
-      toast.success("Description générée avec succès par l'IA");
+      toast.success("Description generated successfully by AI");
     } catch (error) {
-      console.error("Erreur lors de la génération IA:", error);
-      toast.error("Erreur lors de la génération de la description");
+      console.error("Error during AI generation:", error);
+      toast.error("Error generating the description");
     } finally {
       setIsGeneratingDescription(false);
     }
   };
 
-  // Fonction pour filtrer les utilisateurs par rôle
+  // Function to filter users by role
   const getUniqueRoles = () => {
     const roles = allUsers.map((user) => user.role?.name).filter(Boolean);
     return ["all", ...Array.from(new Set(roles))];
   };
 
-  // Fonction pour exporter un incident en PDF
+  // Function to export an incident as PDF
   const handleExportPDF = (incident: any) => {
-    // Créer le contenu du PDF
+    // Create PDF content
     const pdfContent = `
 ==========================================
-RAPPORT D'INCIDENT - SMARTSITE PLATFORM
+INCIDENT REPORT - SMARTSITE PLATFORM
 ==========================================
 
-INFORMATIONS DE L'INCIDENT
+INCIDENT INFORMATION
 ---------------------------
 ID: ${incident.id}
 Type: ${incident.type?.toUpperCase() || "N/A"}
-Gravité: ${incident.severity?.toUpperCase() || "N/A"}
-Statut: ${incident.status?.toUpperCase() || "N/A"}
-Date de création: ${new Date(incident.createdAt).toLocaleString("fr-FR")}
+Severity: ${incident.severity?.toUpperCase() || "N/A"}
+Status: ${incident.status?.toUpperCase() || "N/A"}
+Creation Date: ${new Date(incident.createdAt).toLocaleString("en-US")}
 
 DESCRIPTION
 -----------
 ${incident.description || "N/A"}
 
-INFORMATIONS DU RAPPORTEUR
+REPORTER INFORMATION
 -------------------------
-Nom: ${incident.reportedBy || "N/A"}
-Date du rapport: ${new Date().toLocaleString("fr-FR")}
-Généré par: SmartSite Platform
+Name: ${incident.reportedBy || "N/A"}
+Report Date: ${new Date().toLocaleString("en-US")}
+Generated by: SmartSite Platform
 
 ==========================================
-Ce rapport est généré automatiquement par la plateforme SmartSite.
-Pour toute question, veuillez contacter l'administrateur système.
+This report is auto-generated by SmartSite Platform.
+For any questions, please contact the system administrator.
 ==========================================
     `;
 
-    // Créer un Blob et le télécharger
+    // Create Blob and download
     const blob = new Blob([pdfContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -827,7 +827,7 @@ Pour toute question, veuillez contacter l'administrateur système.
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast.success("Rapport d'incident exporté avec succès !");
+    toast.success("Incident report exported successfully !");
   };
 
   // Fonction pour afficher les détails d'un incident
@@ -949,7 +949,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                           ) : (
                             <>
                               <Sparkles className="h-4 w-4" />
-                              Générer avec l'IA
+                              Generate with AI
                             </>
                           )}
                         </Button>
@@ -957,10 +957,10 @@ Pour toute question, veuillez contacter l'administrateur système.
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="incidentName">Nom de l'incident</Label>
+                    <Label htmlFor="incidentName">Incident Name</Label>
                     <Input
                       id="incidentName"
-                      placeholder="Donnez un nom à cet incident (optionnel)"
+                      placeholder="Give this incident a name (optional)"
                       value={newIncident.incidentName}
                       onChange={(e) =>
                         setNewIncident({
@@ -971,10 +971,10 @@ Pour toute question, veuillez contacter l'administrateur système.
                       className="w-full"
                     />
                   </div>
-                  {/* Sélection du Projet */}
+                  {/* Project Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="projectId">
-                      📁 Projet (optionnel)
+                      📁 Project (optional)
                     </Label>
                     <Select
                       value={newIncident.projectId || "none"}
@@ -989,16 +989,16 @@ Pour toute question, veuillez contacter l'administrateur système.
                       disabled={isLoadingProjects}
                     >
                       <SelectTrigger id="projectId">
-                        <SelectValue placeholder={isLoadingProjects ? "Chargement..." : "Sélectionner un projet"} />
+                        <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select a project"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">🚫 Aucun projet</SelectItem>
+                        <SelectItem value="none">🚫 No project</SelectItem>
                         {Array.isArray(projects) && projects.map((p) => (
                           <SelectItem key={p._id || p.id} value={p._id || p.id}>
                             <div className="flex flex-col items-start">
                               <span className="font-medium">{p.name}</span>
                               <span className="text-xs text-muted-foreground">
-                                {p.description?.substring(0, 50) || "Pas de description"}
+                                {p.description?.substring(0, 50) || "No description"}
                               </span>
                             </div>
                           </SelectItem>
@@ -1007,15 +1007,15 @@ Pour toute question, veuillez contacter l'administrateur système.
                     </Select>
                     {projects.length === 0 && !isLoadingProjects && (
                       <p className="text-xs text-gray-500">
-                        ⚠️ Aucun projet disponible
+                        ⚠️ No projects available
                       </p>
                     )}
                   </div>
 
-                  {/* Sélection du Site */}
+                  {/* Site Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="siteId">
-                      🏗️ Site (optionnel)
+                      🏗️ Site (optional)
                     </Label>
                     <Select
                       value={newIncident.siteId || "none"}
@@ -1028,10 +1028,10 @@ Pour toute question, veuillez contacter l'administrateur système.
                       disabled={isLoadingSites}
                     >
                       <SelectTrigger id="siteId">
-                        <SelectValue placeholder={isLoadingSites ? "Chargement..." : "Sélectionner un site"} />
+                        <SelectValue placeholder={isLoadingSites ? "Loading..." : "Select a site"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">🚫 Aucun site</SelectItem>
+                        <SelectItem value="none">🚫 No site</SelectItem>
                         {Array.isArray(sites) && sites
                           .filter((s) =>
                             // Si un projet est sélectionné, ne montrer que les sites de ce projet
@@ -1044,7 +1044,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                               <div className="flex flex-col items-start">
                                 <span className="font-medium">{s.nom || s.name}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {s.localisation || s.address || "Pas d'adresse"}
+                                  {s.localisation || s.address || "No address"}
                                 </span>
                               </div>
                             </SelectItem>
@@ -1053,19 +1053,19 @@ Pour toute question, veuillez contacter l'administrateur système.
                     </Select>
                     {sites.length === 0 && !isLoadingSites && (
                       <p className="text-xs text-gray-500">
-                        ⚠️ Aucun site disponible
+                        ⚠️ No sites available
                       </p>
                     )}
                     {newIncident.projectId && (
                       <p className="text-xs text-gray-500">
-                        💡 Sites filtrés par le projet sélectionné
+                        💡 Sites filtered by selected project
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="assignedUserCin">
-                      Assigner à un utilisateur (optionnel)
+                      Assign to a user (optional)
                     </Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <Select
@@ -1073,10 +1073,10 @@ Pour toute question, veuillez contacter l'administrateur système.
                         onValueChange={setAssignRoleFilter}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="🎭 Filtrer par rôle" />
+                          <SelectValue placeholder="🎭 Filter by role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">🎭 Tous les rôles ({assignableUsers.length})</SelectItem>
+                          <SelectItem value="all">🎭 All roles ({assignableUsers.length})</SelectItem>
                           {assignableRoles.map((role) => {
                             const count = assignableUsers.filter(u => u.role?.name === role).length;
                             return (
@@ -1090,7 +1090,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                       <div className="relative">
                         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                         <Input
-                          placeholder="🔍 Rechercher nom ou CIN"
+                          placeholder="🔍 Search name or CIN"
                           value={assignCinSearch}
                           onChange={(e) => setAssignCinSearch(e.target.value)}
                           className="pl-10"
@@ -1112,10 +1112,10 @@ Pour toute question, veuillez contacter l'administrateur système.
                       }
                     >
                       <SelectTrigger id="assignedUserCin">
-                        <SelectValue placeholder="👤 Sélectionner un utilisateur" />
+                        <SelectValue placeholder="👤 Select a user" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">🚫 Non assigné</SelectItem>
+                        <SelectItem value="none">🚫 Not assigned</SelectItem>
                         {filteredAssignableUsers.map((u) => (
                           <SelectItem key={u._id} value={u.cin}>
                             <div className="flex flex-col items-start">
@@ -1132,7 +1132,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                     </Select>
                     <Input
                       id="manualCin"
-                      placeholder="Ou entrer manuellement un CIN"
+                      placeholder="Or enter a CIN manually"
                       value={newIncident.assignedUserCin}
                       onChange={(e) =>
                         setNewIncident({
@@ -1146,19 +1146,19 @@ Pour toute question, veuillez contacter l'administrateur système.
                     />
                     <div className="text-xs text-gray-500 space-y-1">
                       <p>
-                        💡 <strong>Utilisateurs disponibles:</strong> {filteredAssignableUsers.length} sur {assignableUsers.length}
+                        💡 <strong>Available users:</strong> {filteredAssignableUsers.length} of {assignableUsers.length}
                       </p>
                       <p>
-                        Choisir depuis la base, filtrer par rôle, ou saisir directement le CIN.
+                        Choose from the list, filter by role, or enter CIN manually.
                       </p>
                       {assignCinSearch && (
                         <p>
-                          🔍 Recherche: "{assignCinSearch}" - {filteredAssignableUsers.length} résultat(s)
+                          🔍 Search: "{assignCinSearch}" - {filteredAssignableUsers.length} result(s)
                         </p>
                       )}
                       {assignRoleFilter !== "all" && (
                         <p>
-                          🎭 Filtre rôle: {assignRoleFilter} - {filteredAssignableUsers.length} utilisateur(s)
+                          🎭 Role filter: {assignRoleFilter} - {filteredAssignableUsers.length} user(s)
                         </p>
                       )}
                     </div>
@@ -1266,7 +1266,7 @@ Pour toute question, veuillez contacter l'administrateur système.
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
                 <Input
-                  placeholder="Rechercher par nom d'incident, type..."
+                  placeholder="Search by incident name, type..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-64"
@@ -1282,7 +1282,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                 <AlertTriangle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">
                   {searchTerm
-                    ? "Aucun incident trouvé pour cette recherche"
+                    ? "No incidents found for this search"
                     : "No incidents reported"}
                 </p>
               </div>
@@ -1704,14 +1704,14 @@ Pour toute question, veuillez contacter l'administrateur système.
                 variant="outline"
                 onClick={() => setShowUserSelectDialog(false)}
               >
-                Fermer
+                Close
               </Button>
               {selectedUserForIncident && (
                 <Button
                   onClick={() => {
                     if (selectedIncident) {
                       toast.success(
-                        `Incident assigné à ${selectedUserForIncident.firstname} ${selectedUserForIncident.lastname}`,
+                        `Incident assigned to ${selectedUserForIncident.firstname} ${selectedUserForIncident.lastname}`,
                       );
                       setShowUserSelectDialog(false);
                       setSelectedUserForIncident(null);
@@ -1719,7 +1719,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   }}
                 >
                   <Send className="h-3 w-3 mr-1" />
-                  Confirmer l'assignation
+                  Confirm Assignment
                 </Button>
               )}
             </div>
@@ -1736,15 +1736,15 @@ Pour toute question, veuillez contacter l'administrateur système.
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Détails de l'Incident
+              Incident Details
             </DialogTitle>
             <DialogDescription>
-              Informations complètes sur l'incident sélectionné
+              Complete information about the selected incident
             </DialogDescription>
           </DialogHeader>
           {selectedIncidentDetails && (
             <div className="space-y-4">
-              {/* En-tête avec statut et sévérité */}
+              {/* Header with status and severity */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1799,7 +1799,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-700">
-                      Signalé par
+                      Reported by
                     </Label>
                     <p className="text-sm text-gray-900 dark:text-white">
                       {selectedIncidentDetails.reportedBy}
@@ -1807,7 +1807,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-700">
-                      Date de création
+                      Creation Date
                     </Label>
                     <p className="text-sm text-gray-900 dark:text-white">
                       {new Date(
@@ -1817,7 +1817,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-700">
-                      Dernière mise à jour
+                      Last Updated
                     </Label>
                     <p className="text-sm text-gray-900 dark:text-white">
                       {selectedIncidentDetails.updatedAt
@@ -1840,7 +1840,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   {(selectedIncidentDetails as any).assignedTo && (
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
-                        Assigné à
+                        Assigned to
                       </Label>
                       <div className="flex items-center gap-2 mt-1">
                         <User className="h-4 w-4 text-blue-600" />
@@ -1866,7 +1866,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                 <div className="mt-1 p-3 bg-gray-50 rounded-md">
                   <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
                     {selectedIncidentDetails.description ||
-                      "Aucune description fournie"}
+                      "No description provided"}
                   </p>
                 </div>
               </div>
