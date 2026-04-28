@@ -23,7 +23,7 @@ interface RateSupplierModalProps {
   criteriaAverages?: Record<string, number>;
 }
 
-const API_URL = 'http://localhost:3010/suppliers';
+const API_URL = 'http://localhost:3014/suppliers';
 
 export default function RateSupplierModal({
   isOpen,

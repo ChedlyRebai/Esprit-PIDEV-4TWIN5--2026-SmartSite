@@ -36,8 +36,8 @@ import {
   Calendar,
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:3010/suppliers';
-const FILES_URL = 'http://localhost:3010';
+const API_URL = 'http://localhost:3014/suppliers';
+const FILES_URL = 'http://localhost:3014';
 
 interface Supplier {
   _id: string;

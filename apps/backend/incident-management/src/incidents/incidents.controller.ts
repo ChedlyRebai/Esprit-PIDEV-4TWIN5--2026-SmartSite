@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from "@nestjs/common";
 import { IncidentsService } from "./incidents.service";
 import { CreateIncidentDto } from "./dto/create-incident.dto";
@@ -42,6 +43,19 @@ export class IncidentsController {
     return { count, projectId };
   }
 
+  @Get("dashboard/stats")
+  getDashboardStats(
+    @Query("assignedToCin") assignedToCin?: string,
+    @Query("projectId") projectId?: string,
+    @Query("siteId") siteId?: string,
+  ) {
+    return this.incidentsService.getDashboardStats({
+      assignedToCin,
+      projectId,
+      siteId,
+    });
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.incidentsService.findOne(id);
@@ -55,11 +69,6 @@ export class IncidentsController {
   @Put(":id")
   update(@Param("id") id: string, @Body() dto: UpdateIncidentDto) {
     return this.incidentsService.update(id, dto);
-  }
-
-  @Delete()
-  removeAll() {
-    return this.incidentsService.removeAll();
   }
 
   @Delete(":id")
