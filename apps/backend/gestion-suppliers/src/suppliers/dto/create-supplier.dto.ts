@@ -1,59 +1,86 @@
-import { IsString, IsEmail, IsOptional, IsNumber, Min, Max, IsArray, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsNotEmpty,
+  MinLength,
+  MaxLength,
+  Matches,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  IsNumber,
+  Min,
+  Max,
+  IsBoolean,
+} from 'class-validator';
+
+import { SupplierCategory } from '../entities/supplier.entity';
 
 export class CreateSupplierDto {
+  // ✅ CORE (from main)
   @IsString()
-  nom: string;
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(100)
+  name: string;
+
+  @IsEnum(SupplierCategory)
+  category: string;
 
   @IsEmail()
   email: string;
 
+  @IsString()
+  @Matches(/^[0-9+\s]{10,}$/)
+  phone: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  address: string;
+
+  @IsString()
+  @Matches(/^[0-9]{14}$/)
+  siret: string;
+
+  @IsString()
+  createdBy: string;
+
+  @IsString()
+  createdByName: string;
+
+  // ✅ EXTRA (from your version)
   @IsOptional()
   @IsString()
-  telephone?: string;
+  city?: string;
 
   @IsOptional()
   @IsString()
-  adresse?: string;
+  postalCode?: string;
 
   @IsOptional()
   @IsString()
-  ville?: string;
+  country?: string;
 
   @IsOptional()
   @IsString()
-  codePostal?: string;
-
-  @IsOptional()
-  @IsString()
-  pays?: string;
-
-  @IsOptional()
-  @IsString()
-  siteWeb?: string;
-
-  @IsOptional()
-  @IsString()
-  contactPrincipal?: string;
+  website?: string;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  specialites?: string[];
-
-  @IsOptional()
-  @IsString()
-  statut?: string;
+  specialities?: string[];
 
   @IsOptional()
   @IsNumber()
   @Min(1)
-  delaiLivraison?: number;
+  deliveryDelay?: number;
 
   @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(5)
-  evaluation?: number;
+  rating?: number;
 
   @IsOptional()
   @IsString()
