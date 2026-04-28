@@ -2,6 +2,7 @@ import { Menu } from "lucide-react";
 import React, { useState } from "react";
 import { useAuthStore } from "./store/authStore";
 import SiteInfoPanel from "./components/SiteInfoPanel";
+import { NavbarAccessibilityButton } from "./components/NavbarAccessibilityButton";
 
 const navigation = [
   { name: "Product", href: "#" },
@@ -53,7 +54,8 @@ const Navbar = () => {
             </a>
           ))}
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-4">
+          <NavbarAccessibilityButton />
           <a href={isAuthenticated ? "/dashboard" : "/login"} className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">
             Connexion <span aria-hidden="true">&rarr;</span>
           </a>
