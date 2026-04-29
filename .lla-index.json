@@ -7472,7 +7472,9 @@
     ],
     "imports": [
       "@nestjs/common",
-      "@nestjs/config"
+      "@nestjs/config",
+      "@nestjs/mongoose",
+      "@nestjs/axios"
     ]
   },
   "apps\\backend\\gestion-suppliers\\src\\chat.controller.ts": {
@@ -7509,8 +7511,10 @@
     "purpose": "unknown",
     "exports": [],
     "imports": [
+      "@nestjs/core",
       "@nestjs/common",
-      "@nestjs/core"
+      "path",
+      "@nestjs/platform-express"
     ]
   },
   "apps\\backend\\resource-optimization\\src\\modules\\power-bi\\power-bi.controller.ts": {
@@ -7646,6 +7650,123 @@
     ],
     "imports": [
       "react"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\ml\\ml.module.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "MLModule"
+    ],
+    "imports": [
+      "@nestjs/common",
+      "@nestjs/axios",
+      "@nestjs/config"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\ml\\ml.service.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "MLService"
+    ],
+    "imports": [
+      "@nestjs/common",
+      "@nestjs/axios",
+      "rxjs"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\dto\\create-supplier.dto.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "CreateSupplierDto"
+    ],
+    "imports": []
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\dto\\update-supplier.dto.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "UpdateSupplierDto"
+    ],
+    "imports": []
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\entities\\supplier-rating.entity.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "SupplierRating",
+      "SupplierRatingSchema"
+    ],
+    "imports": [
+      "@nestjs/mongoose",
+      "mongoose"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\entities\\supplier.entity.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "Supplier",
+      "SupplierSchema"
+    ],
+    "imports": [
+      "@nestjs/mongoose",
+      "mongoose"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\suppliers.controller.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "SuppliersController"
+    ],
+    "imports": [
+      "@nestjs/platform-express",
+      "multer",
+      "path",
+      "fs"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\suppliers.module.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "SuppliersModule"
+    ],
+    "imports": [
+      "@nestjs/common",
+      "@nestjs/mongoose",
+      "@nestjs/axios",
+      "@nestjs/config"
+    ]
+  },
+  "apps\\backend\\gestion-suppliers\\src\\suppliers\\suppliers.service.ts": {
+    "purpose": "unknown",
+    "exports": [
+      "SuppliersService"
+    ],
+    "imports": [
+      "@nestjs/common",
+      "@nestjs/mongoose",
+      "mongoose",
+      "@nestjs/axios",
+      "rxjs",
+      "path"
+    ]
+  },
+  "apps\\frontend\\src\\app\\components\\supplier\\DelayPrediction.tsx": {
+    "purpose": "component",
+    "exports": [
+      "default"
+    ],
+    "imports": [
+      "react",
+      "lucide-react",
+      "sonner"
+    ]
+  },
+  "apps\\frontend\\src\\app\\pages\\suppliers-new\\RateSupplierModal.tsx": {
+    "purpose": "component",
+    "exports": [
+      "default"
+    ],
+    "imports": [
+      "react",
+      "sonner"
     ]
   }
 }
