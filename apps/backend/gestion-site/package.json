@@ -70,8 +70,10 @@
       "*.ts",
       "dto/**/*.ts",
       "entities/**/*.ts",
+      "src/chat/*.ts",
       "!*.module.ts",
-      "!main.ts",
+      "!src/**/*.module.ts",
+      "!src/main.ts",
       "!**/node_modules/**",
       "!**/dist/**"
     ],
