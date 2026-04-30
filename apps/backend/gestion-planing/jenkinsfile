@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    environment {
+        REGISTRY = 'docker.io'
+        REGESTRY_CREDENTIALS = 'docker-hub'
+        DOCKER_USERNAME = 'chedlyrebai'
+        PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
+        SONARQUEBE_HOST = 'http://localhost:9000'
+        SONAR_PROJECT_KEY = 'MazaaDrive'
+        SONAR_LOGIN = credentials('drive-sonar-token')
+        HELM_RELEASE_NAME = 'drive'
+        HELM_NAMESPACE = 'helm'
+        TAG_NUMBER = 50
+    }
+
+    stages {
+        stage('Clean worspace') {
+            steps {
+                cleanWs()
+                script {
+                    sh 'pipeline started at: $(date)'
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                script {
+                    checkout([$class:'GitSCM',
+                          branch:[[name:'*/master']],
+                           userRemoteConfigs:[[
+                               url:'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
+                               credentialsId:'pidev-github-credentials'
+                           ]]
+                      ])
+                    GIT_COMMIT_SHORT = sh(script:'git rev-parse --short HEAD', returnStdout:true).trim()
+                    GIT_BRANCH = sh(script:'git rev-parse --abbrev-ref HEAD', returnStdout:true).trim()
+                    echo "branch ${GIT_BRANCH}"
+                    echo "branch ${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+    }
+}
