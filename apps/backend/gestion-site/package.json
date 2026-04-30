@@ -61,29 +61,20 @@
   },
   "jest": {
     "moduleFileExtensions": ["js", "json", "ts"],
-    "rootDir": ".",
-    "testRegex": "src/.*\\.spec\\.ts$",
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": ["ts-jest", {
-        "tsconfig": {
-          "emitDecoratorMetadata": true,
-          "experimentalDecorators": true
-        }
-      }]
+      "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "*.ts",
-      "src/**/*.ts",
-      "!*.module.ts",
-      "!src/**/*.module.ts",
-      "!src/main.ts",
-      "!**/node_modules/**",
-      "!**/dist/**"
+      "**/*.(t|j)s",
+      "!**/*.module.ts",
+      "!**/main.ts"
     ],
-    "coverageDirectory": "./coverage",
+    "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/src/$1"
+      "^src/(.*)$": "<rootDir>/$1"
     }
   }
 }
