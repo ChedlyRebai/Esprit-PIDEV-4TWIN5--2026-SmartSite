@@ -54,6 +54,57 @@ const mockAlertService = {
   getAlertsSummary: jest.fn(),
 };
 
+const captureContext = {
+  site: { budget: 1000 },
+  project: { budget: 1500 },
+  tasks: [
+    { status: 'completed', budget: 100, startDate: '2024-01-01', endDate: '2024-01-03' },
+    { status: 'in_progress', budget: 150, dueDate: '2099-01-01' },
+    { status: 'blocked', budget: 0, dueDate: '2000-01-01' },
+  ],
+  teams: [
+    { members: ['a', 'b'] },
+    { members: ['c'] },
+  ],
+  incidents: [],
+  sites: [],
+  projectStats: { totalSitesBudget: 5000 },
+};
+
+const analyticsRecommendations: Recommendation[] = [
+  {
+    ...mockRecommendation,
+    _id: 'approval-1',
+    status: 'approved',
+    approvedAt: '2026-01-01T10:00:00.000Z',
+    beforeMetrics: {
+      budget: { spent: 300, total: 1000, remaining: 700 },
+      tasks: { overdue: 2, avgDuration: 5 },
+      teams: { avgWorkload: 3 },
+      efficiency: { budgetUtilization: 30, taskCompletionRate: 20, teamProductivity: 0.5 },
+    },
+  },
+  {
+    ...mockRecommendation,
+    _id: 'impl-1',
+    status: 'implemented',
+    approvedAt: '2026-01-02T10:00:00.000Z',
+    beforeMetrics: {
+      budget: { spent: 400, total: 1000, remaining: 600 },
+      tasks: { overdue: 3, avgDuration: 6 },
+      teams: { avgWorkload: 4 },
+      efficiency: { budgetUtilization: 40, taskCompletionRate: 25, teamProductivity: 0.75 },
+    },
+    afterMetrics: {
+      budget: { spent: 250, total: 1000, remaining: 750 },
+      tasks: { overdue: 1, avgDuration: 2 },
+      teams: { avgWorkload: 2 },
+      efficiency: { budgetUtilization: 25, taskCompletionRate: 50, teamProductivity: 1.5 },
+    },
+    improvement: { budgetSavings: 150, completionRateImprovement: 25 },
+  },
+];
+
 describe('RecommendationService', () => {
   let service: RecommendationService;
 
@@ -229,6 +280,302 @@ describe('RecommendationService', () => {
       mockModel.findByIdAndDelete.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
       const result = await service.remove('nonexistent');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('approveRecommendation', () => {
+    it('capture les métriques et approuve la recommandation', async () => {
+      mockModel.findById.mockResolvedValue({
+        ...mockRecommendation,
+        siteId: 'site-123',
+        scope: 'site',
+      });
+      mockModel.findByIdAndUpdate.mockResolvedValue({
+        ...mockRecommendation,
+        status: 'approved',
+      });
+      mockExternalDataService.getAllSiteData.mockResolvedValue(captureContext);
+
+      const result = await service.approveRecommendation('507f1f77bcf86cd799439011');
+
+      expect(result.status).toBe('approved');
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        expect.objectContaining({
+          status: 'approved',
+          beforeMetrics: expect.any(Object),
+        }),
+        { new: true },
+      );
+    });
+
+    it('lève une erreur si la recommandation est introuvable', async () => {
+      mockModel.findById.mockResolvedValue(null);
+
+      await expect(service.approveRecommendation('missing')).rejects.toThrow('Recommendation not found');
+    });
+  });
+
+  describe('implementRecommendation', () => {
+    beforeEach(() => {
+      mockExternalDataService.getAllSiteData.mockResolvedValue(captureContext);
+    });
+
+    it('calcule une amélioration budgétaire', async () => {
+      mockModel.findById.mockResolvedValue({
+        ...mockRecommendation,
+        type: 'budget',
+        siteId: 'site-123',
+        scope: 'site',
+        beforeMetrics: {
+          budget: { spent: 300, total: 1000, remaining: 700 },
+          tasks: { overdue: 2, avgDuration: 5 },
+          teams: { avgWorkload: 3 },
+          efficiency: { budgetUtilization: 30, taskCompletionRate: 20, teamProductivity: 0.5 },
+        },
+      });
+      mockModel.findByIdAndUpdate.mockResolvedValue({
+        ...mockRecommendation,
+        status: 'implemented',
+      });
+
+      const result = await service.implementRecommendation('507f1f77bcf86cd799439011');
+
+      expect(result.status).toBe('implemented');
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        expect.objectContaining({
+          status: 'implemented',
+          improvement: expect.objectContaining({
+            budgetSavings: 50,
+            budgetUtilizationImprovement: -16.666666666666664,
+          }),
+        }),
+        { new: true },
+      );
+    });
+
+    it('couvre la branche task_distribution', async () => {
+      mockModel.findById.mockResolvedValue({
+        ...mockRecommendation,
+        type: 'task_distribution',
+        siteId: 'site-123',
+        scope: 'site',
+        beforeMetrics: {
+          budget: { spent: 400, total: 1000, remaining: 600 },
+          tasks: { overdue: 3, avgDuration: 6 },
+          teams: { avgWorkload: 4 },
+          efficiency: { budgetUtilization: 40, taskCompletionRate: 25, teamProductivity: 0.75 },
+        },
+      });
+      mockModel.findByIdAndUpdate.mockResolvedValue({ ...mockRecommendation, status: 'implemented' });
+
+      await service.implementRecommendation('task-distribution');
+
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'task-distribution',
+        expect.objectContaining({
+          improvement: expect.objectContaining({
+            workloadBalanceImprovement: 3,
+            productivityImprovement: -0.4166666666666667,
+          }),
+        }),
+        { new: true },
+      );
+    });
+
+    it('couvre la branche timeline', async () => {
+      mockModel.findById.mockResolvedValue({
+        ...mockRecommendation,
+        type: 'timeline',
+        siteId: 'site-123',
+        scope: 'site',
+        beforeMetrics: {
+          budget: { spent: 400, total: 1000, remaining: 600 },
+          tasks: { overdue: 3, avgDuration: 6 },
+          teams: { avgWorkload: 4 },
+          efficiency: { budgetUtilization: 40, taskCompletionRate: 25, teamProductivity: 0.75 },
+        },
+      });
+      mockModel.findByIdAndUpdate.mockResolvedValue({ ...mockRecommendation, status: 'implemented' });
+
+      await service.implementRecommendation('timeline');
+
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'timeline',
+        expect.objectContaining({
+          improvement: expect.objectContaining({
+            overdueTasksReduction: 2,
+            completionRateImprovement: 8.333333333333329,
+          }),
+        }),
+        { new: true },
+      );
+    });
+
+    it('couvre la branche individual_task_management et la branche par défaut', async () => {
+      mockModel.findById.mockResolvedValue({
+        ...mockRecommendation,
+        type: 'individual_task_management',
+        siteId: 'site-123',
+        scope: 'site',
+        beforeMetrics: {
+          budget: { spent: 400, total: 1000, remaining: 600 },
+          tasks: { overdue: 3, avgDuration: 6 },
+          teams: { avgWorkload: 4 },
+          efficiency: { budgetUtilization: 40, taskCompletionRate: 25, teamProductivity: 0.75 },
+        },
+      });
+      mockModel.findByIdAndUpdate.mockResolvedValue({ ...mockRecommendation, status: 'implemented' });
+
+      await service.implementRecommendation('individual-task');
+
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'individual-task',
+        expect.objectContaining({
+          improvement: expect.objectContaining({
+            taskDurationImprovement: 4,
+            personalEfficiencyImprovement: 8.333333333333329,
+          }),
+        }),
+        { new: true },
+      );
+
+      mockModel.findById.mockResolvedValue({
+        ...mockRecommendation,
+        type: 'energy',
+        siteId: 'site-123',
+        scope: 'site',
+        beforeMetrics: {
+          budget: { spent: 400, total: 1000, remaining: 600 },
+          tasks: { overdue: 3, avgDuration: 6 },
+          teams: { avgWorkload: 4 },
+          efficiency: { budgetUtilization: 40, taskCompletionRate: 25, teamProductivity: 0.75 },
+        },
+      });
+
+      await service.implementRecommendation('default-branch');
+
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'default-branch',
+        expect.objectContaining({
+          improvement: expect.objectContaining({
+            overallEfficiencyImprovement: 8.333333333333329,
+          }),
+        }),
+        { new: true },
+      );
+    });
+
+    it('lève une erreur si la recommandation est introuvable', async () => {
+      mockModel.findById.mockResolvedValue(null);
+
+      await expect(service.implementRecommendation('missing')).rejects.toThrow('Recommendation not found');
+    });
+  });
+
+  describe('getAnalytics', () => {
+    it('retourne les agrégats et les comparaisons avant/après', async () => {
+      mockModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(analyticsRecommendations) }),
+      });
+
+      const result = await service.getAnalytics('site-123');
+
+      expect(result.totalRecommendations).toBe(2);
+      expect(result.approvedRecommendations).toBe(1);
+      expect(result.implementedRecommendations).toBe(1);
+      expect(result.pendingImplementationSnapshots).toHaveLength(1);
+      expect(result.beforeAfterComparisons).toHaveLength(1);
+      expect(result.budgetInfluenceOnApprovals).toHaveLength(3);
+      expect(result.totalImprovements.budgetSavings).toBe(150);
+      expect(result.totalImprovements.taskCompletionImprovement).toBe(25);
+    });
+  });
+
+  describe('generateForProject', () => {
+    it('génère les recommandations projet et site', async () => {
+      mockExternalDataService.getProjectContext.mockResolvedValue({
+        ...captureContext,
+        incidents: [{ siteId: 'site-123' }],
+        tasks: [{ siteId: 'site-123' }],
+        site: { budget: 2000 },
+        project: { budget: 3000 },
+      });
+      mockAIRecommendationService.generateRecommendations
+        .mockResolvedValueOnce([
+          {
+            type: 'energy',
+            title: 'Proj rec',
+            description: 'desc',
+            priority: 'high',
+            estimatedSavings: 100,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            type: 'budget',
+            title: 'Site rec',
+            description: 'desc',
+            priority: 'medium',
+            estimatedSavings: 80,
+          },
+        ]);
+      mockResourceAnalysisService.analyzeEnergyConsumption.mockResolvedValue({ peakPeriods: [{ start: '08:00', end: '10:00' }] });
+      mockAlertService.getAlertsSummary.mockResolvedValue({ byType: { budgetExceed: 1, energySpike: 1 } });
+
+      const result = await service.generateForProject('project-123', 'site-123');
+
+      expect(result).toHaveLength(5);
+    });
+  });
+
+  describe('generateForSite', () => {
+    it('génère les recommandations site avec jalons, tâches et alertes', async () => {
+      const now = new Date();
+      const overdueDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      const upcomingDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+      mockExternalDataService.getAllSiteData.mockResolvedValue({
+        site: { budget: 4000 },
+        tasks: [
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'in_progress', endDate: overdueDate },
+          { status: 'blocked', endDate: overdueDate },
+          { status: 'completed', startDate: '2024-01-01', endDate: '2024-01-03' },
+        ],
+        milestones: [
+          { status: 'pending', dueDate: overdueDate },
+          { status: 'pending', dueDate: upcomingDate },
+          { status: 'pending', dueDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+        teams: [{ members: ['a', 'b'] }],
+        incidents: [],
+      });
+      mockAIRecommendationService.generateRecommendations.mockResolvedValue([
+        {
+          type: 'energy',
+          title: 'Site rec',
+          description: 'desc',
+          priority: 'high',
+          estimatedSavings: 100,
+        },
+      ]);
+      mockResourceAnalysisService.analyzeEnergyConsumption.mockResolvedValue({ peakPeriods: [{ start: '08:00', end: '10:00' }] });
+      mockAlertService.getAlertsSummary.mockResolvedValue({ byType: { budgetExceed: 1, energySpike: 1 } });
+
+      const result = await service.generateForSite('site-123');
+
+      expect(result).toHaveLength(9);
     });
   });
 });
