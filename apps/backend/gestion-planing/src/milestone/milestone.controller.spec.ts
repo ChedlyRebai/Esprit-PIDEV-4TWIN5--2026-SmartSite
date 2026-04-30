@@ -6,9 +6,24 @@ describe('MilestoneController', () => {
   let controller: MilestoneController;
 
   beforeEach(async () => {
+    const mockMilestoneService = {
+      create: jest.fn(),
+      findAll: jest.fn(),
+      findOne: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
+      findAllForDashboard: jest.fn(),
+      getMilestonesByProjectId: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MilestoneController],
-      providers: [MilestoneService],
+      providers: [
+        {
+          provide: MilestoneService,
+          useValue: mockMilestoneService,
+        },
+      ],
     }).compile();
 
     controller = module.get<MilestoneController>(MilestoneController);
