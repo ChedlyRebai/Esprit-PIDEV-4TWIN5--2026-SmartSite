@@ -13,10 +13,8 @@ pipeline {
         DOCKER_USERNAME = 'chedlyrebai'
         PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
         SONARQUEBE_HOST = 'http://localhost:9000'
-        SONAR_PROJECT_KEY = 'MazaaDrive'
-        SONAR_LOGIN = credentials('drive-sonar-token')
-        HELM_RELEASE_NAME = 'drive'
-        HELM_NAMESPACE = 'helm'
+        SONAR_PROJECT_KEY = 'pidev'
+        SONAR_LOGIN = credentials('pidev-sonar-token')
         TAG_NUMBER = 50
     }
 
@@ -44,6 +42,16 @@ pipeline {
                     GIT_BRANCH = sh(script:'git rev-parse --abbrev-ref HEAD', returnStdout:true).trim()
                     echo "branch ${GIT_BRANCH}"
                     echo "branch ${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
+        stage('Build Docker Image'){
+            steps{
+                sript {
+                    sh '''
+                        docker build -t ${PLANNING_IMAGE}:${GIT_COMMIT_SHORT} .
+                    '''
                 }
             }
         }
