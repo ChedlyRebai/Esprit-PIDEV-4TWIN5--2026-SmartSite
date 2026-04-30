@@ -49,14 +49,14 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    withSonarQubeEnv('${SONAR_HOST_URL}') {
+                withSonarQubeEnv('SonarQube') {  
+                    withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
                         sh '''
                             sonar-scanner \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectKey=$SONAR_PROJECT_KEY \
                                 -Dsonar.sources=. \
-                                -Dsonar.host.url=${SONARQUEBE_HOST} \
-                                -Dsonar.login=${SONAR_LOGIN}
+                                -Dsonar.host.url=$SONAR_HOST_URL \
+                                -Dsonar.login=$SONAR_LOGIN
                         '''
                     }
                 }
