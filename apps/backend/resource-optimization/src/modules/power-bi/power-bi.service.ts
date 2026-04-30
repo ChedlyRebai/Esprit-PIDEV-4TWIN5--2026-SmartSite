@@ -201,7 +201,7 @@ export class PowerBiService {
     }, {} as Record<string, number>);
 
     const byPriority = recommendations.reduce((acc, r) => {
-      const priorityRange = r.priority >= 8 ? 'high' : r.priority >= 5 ? 'medium' : 'low';
+      const priorityRange = this.getPriorityRange(r.priority);
       acc[priorityRange] = (acc[priorityRange] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -482,7 +482,6 @@ export class PowerBiService {
   }
 
   private identifyOptimizationOpportunities(dashboard: any) {
-    const opportunities: Array<{ area: string; potentialSavings: number }> = [];
     const equipmentPercentage = Number(dashboard?.financial?.breakdown?.equipmentPercentage) || 0;
     const pendingRecommendations = Number(dashboard?.recommendations?.pending) || 0;
     const totalRecommendations = Number(dashboard?.recommendations?.total) || 0;
@@ -490,28 +489,41 @@ export class PowerBiService {
     const currentCosts = Number.parseFloat(String(dashboard?.financial?.currentResourcesCosts ?? '0')) || 0;
     const savingsGap = Math.max(currentCosts - realizedSavings, 0);
 
-    if (equipmentPercentage > 0 && equipmentPercentage < 35) {
-      opportunities.push({
-        area: 'equipment_investment',
-        potentialSavings: Math.max(5000, Math.round(savingsGap * 0.15)),
-      });
-    }
+    return [
+      this.buildEquipmentInvestmentOpportunity(equipmentPercentage, savingsGap),
+      this.buildProcessAutomationOpportunity(pendingRecommendations),
+      this.buildApprovalWorkflowOpportunity(pendingRecommendations, totalRecommendations),
+    ].filter((opportunity): opportunity is { area: string; potentialSavings: number } => opportunity !== null);
+  }
 
-    if (pendingRecommendations > 3) {
-      opportunities.push({
-        area: 'process_automation',
-        potentialSavings: Math.max(7000, pendingRecommendations * 1800),
-      });
-    }
+  private getPriorityRange(priority: number): 'high' | 'medium' | 'low' {
+    if (priority >= 8) return 'high';
+    if (priority >= 5) return 'medium';
+    return 'low';
+  }
 
-    if (totalRecommendations > 0 && pendingRecommendations / totalRecommendations > 0.4) {
-      opportunities.push({
-        area: 'approval_workflow_optimization',
-        potentialSavings: Math.max(4000, pendingRecommendations * 1200),
-      });
-    }
+  private buildEquipmentInvestmentOpportunity(equipmentPercentage: number, savingsGap: number) {
+    if (equipmentPercentage <= 0 || equipmentPercentage >= 35) return null;
+    return {
+      area: 'equipment_investment',
+      potentialSavings: Math.max(5000, Math.round(savingsGap * 0.15)),
+    };
+  }
 
-    return opportunities;
+  private buildProcessAutomationOpportunity(pendingRecommendations: number) {
+    if (pendingRecommendations <= 3) return null;
+    return {
+      area: 'process_automation',
+      potentialSavings: Math.max(7000, pendingRecommendations * 1800),
+    };
+  }
+
+  private buildApprovalWorkflowOpportunity(pendingRecommendations: number, totalRecommendations: number) {
+    if (totalRecommendations <= 0 || pendingRecommendations / totalRecommendations <= 0.4) return null;
+    return {
+      area: 'approval_workflow_optimization',
+      potentialSavings: Math.max(4000, pendingRecommendations * 1200),
+    };
   }
 
   private parsePeriod(period: string): number {
