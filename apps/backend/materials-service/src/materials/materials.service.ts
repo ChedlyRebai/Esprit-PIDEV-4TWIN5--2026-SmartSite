@@ -927,7 +927,7 @@ export class MaterialsService {
             const newestEntry = recentEntries[0];
             const hoursDiff = (new Date(newestEntry.timestamp).getTime() - new Date(oldestEntry.timestamp).getTime()) / (1000 * 60 * 60);
             
-            if (hoursDiff > 0 && totalConsumption > 0) {
+            if (hoursDiff > 0) {
               hourlyConsumption = totalConsumption / hoursDiff;
             }
           }
@@ -942,25 +942,19 @@ export class MaterialsService {
               .filter((m) => m.type === 'out' && new Date(m.date) >= thirtyDaysAgo)
               .reduce((sum, m) => sum + m.quantity, 0);
             
-            if (recentConsumption > 0) {
-              hourlyConsumption = recentConsumption / (30 * 24); // Convertir en consommation horaire
-            }
+            hourlyConsumption = recentConsumption / (30 * 24); // Convertir en consommation horaire
           }
 
           // Calculer les heures restantes avant rupture
           let hoursRemaining = 0;
-          let status = 'safe';
+          let status = 'ok';
           let alertLevel = 'none';
 
-          if (hourlyConsumption > 0 && material.quantity > 0) {
+          if (hourlyConsumption > 0) {
             hoursRemaining = material.quantity / hourlyConsumption;
             
-            // Limiter à un maximum raisonnable (1 an = 8760 heures)
-            if (hoursRemaining > 8760) {
-              hoursRemaining = 8760;
-              status = 'safe';
-              alertLevel = 'none';
-            } else if (hoursRemaining <= 24) {
+            // Déterminer le niveau d'alerte
+            if (hoursRemaining <= 24) {
               status = 'critical';
               alertLevel = 'high';
             } else if (hoursRemaining <= 72) {
@@ -969,32 +963,10 @@ export class MaterialsService {
             } else if (hoursRemaining <= 168) { // 7 jours
               status = 'attention';
               alertLevel = 'low';
-            } else {
-              status = 'safe';
-              alertLevel = 'none';
             }
-          } else if (material.quantity === 0) {
-            // Stock épuisé
-            hoursRemaining = 0;
-            status = 'critical';
-            alertLevel = 'high';
           } else {
-            // Pas de consommation détectée
-            hoursRemaining = 8760; // 1 an par défaut
+            hoursRemaining = 999999; // Stock stable, pas de consommation
             status = 'stable';
-            alertLevel = 'none';
-          }
-
-          // Calculer la confiance basée sur le nombre de points de données
-          let confidence = 0.5; // Par défaut
-          if (recentEntries.length >= 20) {
-            confidence = 0.9;
-          } else if (recentEntries.length >= 10) {
-            confidence = 0.8;
-          } else if (recentEntries.length >= 5) {
-            confidence = 0.7;
-          } else if (recentEntries.length > 0) {
-            confidence = 0.6;
           }
 
           predictions.push({
@@ -1006,12 +978,12 @@ export class MaterialsService {
             hourlyConsumption: Math.round(hourlyConsumption * 100) / 100,
             hoursRemaining: Math.round(hoursRemaining * 10) / 10,
             daysRemaining: Math.round((hoursRemaining / 24) * 10) / 10,
-            estimatedStockoutDate: hourlyConsumption > 0 && hoursRemaining < 8760
+            estimatedStockoutDate: hourlyConsumption > 0 
               ? new Date(Date.now() + hoursRemaining * 60 * 60 * 1000)
               : null,
             status,
             alertLevel,
-            confidence,
+            confidence: recentEntries.length > 10 ? 0.85 : 0.5,
             dataPoints: recentEntries.length,
           });
         } catch (error) {

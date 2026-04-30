@@ -10,9 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { NotificationService } from './notification.service';
-import { JwtGuard } from 'src/auth/jwt.guard/jwt.guard';
-import { GetUser } from 'src/auth/get-user.decorator';
-import { Notification } from 'src/entities/notification.entity';
+import { JwtGuard } from '../auth/jwt.guard/jwt.guard';
+import { GetUser } from '../auth/get-user.decorator';
+import { Notification } from '../entities/notification.entity';
 
 @Controller('notification')
 export class NotificationController {

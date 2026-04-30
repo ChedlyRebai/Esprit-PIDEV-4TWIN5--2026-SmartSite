@@ -1,63 +1,78 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type SupplierDocument = Supplier & Document;
 
-@Schema({ timestamps: true })
-export class Supplier {
-  @Prop({ required: true })
-  nom: string;
+export enum SupplierCategory {
+  MATERIALS = 'Materials',
+  EQUIPMENT_RENTAL = 'Equipment Rental',
+  TRANSPORT = 'Transport',
+  SUBCONTRACTING = 'Subcontracting',
+  SAFETY_EQUIPMENT = 'Safety Equipment',
+  OFFICE_SUPPLIES = 'Office Supplies',
+  ENERGY = 'Energy',
+  OTHER = 'Other',
+}
 
+export enum SupplierStatus {
+  PENDING_QHSE = 'pending_qhse',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
+@Schema({ timestamps: true })
+export class Supplier extends Document {
   @Prop({ required: true, unique: true })
+  supplierCode: string; // Auto-generated: FRS-2026-001
+
+  @Prop({ required: true, minlength: 2, maxlength: 100 })
+  name: string;
+
+  @Prop({ required: true, enum: SupplierCategory })
+  category: string;
+
+  @Prop({ required: true })
   email: string;
 
-  @Prop()
-  telephone: string;
+  @Prop({ required: true })
+  phone: string;
+
+  @Prop({ required: true, minlength: 5, maxlength: 255 })
+  address: string;
+
+  @Prop({ required: true, match: /^[0-9]{14}$/ })
+  siret: string;
+
+  @Prop({ required: true })
+  contractUrl: string; // Path to uploaded contract file
+
+  @Prop({ required: true })
+  insuranceDocumentUrl: string; // Path to uploaded insurance document file
+
+  @Prop({
+    type: String,
+    enum: SupplierStatus,
+    default: SupplierStatus.PENDING_QHSE,
+  })
+  status: string;
+
+  @Prop({ required: true })
+  createdBy: string; // User ID of the procurement manager
 
   @Prop()
-  adresse: string;
+  createdByName: string; // Name of the procurement manager
 
   @Prop()
-  ville: string;
+  qhseValidatedBy: string; // User ID of QHSE manager who approved/rejected
 
   @Prop()
-  codePostal: string;
+  qhseValidatedAt: Date;
 
   @Prop()
-  pays: string;
+  qhseNotes: string; // Notes from QHSE manager
 
-  @Prop()
-  siteWeb: string;
-
-  @Prop()
-  contactPrincipal: string;
-
-  @Prop({ type: [String] })
-  specialites: string[];
-
-  @Prop({ default: 'actif' })
-  statut: string;
-
-  @Prop({ type: Number, default: 7 })
-  delaiLivraison: number; // en jours
-
-  @Prop({ type: Number, min: 1, max: 5, default: 3 })
-  evaluation: number;
-
-  @Prop()
-  notes: string;
-
-  @Prop({ type: [Types.ObjectId] })
-  materialsSupplied: Types.ObjectId[]; // IDs des matériaux fournis
-
-  @Prop({ type: Object })
-  coordonnees: {
-    latitude?: number;
-    longitude?: number;
-  };
-
-  @Prop({ default: true })
-  isActive: boolean;
+  @Prop({ type: Boolean, default: false })
+  estArchive: boolean;
 }
 
 export const SupplierSchema = SchemaFactory.createForClass(Supplier);

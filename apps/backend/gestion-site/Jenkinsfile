@@ -56,10 +56,10 @@ pipeline {
                                 sonar-scanner \
                                     -Dsonar.projectKey=${SONAR_PROJECT} \
                                     -Dsonar.projectName='SmartSite - Gestion Site' \
-                                    -Dsonar.sources=src,gestion-site.controller.ts,gestion-site.service.ts \
+                                    -Dsonar.sources=src \
                                     -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
                                     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                    -Dsonar.javascript.node.maxspace=4096
+                                    -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
                             """
                         }
                     }
@@ -70,7 +70,7 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false  // ✅ non bloquant
+                    waitForQualityGate abortPipeline: false
                 }
             }
         }

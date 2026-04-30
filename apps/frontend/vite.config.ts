@@ -4,10 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -59,7 +56,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/fournisseurs/, '/api/materials/suppliers')
       },
       '/api/sites': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/sites/, '/api/materials/sites')
       },
@@ -83,8 +80,8 @@ export default defineConfig({
     },
 
   },
-  assetsInclude: ["**/*.svg", "**/*.csv"],
+  assetsInclude: ["*/.svg", "*/.csv"],
   optimizeDeps: {
-    exclude: ['web-ifc'],
+    exclude: ["web-ifc"],
   },
 });
