@@ -53,6 +53,7 @@ pipeline {
                                 sonar-scanner \
                                     -Dsonar.projectKey=${SONAR_PROJECT} \
                                     -Dsonar.projectName='SmartSite - Incident Management' \
+                                    -Dsonar.projectVersion=${BUILD_NUMBER} \
                                     -Dsonar.sources=src \
                                     -Dsonar.typescript.tsconfigPath=tsconfig.sonar.json \
                                     -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
