@@ -49,7 +49,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {  
+                withSonarQubeEnv(installationName: 'sq1') {  
                     withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
                         sh '''
                             sonar-scanner \
