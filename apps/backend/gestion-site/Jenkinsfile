@@ -58,10 +58,13 @@ pipeline {
                                         sonar-scanner \
                                             -Dsonar.projectKey=${SONAR_PROJECT} \
                                             -Dsonar.projectName='SmartSite - Gestion Site' \
-                                            -Dsonar.sources=src \
-                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                            -Dsonar.sources=. \
+                                            -Dsonar.inclusions=*.ts,dto/**/*.ts,entities/**/*.ts \
+                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/src/** \
+                                            -Dsonar.tests=src \
+                                            -Dsonar.test.inclusions=**/*.spec.ts \
                                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
+                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/**
                                     """
                                 }
                             }
