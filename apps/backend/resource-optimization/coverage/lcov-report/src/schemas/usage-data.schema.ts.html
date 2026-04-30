@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>16/16</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -100,80 +100,80 @@
 <a name='L35'></a><a href='#L35'>35</a>
 <a name='L36'></a><a href='#L36'>36</a>
 <a name='L37'></a><a href='#L37'>37</a>
-<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';</span>
-<span class="cstat-no" title="statement not covered" >import { Document } from 'mongoose';</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 &nbsp;
 @Schema({ timestamps: true })
-export <span class="cstat-no" title="statement not covered" >class <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" >UsageData </span>extends Document {</span></span>
+export class UsageData extends Document {
   @Prop({ required: true })
-<span class="cstat-no" title="statement not covered" >  siteId: string;</span>
+  siteId: string;
 &nbsp;
   @Prop({ required: true })
-<span class="cstat-no" title="statement not covered" >  resourceId: string; // Can be equipment or worker ID</span>
+  resourceId: string; // Can be equipment or worker ID
 &nbsp;
   @Prop({ required: true })
-<span class="cstat-no" title="statement not covered" >  resourceType: 'equipment' | 'worker';</span>
+  resourceType: 'equipment' | 'worker';
 &nbsp;
   @Prop({ required: true })
-<span class="cstat-no" title="statement not covered" >  startTime: Date;</span>
+  startTime: Date;
 &nbsp;
   @Prop({ required: true })
-<span class="cstat-no" title="statement not covered" >  endTime: Date;</span>
+  endTime: Date;
 &nbsp;
   @Prop({ default: 0 })
-<span class="cstat-no" title="statement not covered" >  utilizationHours: number;</span>
+  utilizationHours: number;
 &nbsp;
   @Prop({ default: 0 })
-<span class="cstat-no" title="statement not covered" >  idleHours: number;</span>
+  idleHours: number;
 &nbsp;
   @Prop({ default: 0 })
-<span class="cstat-no" title="statement not covered" >  costIncurred: number; // €</span>
+  costIncurred: number; // €
 &nbsp;
   @Prop({ default: 0 })
-<span class="cstat-no" title="statement not covered" >  carbonFootprint: number; // kg CO2</span>
+  carbonFootprint: number; // kg CO2
 &nbsp;
   @Prop({ type: Object, default: {} })
-<span class="cstat-no" title="statement not covered" >  metadata: Record&lt;string, any&gt;;</span>
+  metadata: Record&lt;string, any&gt;;
 }
 &nbsp;
-export const <span class="cstat-no" title="statement not covered" >UsageDataSchema = SchemaFactory.createForClass(UsageData);</span>
+export const UsageDataSchema = SchemaFactory.createForClass(UsageData);
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -181,7 +181,7 @@ export const <span class="cstat-no" title="statement not covered" >UsageDataSche
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-30T12:56:05.706Z
+                at 2026-04-30T22:32:34.448Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
