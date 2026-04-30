@@ -271,7 +271,6 @@ export default function CreateOrderDialog({
 
   if (!open) return null;
 
-export default function CreateOrderDialog() {
   return (
     <>
       <Dialog open={open && !showChat} onOpenChange={onClose}>

@@ -78,7 +78,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-
   },
   assetsInclude: ["*/.svg", "*/.csv"],
   optimizeDeps: {
