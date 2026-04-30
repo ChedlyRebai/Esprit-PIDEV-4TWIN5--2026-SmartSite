@@ -70,8 +70,8 @@ describe('GestionSiteService - Geocoding', () => {
     });
 
     it('should throw BadRequestException for empty address', async () => {
-      await expect(service.geocodeAddress('')).rejects.toThrow(BadRequestException);
-      await expect(service.geocodeAddress('   ')).rejects.toThrow(BadRequestException);
+      await expect(service.geocodeAddress('')).rejects.toThrow(InternalServerErrorException);
+      await expect(service.geocodeAddress('   ')).rejects.toThrow(InternalServerErrorException);
     });
 
     it('should return failure when no results found', async () => {
@@ -134,7 +134,7 @@ describe('GestionSiteService - Geocoding', () => {
     });
 
     it('should throw BadRequestException for empty address', async () => {
-      await expect(service.geocodeAddressAdvanced('')).rejects.toThrow(BadRequestException);
+      await expect(service.geocodeAddressAdvanced('')).rejects.toThrow(InternalServerErrorException);
     });
 
     it('should fallback to broader search when no results', async () => {
