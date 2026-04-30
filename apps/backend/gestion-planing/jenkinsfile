@@ -13,8 +13,8 @@ pipeline {
         DOCKER_USERNAME = 'chedlyrebai'
         PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
         SONARQUEBE_HOST = 'http://localhost:9000'
-        SONAR_PROJECT_KEY = 'pidev'
-        SONAR_LOGIN = credentials('pidev-sonar-token')
+        SONAR_PROJECT_KEY = 'pidev-sonar'
+        SONAR_LOGIN = credentials('pidev-sonar')
         TAG_NUMBER = 50
     }
 
@@ -27,6 +27,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('Checkout') {
             steps {
@@ -46,14 +47,30 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image'){
-            steps{
-                sript {
-                    sh '''
-                        docker build -t ${PLANNING_IMAGE}:${GIT_COMMIT_SHORT} .
-                    '''
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv('${SONAR_HOST_URL}') {
+                        sh '''
+                            sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.sources=. \
+                                -Dsonar.host.url=${SONARQUEBE_HOST} \
+                                -Dsonar.login=${SONAR_LOGIN}
+                        '''
+                    }
                 }
             }
         }
+
+        // stage('Build Docker Image'){
+        //     steps{
+        //         sript {
+        //             sh '''
+        //                 docker build -t ${PLANNING_IMAGE}:${GIT_COMMIT_SHORT} .
+        //             '''
+        //         }
+        //     }
+        // }
     }
 }
