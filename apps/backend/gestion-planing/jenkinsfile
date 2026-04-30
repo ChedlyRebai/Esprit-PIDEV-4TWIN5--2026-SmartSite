@@ -22,9 +22,7 @@ pipeline {
         stage('Clean worspace') {
             steps {
                 cleanWs()
-                script {
-                    sh 'pipeline started at: $(date)'
-                }
+               
             }
         }
 
