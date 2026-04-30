@@ -8,6 +8,7 @@ describe('CreateSiteDto', () => {
     dto.adresse = '123 Rue Test';
     dto.localisation = 'Tunis';
     dto.budget = 100000;
+    dto.isActif = true; // Explicitly set
 
     const errors = await validate(dto);
     expect(errors.length).toBe(0);
@@ -77,6 +78,7 @@ describe('CreateSiteDto', () => {
     dto.adresse = '123 Rue Test';
     dto.localisation = 'Tunis';
     dto.budget = 100000;
+    dto.isActif = true; // Explicitly set
     dto.description = 'A test site';
     dto.area = 500;
     dto.progress = 50;

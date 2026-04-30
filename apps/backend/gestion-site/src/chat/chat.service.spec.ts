@@ -49,7 +49,7 @@ describe('ChatService', () => {
     });
 
     it('should log error when API key is missing', () => {
-      mockConfigService.get.mockReturnValueOnce(''); // GROQ_API_KEY empty
+      (mockConfigService.get as jest.Mock).mockReturnValueOnce(''); // GROQ_API_KEY empty
       expect(() => service.onModuleInit()).not.toThrow();
     });
   });
@@ -81,7 +81,7 @@ describe('ChatService', () => {
     });
 
     it('should return failure when API key is missing', async () => {
-      mockConfigService.get.mockReturnValueOnce(''); // GROQ_API_KEY empty
+      (mockConfigService.get as jest.Mock).mockReturnValueOnce(''); // GROQ_API_KEY empty
 
       const result = await service.sendMessage('Hello', []);
       expect(result.success).toBe(false);

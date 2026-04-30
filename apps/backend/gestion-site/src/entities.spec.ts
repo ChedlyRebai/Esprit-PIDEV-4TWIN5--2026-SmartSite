@@ -42,7 +42,7 @@ describe('Site Entity Schema', () => {
     const options = (SiteSchema as any).options;
     const transform = options?.toJSON?.transform;
     if (transform) {
-      const ret = { ...mockDoc };
+      const ret: any = { ...mockDoc };
       transform(mockDoc, ret);
       expect(ret.id).toBe('507f1f77bcf86cd799439011');
       expect(ret._id).toBeUndefined();
@@ -59,7 +59,7 @@ describe('Site Entity Schema', () => {
     const options = (SiteSchema as any).options;
     const transform = options?.toObject?.transform;
     if (transform) {
-      const ret = { ...mockDoc };
+      const ret: any = { ...mockDoc };
       transform(mockDoc, ret);
       expect(ret.id).toBe('507f1f77bcf86cd799439011');
     }
@@ -87,7 +87,7 @@ describe('Team Entity Schema', () => {
     const options = (TeamSchema as any).options;
     const transform = options?.toJSON?.transform;
     if (transform) {
-      const ret = { ...mockDoc };
+      const ret: any = { ...mockDoc };
       transform(mockDoc, ret);
       expect(ret.id).toBe('team-id-123');
       expect(ret._id).toBeUndefined();
@@ -102,7 +102,7 @@ describe('Team Entity Schema', () => {
     const options = (TeamSchema as any).options;
     const transform = options?.toObject?.transform;
     if (transform) {
-      const ret = { ...mockDoc };
+      const ret: any = { ...mockDoc };
       transform(mockDoc, ret);
       expect(ret.id).toBe('team-id-123');
     }
