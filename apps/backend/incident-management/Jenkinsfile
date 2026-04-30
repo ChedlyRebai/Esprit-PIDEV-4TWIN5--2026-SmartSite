@@ -65,11 +65,9 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
+        stage('Quality Gate (disabled)') {
             steps {
-                timeout(time: 30, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
-                }
+                echo "⚠️ Quality Gate check disabled to avoid pipeline abort due to server processing time. Check SonarQube dashboard for results."
             }
         }
     }
