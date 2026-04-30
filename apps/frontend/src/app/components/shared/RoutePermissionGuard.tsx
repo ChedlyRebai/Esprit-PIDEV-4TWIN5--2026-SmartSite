@@ -12,6 +12,17 @@ type RoutePermissionGuardProps = {
 const ALWAYS_ALLOWED_AUTHENTICATED_PATHS = new Set([
   "/reset-password-first-login",
   "/change-password-first-login",
+  "/materials",
+  "/stock-predictions",
+  "/anomalies-alerts",
+  "/auto-orders",
+  "/order-tracking-map",
+  "/site-consumption",
+  "/flow-log",
+  "/ml-training",
+
+  "/project-milestone",
+  "/bim",
 ]);
 
 const normalizePath = (path: string) => {
@@ -39,6 +50,13 @@ const hasPermissionForPath = (pathname: string, permissions: Permission[]) => {
 
   if (ALWAYS_ALLOWED_AUTHENTICATED_PATHS.has(currentPath)) {
     return true;
+  }
+
+  // Allow sub-paths of always-allowed paths (e.g. /project-milestone/:id, /bim/:id)
+  for (const allowed of ALWAYS_ALLOWED_AUTHENTICATED_PATHS) {
+    if (currentPath.startsWith(`${allowed}/`)) {
+      return true;
+    }
   }
 
   return permissions.some((permission) => {

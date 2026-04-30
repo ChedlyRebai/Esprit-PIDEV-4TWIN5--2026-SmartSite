@@ -63,7 +63,7 @@ const incidentsApi = axios.create({
 
 // API pour les projets (port 3010)
 const projectsApi = axios.create({
-  baseURL: "http://localhost:3010",
+  baseURL: "https://smartsite-gestion-projects-latest.onrender.com",
   timeout: 10000,
 });
 
@@ -368,7 +368,7 @@ export default function Incidents() {
             allUsers.length,
           );
         }, 500);
-      } catch (error) {
+      } catch (error: any) {
         console.error(
           "❌ Frontend: Erreur lors du chargement des utilisateurs:",
           error,
@@ -377,7 +377,7 @@ export default function Incidents() {
           console.error("❌ Frontend: Status:", error.response.status);
           console.error("❌ Frontend: Data:", error.response.data);
         }
-        toast.error("Erreur lors du chargement des utilisateurs");
+        toast.error("Error loading users");
       }
     };
 
@@ -416,7 +416,7 @@ export default function Incidents() {
             hasAssignment: !!(incident.assignedTo || incident.assignedUserRole),
           });
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error(
           "❌ Frontend: Erreur lors du chargement des incidents:",
           error,
@@ -435,9 +435,9 @@ export default function Incidents() {
     loadIncidents();
 
     // Écouter les événements du badge (quand un incident est traité/supprimé depuis /sites)
-    const unsubscribeUpdated = incidentEvents.on('updated', (data) => {
-      console.log('📢 Incident page received update:', data);
-      toast.success('✅ Incident traité', {
+    const unsubscribeUpdated = incidentEvents.on("updated", (data) => {
+      console.log("📢 Incident page received update:", data);
+      toast.success("✅ Incident marked as resolved", {
         description: `L'incident a été marqué comme traité depuis la page Sites/Projets`,
         duration: 5000,
       });
@@ -445,9 +445,9 @@ export default function Incidents() {
       loadIncidents();
     });
 
-    const unsubscribeDeleted = incidentEvents.on('deleted', (data) => {
-      console.log('📢 Incident page received delete:', data);
-      toast.error('🗑️ Incident supprimé', {
+    const unsubscribeDeleted = incidentEvents.on("deleted", (data) => {
+      console.log("📢 Incident page received delete:", data);
+      toast.error("🗑️ Incident deleted", {
         description: `L'incident a été supprimé depuis la page Sites/Projets`,
         duration: 5000,
       });
@@ -475,7 +475,7 @@ export default function Incidents() {
         setProjects(projectsData);
         console.log("✅ Frontend: Projets chargés:", projectsData.length);
         console.log("🔍 Premier projet:", projectsData[0]);
-      } catch (error) {
+      } catch (error: any) {
         console.error("❌ Frontend: Erreur chargement projets:", error);
         console.error("   URL:", error.config?.url);
         console.error("   Status:", error.response?.status);
@@ -506,7 +506,7 @@ export default function Incidents() {
         setSites(sitesData);
         console.log("✅ Frontend: Sites chargés:", sitesData.length);
         console.log("🔍 Premier site:", sitesData[0]);
-      } catch (error) {
+      } catch (error: any) {
         console.error("❌ Frontend: Erreur chargement sites:", error);
         console.error("   URL:", error.config?.url);
         setSites([]);
@@ -594,8 +594,8 @@ export default function Incidents() {
         siteId: "",
       });
 
-      toast.success("Incident enregistré avec succès dans la base de données");
-    } catch (error) {
+      toast.success("Incident successfully recorded in the database");
+    } catch (error: any) {
       console.error(
         "❌ Frontend: Erreur lors de la sauvegarde de l'incident:",
         error,
@@ -604,7 +604,7 @@ export default function Incidents() {
         console.error("❌ Frontend: Status:", error.response.status);
         console.error("❌ Frontend: Data:", error.response.data);
       }
-      toast.error("Erreur lors de l'enregistrement de l'incident");
+      toast.error("Error recording the incident");
     }
   };
 
@@ -764,7 +764,7 @@ export default function Incidents() {
 
       const generatedDescription =
         descriptions[newIncident.type as keyof typeof descriptions]?.[
-        newIncident.severity as keyof typeof descriptions.safety
+          newIncident.severity as keyof typeof descriptions.safety
         ] ||
         "Description générée automatiquement pour cet incident. Veuillez compléter avec les détails spécifiques.";
 
@@ -886,356 +886,391 @@ Pour toute question, veuillez contacter l'administrateur système.
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto px-6 py-4">
                   <div className="space-y-4 pb-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="incident-type">Incident Type</Label>
-                    <Select
-                      value={newIncident.type}
-                      onValueChange={(value) =>
-                        setNewIncident({ ...newIncident, type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="e.g., Safety Hazard, Quality Issue" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="safety">Safety Hazard</SelectItem>
-                        <SelectItem value="quality">Quality Issue</SelectItem>
-                        <SelectItem value="delay">Delay</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reportedByCin">
-                      Your CIN (non-modifiable)
-                    </Label>
-                    <Input
-                      id="reportedByCin"
-                      value={user?.cin || ""}
-                      disabled
-                      className="bg-gray-100"
-                      placeholder="Your CIN will be automatically filled"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
                     <div className="space-y-2">
-                      <Textarea
-                        id="description"
-                        placeholder="Describe the incident in detail..."
-                        value={newIncident.description}
+                      <Label htmlFor="incident-type">Incident Type</Label>
+                      <Select
+                        value={newIncident.type}
+                        onValueChange={(value) =>
+                          setNewIncident({ ...newIncident, type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="e.g., Safety Hazard, Quality Issue" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="safety">Safety Hazard</SelectItem>
+                          <SelectItem value="quality">Quality Issue</SelectItem>
+                          <SelectItem value="delay">Delay</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reportedByCin">
+                        Your CIN (non-modifiable)
+                      </Label>
+                      <Input
+                        id="reportedByCin"
+                        value={user?.cin || ""}
+                        disabled
+                        className="bg-gray-100"
+                        placeholder="Your CIN will be automatically filled"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <div className="space-y-2">
+                        <Textarea
+                          id="description"
+                          placeholder="Describe the incident in detail..."
+                          value={newIncident.description}
+                          onChange={(e) =>
+                            setNewIncident({
+                              ...newIncident,
+                              description: e.target.value,
+                            })
+                          }
+                          rows={3}
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateDescriptionWithAI}
+                            disabled={isGeneratingDescription}
+                            className="flex items-center gap-2"
+                          >
+                            {isGeneratingDescription ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4" />
+                                Generate with AI
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="incidentName">Incident Name</Label>
+                      <Input
+                        id="incidentName"
+                        placeholder="Give this incident a name (optional)"
+                        value={newIncident.incidentName}
                         onChange={(e) =>
                           setNewIncident({
                             ...newIncident,
-                            description: e.target.value,
+                            incidentName: e.target.value,
                           })
                         }
-                        rows={3}
+                        className="w-full"
                       />
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={generateDescriptionWithAI}
-                          disabled={isGeneratingDescription}
-                          className="flex items-center gap-2"
-                        >
-                          {isGeneratingDescription ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-4 w-4" />
-                              Générer avec l'IA
-                            </>
-                          )}
-                        </Button>
-                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="incidentName">Nom de l'incident</Label>
-                    <Input
-                      id="incidentName"
-                      placeholder="Donnez un nom à cet incident (optionnel)"
-                      value={newIncident.incidentName}
-                      onChange={(e) =>
-                        setNewIncident({
-                          ...newIncident,
-                          incidentName: e.target.value,
-                        })
-                      }
-                      className="w-full"
-                    />
-                  </div>
-                  {/* Sélection du Projet */}
-                  <div className="space-y-2">
-                    <Label htmlFor="projectId">
-                      📁 Projet (optionnel)
-                    </Label>
-                    <Select
-                      value={newIncident.projectId || "none"}
-                      onValueChange={(value) =>
-                        setNewIncident({
-                          ...newIncident,
-                          projectId: value === "none" ? "" : value,
-                          // Reset site si on change de projet
-                          siteId: "",
-                        })
-                      }
-                      disabled={isLoadingProjects}
-                    >
-                      <SelectTrigger id="projectId">
-                        <SelectValue placeholder={isLoadingProjects ? "Chargement..." : "Sélectionner un projet"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">🚫 Aucun projet</SelectItem>
-                        {Array.isArray(projects) && projects.map((p) => (
-                          <SelectItem key={p._id || p.id} value={p._id || p.id}>
-                            <div className="flex flex-col items-start">
-                              <span className="font-medium">{p.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {p.description?.substring(0, 50) || "Pas de description"}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {projects.length === 0 && !isLoadingProjects && (
-                      <p className="text-xs text-gray-500">
-                        ⚠️ Aucun projet disponible
-                      </p>
-                    )}
-                  </div>
+                    {/* Sélection du Projet */}
+                    <div className="space-y-2">
+                      <Label htmlFor="projectId">📁 Project (optional)</Label>
+                      <Select
+                        value={newIncident.projectId || "none"}
+                        onValueChange={(value) =>
+                          setNewIncident({
+                            ...newIncident,
+                            projectId: value === "none" ? "" : value,
+                            // Reset site si on change de projet
+                            siteId: "",
+                          })
+                        }
+                        disabled={isLoadingProjects}
+                      >
+                        <SelectTrigger id="projectId">
+                          <SelectValue
+                            placeholder={
+                              isLoadingProjects
+                                ? "Loading..."
+                                : "Select a project"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">🚫 No project</SelectItem>
+                          {Array.isArray(projects) &&
+                            projects.map((p) => (
+                              <SelectItem
+                                key={p._id || p.id}
+                                value={p._id || p.id}
+                              >
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">{p.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {p.description?.substring(0, 50) ||
+                                      "No description"}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      {projects.length === 0 && !isLoadingProjects && (
+                        <p className="text-xs text-gray-500">
+                          ⚠️ No projects available
+                        </p>
+                      )}
+                    </div>
 
-                  {/* Sélection du Site */}
-                  <div className="space-y-2">
-                    <Label htmlFor="siteId">
-                      🏗️ Site (optionnel)
-                    </Label>
-                    <Select
-                      value={newIncident.siteId || "none"}
-                      onValueChange={(value) =>
-                        setNewIncident({
-                          ...newIncident,
-                          siteId: value === "none" ? "" : value,
-                        })
-                      }
-                      disabled={isLoadingSites}
-                    >
-                      <SelectTrigger id="siteId">
-                        <SelectValue placeholder={isLoadingSites ? "Chargement..." : "Sélectionner un site"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">🚫 Aucun site</SelectItem>
-                        {Array.isArray(sites) && sites
-                          .filter((s) =>
-                            // Si un projet est sélectionné, ne montrer que les sites de ce projet
-                            !newIncident.projectId ||
-                            s.projectId === newIncident.projectId ||
-                            (s.project?.id || s.project?._id) === newIncident.projectId
-                          )
-                          .map((s) => (
-                            <SelectItem key={s._id || s.id} value={s._id || s.id}>
+                    {/* Sélection du Site */}
+                    <div className="space-y-2">
+                      <Label htmlFor="siteId">🏗️ Site (optional)</Label>
+                      <Select
+                        value={newIncident.siteId || "none"}
+                        onValueChange={(value) =>
+                          setNewIncident({
+                            ...newIncident,
+                            siteId: value === "none" ? "" : value,
+                          })
+                        }
+                        disabled={isLoadingSites}
+                      >
+                        <SelectTrigger id="siteId">
+                          <SelectValue
+                            placeholder={
+                              isLoadingSites
+                                ? "Loading..."
+                                : "Select a site"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">🚫 No site</SelectItem>
+                          {Array.isArray(sites) &&
+                            sites
+                              .filter(
+                                (s) =>
+                                  // Si un projet est sélectionné, ne montrer que les sites de ce projet
+                                  !newIncident.projectId ||
+                                  s.projectId === newIncident.projectId ||
+                                  (s.project?.id || s.project?._id) ===
+                                    newIncident.projectId,
+                              )
+                              .map((s) => (
+                                <SelectItem
+                                  key={s._id || s.id}
+                                  value={s._id || s.id}
+                                >
+                                  <div className="flex flex-col items-start">
+                                    <span className="font-medium">
+                                      {s.nom || s.name}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {s.localisation ||
+                                        s.address ||
+                                        "No address"}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                        </SelectContent>
+                      </Select>
+                      {sites.length === 0 && !isLoadingSites && (
+                        <p className="text-xs text-gray-500">
+                          ⚠️ No sites available
+                        </p>
+                      )}
+                      {newIncident.projectId && (
+                        <p className="text-xs text-gray-500">
+                          💡 Sites filtered by selected project
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="assignedUserCin">
+                        Assign to a user (optional)
+                      </Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <Select
+                          value={assignRoleFilter}
+                          onValueChange={setAssignRoleFilter}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="🎭 Filter by role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              🎭 All roles ({assignableUsers.length})
+                            </SelectItem>
+                            {assignableRoles.map((role) => {
+                              const count = assignableUsers.filter(
+                                (u) => u.role?.name === role,
+                              ).length;
+                              return (
+                                <SelectItem key={role} value={role}>
+                                  🎭 {role} ({count})
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <div className="relative">
+                          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          <Input
+                            placeholder="🔍 Search name or CIN"
+                            value={assignCinSearch}
+                            onChange={(e) => setAssignCinSearch(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      <Select
+                        value={newIncident.assignedUserCin || "none"}
+                        onValueChange={(value) =>
+                          setNewIncident({
+                            ...newIncident,
+                            assignedUserCin: value === "none" ? "" : value,
+                            assignedUserRole:
+                              value === "none"
+                                ? "all"
+                                : assignableUsers.find((u) => u.cin === value)
+                                    ?.role?.name || "all",
+                          })
+                        }
+                      >
+                        <SelectTrigger id="assignedUserCin">
+                          <SelectValue placeholder="👤 Select a user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">🚫 Not assigned</SelectItem>
+                          {filteredAssignableUsers.map((u) => (
+                            <SelectItem key={u._id} value={u.cin}>
                               <div className="flex flex-col items-start">
-                                <span className="font-medium">{s.nom || s.name}</span>
+                                <span className="font-medium">
+                                  {(u.firstname || u.firstName || "") +
+                                    " " +
+                                    (u.lastname || u.lastName || "")}
+                                </span>
                                 <span className="text-xs text-muted-foreground">
-                                  {s.localisation || s.address || "Pas d'adresse"}
+                                  CIN: {u.cin} • {u.role?.name || "No role"} •{" "}
+                                  {u.email || "No email"}
                                 </span>
                               </div>
                             </SelectItem>
                           ))}
-                      </SelectContent>
-                    </Select>
-                    {sites.length === 0 && !isLoadingSites && (
-                      <p className="text-xs text-gray-500">
-                        ⚠️ Aucun site disponible
-                      </p>
-                    )}
-                    {newIncident.projectId && (
-                      <p className="text-xs text-gray-500">
-                        💡 Sites filtrés par le projet sélectionné
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="assignedUserCin">
-                      Assigner à un utilisateur (optionnel)
-                    </Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <Select
-                        value={assignRoleFilter}
-                        onValueChange={setAssignRoleFilter}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="🎭 Filtrer par rôle" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">🎭 Tous les rôles ({assignableUsers.length})</SelectItem>
-                          {assignableRoles.map((role) => {
-                            const count = assignableUsers.filter(u => u.role?.name === role).length;
-                            return (
-                              <SelectItem key={role} value={role}>
-                                🎭 {role} ({count})
-                              </SelectItem>
-                            );
-                          })}
                         </SelectContent>
                       </Select>
-                      <div className="relative">
-                        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                        <Input
-                          placeholder="🔍 Rechercher nom ou CIN"
-                          value={assignCinSearch}
-                          onChange={(e) => setAssignCinSearch(e.target.value)}
-                          className="pl-10"
-                        />
+                      <Input
+                        id="manualCin"
+                        placeholder="Or enter a CIN manually"
+                        value={newIncident.assignedUserCin}
+                        onChange={(e) =>
+                          setNewIncident({
+                            ...newIncident,
+                            assignedUserCin: e.target.value,
+                            assignedUserRole:
+                              assignableUsers.find(
+                                (u) => u.cin === e.target.value,
+                              )?.role?.name || "all",
+                          })
+                        }
+                      />
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <p>
+                          💡 <strong>Available users:</strong>{" "}
+                          {filteredAssignableUsers.length} of{" "}
+                          {assignableUsers.length}
+                        </p>
+                        <p>
+                          Choose from the database, filter by role, or enter the CIN directly.
+                        </p>
+                        {assignCinSearch && (
+                          <p>
+                            🔍 Search: "{assignCinSearch}" -{" "}
+                            {filteredAssignableUsers.length} result(s)
+                          </p>
+                        )}
+                        {assignRoleFilter !== "all" && (
+                          <p>
+                            🎭 Role filter: {assignRoleFilter} -{" "}
+                            {filteredAssignableUsers.length} user(s)
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <Select
-                      value={newIncident.assignedUserCin || "none"}
-                      onValueChange={(value) =>
-                        setNewIncident({
-                          ...newIncident,
-                          assignedUserCin: value === "none" ? "" : value,
-                          assignedUserRole:
-                            value === "none"
-                              ? "all"
-                              : assignableUsers.find((u) => u.cin === value)?.role
-                                ?.name || "all",
-                        })
-                      }
-                    >
-                      <SelectTrigger id="assignedUserCin">
-                        <SelectValue placeholder="👤 Sélectionner un utilisateur" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">🚫 Non assigné</SelectItem>
-                        {filteredAssignableUsers.map((u) => (
-                          <SelectItem key={u._id} value={u.cin}>
-                            <div className="flex flex-col items-start">
-                              <span className="font-medium">
-                                {(u.firstname || u.firstName || "") + " " + (u.lastname || u.lastName || "")}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                CIN: {u.cin} • {u.role?.name || "No role"} • {u.email || "No email"}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      id="manualCin"
-                      placeholder="Ou entrer manuellement un CIN"
-                      value={newIncident.assignedUserCin}
-                      onChange={(e) =>
-                        setNewIncident({
-                          ...newIncident,
-                          assignedUserCin: e.target.value,
-                          assignedUserRole:
-                            assignableUsers.find((u) => u.cin === e.target.value)
-                              ?.role?.name || "all",
-                        })
-                      }
-                    />
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <p>
-                        💡 <strong>Utilisateurs disponibles:</strong> {filteredAssignableUsers.length} sur {assignableUsers.length}
-                      </p>
-                      <p>
-                        Choisir depuis la base, filtrer par rôle, ou saisir directement le CIN.
-                      </p>
-                      {assignCinSearch && (
-                        <p>
-                          🔍 Recherche: "{assignCinSearch}" - {filteredAssignableUsers.length} résultat(s)
-                        </p>
-                      )}
-                      {assignRoleFilter !== "all" && (
-                        <p>
-                          🎭 Filtre rôle: {assignRoleFilter} - {filteredAssignableUsers.length} utilisateur(s)
+                    <div className="space-y-2">
+                      <Label htmlFor="severity">Severity</Label>
+                      <Select
+                        value={newIncident.severity}
+                        onValueChange={(value) =>
+                          setNewIncident({ ...newIncident, severity: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select severity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Upload Image (optional)</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="image"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setNewIncident({
+                              ...newIncident,
+                              image: e.target.files?.[0] || null,
+                            })
+                          }
+                          className="flex-1"
+                        />
+                        <Upload className="h-4 w-4 text-gray-400" />
+                      </div>
+                      {newIncident.image && (
+                        <p className="text-xs text-green-600">
+                          Image selected: {newIncident.image.name}
                         </p>
                       )}
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="severity">Severity</Label>
-                    <Select
-                      value={newIncident.severity}
-                      onValueChange={(value) =>
-                        setNewIncident({ ...newIncident, severity: value })
-                      }
+                    <div className="space-y-2">
+                      <Label htmlFor="pdfReport">
+                        Upload PDF Report (optional)
+                      </Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="pdfReport"
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) =>
+                            setNewIncident({
+                              ...newIncident,
+                              pdfReport: e.target.files?.[0] || null,
+                            })
+                          }
+                          className="flex-1"
+                        />
+                        <FileText className="h-4 w-4 text-gray-400" />
+                      </div>
+                      {newIncident.pdfReport && (
+                        <p className="text-xs text-green-600">
+                          PDF selected: {newIncident.pdfReport.name}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                      onClick={handleAddIncident}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select severity" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="image">Upload Image (optional)</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          setNewIncident({
-                            ...newIncident,
-                            image: e.target.files?.[0] || null,
-                          })
-                        }
-                        className="flex-1"
-                      />
-                      <Upload className="h-4 w-4 text-gray-400" />
-                    </div>
-                    {newIncident.image && (
-                      <p className="text-xs text-green-600">
-                        Image selected: {newIncident.image.name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pdfReport">
-                      Upload PDF Report (optional)
-                    </Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        id="pdfReport"
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) =>
-                          setNewIncident({
-                            ...newIncident,
-                            pdfReport: e.target.files?.[0] || null,
-                          })
-                        }
-                        className="flex-1"
-                      />
-                      <FileText className="h-4 w-4 text-gray-400" />
-                    </div>
-                    {newIncident.pdfReport && (
-                      <p className="text-xs text-green-600">
-                        PDF selected: {newIncident.pdfReport.name}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                    onClick={handleAddIncident}
-                  >
-                    Report Incident
-                  </Button>
+                      Report Incident
+                    </Button>
                   </div>
                 </div>
               </DialogContent>
@@ -1258,8 +1293,12 @@ Pour toute question, veuillez contacter l'administrateur système.
                 <AlertTriangle className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Incidents</p>
-                <h2 className="text-lg font-bold text-slate-900">All Incidents List</h2>
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Incidents
+                </p>
+                <h2 className="text-lg font-bold text-slate-900">
+                  All Incidents List
+                </h2>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1306,8 +1345,15 @@ Pour toute question, veuillez contacter l'administrateur système.
                         {incident.description}
                       </p>
                       <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                        <span>Reported by: <span className="font-medium text-slate-700">{incident.reportedBy}</span></span>
-                        <span>{new Date(incident.createdAt).toLocaleString()}</span>
+                        <span>
+                          Reported by:{" "}
+                          <span className="font-medium text-slate-700">
+                            {incident.reportedBy}
+                          </span>
+                        </span>
+                        <span>
+                          {new Date(incident.createdAt).toLocaleString()}
+                        </span>
                       </div>
                       {(incident as any).assignedTo && (
                         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
@@ -1396,43 +1442,41 @@ Pour toute question, veuillez contacter l'administrateur système.
       </Card>
 
       {/* Pagination */}
-      {
-        totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Précédent
-            </Button>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Précédent
+          </Button>
 
-            <div className="flex items-center gap-1">
-              {[...Array(totalPages)].map((_, index) => (
-                <Button
-                  key={index + 1}
-                  variant={currentPage === index + 1 ? "default" : "outline"}
-                  size="sm"
-                  className="w-8 h-8 p-0"
-                  onClick={() => setCurrentPage(index + 1)}
-                >
-                  {index + 1}
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Suivant
-            </Button>
+          <div className="flex items-center gap-1">
+            {[...Array(totalPages)].map((_, index) => (
+              <Button
+                key={index + 1}
+                variant={currentPage === index + 1 ? "default" : "outline"}
+                size="sm"
+                className="w-8 h-8 p-0"
+                onClick={() => setCurrentPage(index + 1)}
+              >
+                {index + 1}
+              </Button>
+            ))}
           </div>
-        )
-      }
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Suivant
+          </Button>
+        </div>
+      )}
 
       {/* Dialogue d'assignation d'incident */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
@@ -1762,7 +1806,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   <Badge
                     variant={
                       selectedIncidentDetails.severity === "critical" ||
-                        selectedIncidentDetails.severity === "high"
+                      selectedIncidentDetails.severity === "high"
                         ? "destructive"
                         : selectedIncidentDetails.severity === "medium"
                           ? "default"
@@ -1775,7 +1819,7 @@ Pour toute question, veuillez contacter l'administrateur système.
                   <Badge
                     variant={
                       selectedIncidentDetails.status === "resolved" ||
-                        selectedIncidentDetails.status === "closed"
+                      selectedIncidentDetails.status === "closed"
                         ? "secondary"
                         : "destructive"
                     }
@@ -1822,8 +1866,8 @@ Pour toute question, veuillez contacter l'administrateur système.
                     <p className="text-sm text-gray-900 dark:text-white">
                       {selectedIncidentDetails.updatedAt
                         ? new Date(
-                          selectedIncidentDetails.updatedAt,
-                        ).toLocaleString("fr-FR")
+                            selectedIncidentDetails.updatedAt,
+                          ).toLocaleString("fr-FR")
                         : "N/A"}
                     </p>
                   </div>
@@ -1913,6 +1957,6 @@ Pour toute question, veuillez contacter l'administrateur système.
           )}
         </DialogContent>
       </Dialog>
-    </div >
+    </div>
   );
 }

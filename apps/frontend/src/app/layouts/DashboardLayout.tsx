@@ -40,6 +40,7 @@ import { ThemeButton } from "../components/ThemeButton";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { useTranslation } from "../hooks/useTranslation";
 import SiteInfoPanel from "../components/SiteInfoPanel";
+import { NavbarAccessibilityButton } from "../components/NavbarAccessibilityButton";
 import {
   groupPermissionsByModule,
   type PermissionModuleGroup,
@@ -336,6 +337,7 @@ export default function DashboardLayout() {
               </PopoverContent>
             </Popover>
             
+            <NavbarAccessibilityButton />
             <ThemeButton />
             <LanguageSelector />
 
