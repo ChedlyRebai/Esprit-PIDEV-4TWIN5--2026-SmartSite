@@ -33,7 +33,7 @@ pipeline {
             steps {
                 script {
                     checkout([$class:'GitSCM',
-                          branch:[[name:'*/api-gateway']],
+                          branch:[[name:'*/feat/api-gatewway']],
                            userRemoteConfigs:[[
                                url:'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
                                credentialsId:'pidev-github-credentials'
