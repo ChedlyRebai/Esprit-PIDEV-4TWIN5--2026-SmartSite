@@ -87,9 +87,7 @@ export class ResourceAnalysisService {
       })
       .slice(0, Math.ceil(Object.keys(dailyTotals).length * 0.25));
 
-    const avgDaily = Object.keys(dailyTotals).length > 0
-      ? Object.values(dailyTotals).reduce((sum: number, daily: any) => sum + ((daily as any).electricity || 0), 0) / Object.keys(dailyTotals).length
-      : 0;
+    const avgDaily = this.calculateAverageDailyConsumption(dailyTotals);
 
     return {
       peakPeriods: sortedDates.map(([date, data]: any) => ({ date, ...data })),
@@ -109,7 +107,7 @@ export class ResourceAnalysisService {
       hoursWorked: worker.hoursWorked,
       costIncurred: worker.hoursWorked * worker.costhourlyRate,
       productivityScore: worker.productivityScore,
-      efficiency: worker.productivityScore > 70 ? 'high' : worker.productivityScore > 50 ? 'medium' : 'low',
+      efficiency: this.getWorkerEfficiencyLevel(worker.productivityScore),
     }));
   }
 
@@ -145,80 +143,9 @@ export class ResourceAnalysisService {
       this.externalDataService.getAllSiteData(siteId).catch(() => null),
     ]);
 
-    const recommendations: string[] = [];
-
-    // Equipment recommendations
-    if (idleEquipment.length > 0) {
-      recommendations.push(
-        `Réduisez l'utilisation des ${idleEquipment.length} machines inutilisées`,
-      );
-    }
-
-    // Energy recommendations
-    if (energyAnalysis.peakPeriods.length > 0) {
-      recommendations.push(
-        'Lissez les pics de consommation d\'énergie pendant les heures creuses',
-      );
-    }
-
-    // Worker recommendations
-    const lowProductivityWorkers = workerProductivity.filter((w) => w.efficiency === 'low');
-    if (lowProductivityWorkers.length > 0) {
-      recommendations.push(
-        `Optimisez les horaires de ${lowProductivityWorkers.length} travailleurs peu productifs`,
-      );
-    }
-
-    // Add recommendations based on external data
-    if (externalData) {
-      const { tasks, milestones, siteStats } = externalData;
-      
-      // Task completion recommendations
-      if (tasks.length > 0) {
-        const completionRate = (siteStats.completedTasks / tasks.length) * 100;
-        if (completionRate < 50) {
-          recommendations.push(
-            `Améliorez le suivi des tâches: seulement ${completionRate.toFixed(0)}% terminées`,
-          );
-        }
-        if (siteStats.activeTasks > 20) {
-          recommendations.push(
-            `Réduisez le nombre de tâches actives (${siteStats.activeTasks}) pour améliorer la productivité`,
-          );
-        }
-      }
-
-      // Milestone recommendations
-      if (milestones.length > 0) {
-        const completedMilestones = milestones.filter(m => m.status === 'completed').length;
-        const progress = (completedMilestones / milestones.length) * 100;
-        if (progress < 30 && siteStats.pendingMilestones > 3) {
-          recommendations.push(
-            `Accélérez la progression des jalons: ${progress.toFixed(0)}% complétés, ${siteStats.pendingMilestones} en attente`,
-          );
-        }
-      }
-
-      // Budget recommendations
-      if (externalData?.site && externalData.site.budget > 0) {
-        const site = externalData.site;
-        const actualCosts = resourceCosts.total;
-        if (actualCosts > site.budget * 0.8) {
-          recommendations.push(
-            `Attention: les coûts(${actualCosts}€) approche du budget(${site.budget}€)`,
-          );
-        }
-      }
-    }
-
-    // Calculate task completion rate from external data
-    const taskCompletionRate = externalData && externalData.tasks.length > 0
-      ? (externalData.siteStats.completedTasks / externalData.tasks.length) * 100
-      : 0;
-    
-    const milestoneProgress = externalData && externalData.milestones.length > 0
-      ? ((externalData.milestones.length - externalData.siteStats.pendingMilestones) / externalData.milestones.length) * 100
-      : 0;
+    const recommendations = this.buildResourceRecommendations(idleEquipment, energyAnalysis, workerProductivity, resourceCosts, externalData);
+    const taskCompletionRate = this.calculateTaskCompletionRateFromExternalData(externalData);
+    const milestoneProgress = this.calculateMilestoneProgressFromExternalData(externalData);
 
     return {
       idleEquipment,
@@ -238,5 +165,84 @@ export class ResourceAnalysisService {
         milestoneProgress,
       } : undefined,
     };
+  }
+
+  private calculateAverageDailyConsumption(dailyTotals: Record<string, { electricity: number; fuel: number; water: number; waste: number; co2: number }>) {
+    const totals = Object.values(dailyTotals);
+    if (totals.length === 0) return 0;
+    return totals.reduce((sum, daily) => sum + daily.electricity, 0) / totals.length;
+  }
+
+  private getWorkerEfficiencyLevel(productivityScore: number) {
+    if (productivityScore > 70) return 'high';
+    if (productivityScore > 50) return 'medium';
+    return 'low';
+  }
+
+  private buildResourceRecommendations(
+    idleEquipment: any[],
+    energyAnalysis: { peakPeriods: any[] },
+    workerProductivity: any[],
+    resourceCosts: any,
+    externalData: any,
+  ): string[] {
+    const recommendations: string[] = [];
+
+    if (idleEquipment.length > 0) {
+      recommendations.push(`Réduisez l'utilisation des ${idleEquipment.length} machines inutilisées`);
+    }
+
+    if (energyAnalysis.peakPeriods.length > 0) {
+      recommendations.push('Lissez les pics de consommation d\'énergie pendant les heures creuses');
+    }
+
+    const lowProductivityWorkers = workerProductivity.filter((worker) => worker.efficiency === 'low');
+    if (lowProductivityWorkers.length > 0) {
+      recommendations.push(`Optimisez les horaires de ${lowProductivityWorkers.length} travailleurs peu productifs`);
+    }
+
+    if (externalData) {
+      recommendations.push(...this.buildExternalDataRecommendations(externalData, resourceCosts));
+    }
+
+    return recommendations;
+  }
+
+  private buildExternalDataRecommendations(externalData: any, resourceCosts: any): string[] {
+    const recommendations: string[] = [];
+    const { tasks, milestones, siteStats, site } = externalData;
+
+    if (tasks.length > 0) {
+      const completionRate = this.calculateTaskCompletionRateFromExternalData(externalData);
+      if (completionRate < 50) {
+        recommendations.push(`Améliorez le suivi des tâches: seulement ${completionRate.toFixed(0)}% terminées`);
+      }
+      if (siteStats.activeTasks > 20) {
+        recommendations.push(`Réduisez le nombre de tâches actives (${siteStats.activeTasks}) pour améliorer la productivité`);
+      }
+    }
+
+    if (milestones.length > 0) {
+      const milestoneProgress = this.calculateMilestoneProgressFromExternalData(externalData);
+      if (milestoneProgress < 30 && siteStats.pendingMilestones > 3) {
+        recommendations.push(`Accélérez la progression des jalons: ${milestoneProgress.toFixed(0)}% complétés, ${siteStats.pendingMilestones} en attente`);
+      }
+    }
+
+    if (site && site.budget > 0 && resourceCosts.total > site.budget * 0.8) {
+      recommendations.push(`Attention: les coûts(${resourceCosts.total}€) approche du budget(${site.budget}€)`);
+    }
+
+    return recommendations;
+  }
+
+  private calculateTaskCompletionRateFromExternalData(externalData: any) {
+    if (!externalData || externalData.tasks.length === 0) return 0;
+    return (externalData.siteStats.completedTasks / externalData.tasks.length) * 100;
+  }
+
+  private calculateMilestoneProgressFromExternalData(externalData: any) {
+    if (!externalData || externalData.milestones.length === 0) return 0;
+    return ((externalData.milestones.length - externalData.siteStats.pendingMilestones) / externalData.milestones.length) * 100;
   }
 }
