@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from '../email/email.service';
+import { RolesService } from '../roles/roles.service';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 
@@ -19,6 +21,18 @@ describe('AuthService', () => {
     verify: jest.fn(),
   };
 
+  const mockEmailService = {
+    sendTemporaryPasswordEmail: jest.fn(),
+    sendOTPEmail: jest.fn(),
+    sendApprovalEmail: jest.fn(),
+    sendRejectionEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
+  } as any;
+
+  const mockRolesService = {
+    findByName: jest.fn(),
+  } as any;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +44,14 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
+        },
+        {
+          provide: RolesService,
+          useValue: mockRolesService,
         },
       ],
     }).compile();

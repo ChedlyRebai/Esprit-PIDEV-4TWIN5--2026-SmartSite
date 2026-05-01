@@ -12,19 +12,10 @@ describe('AuthController', () => {
     validateUser: jest.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AuthController],
-      providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
-      ],
-    }).compile();
-
-    controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
+  beforeEach(() => {
+    const mockAuditLogsService = { createLog: jest.fn(), findLatestLogin: jest.fn() } as any;
+    controller = new AuthController(mockAuthService as any, mockAuditLogsService);
+    authService = mockAuthService as any;
   });
 
   it('should be defined', () => {
@@ -74,8 +65,7 @@ describe('AuthController', () => {
       };
       mockAuthService.register.mockRejectedValue(new Error('User already exists'));
 
-      const result = await controller.register(registerDto);
-      //expect(result.error).toBe('User already exists');
+      await expect(controller.register(registerDto)).rejects.toThrow('User already exists');
     });
   });
 });
