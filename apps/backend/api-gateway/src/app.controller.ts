@@ -21,6 +21,8 @@ export class AppController {
     resources:    (process.env.RESOURCE_OPTIMIZATION_URL ?? 'http://localhost:3007') + '/api',
     // incident-management has no global prefix
     incidents:    process.env.INCIDENT_URL                ?? 'http://localhost:3003',
+    // materials-service uses /api global prefix
+    materials:    (process.env.MATERIALS_SERVICE_URL     ?? 'http://localhost:3002') + '/api',
   };
 
   // ── Generic proxy ───────────────────────────────────────────────────────────
@@ -149,5 +151,17 @@ export class AppController {
   @All(['incidents', 'incidents/*path'])
   handleIncidents(@Req() req: Request, @Res() res: Response) {
     return this.proxy(req, res, 'incidents', 'incidents');
+  }
+
+  // ── Materials Service ───────────────────────────────────────────────────────
+  @All(['materials', 'materials/*path'])
+  handleMaterials(@Req() req: Request, @Res() res: Response) {
+    return this.proxy(req, res, 'materials', 'materials');
+  }
+
+  // ── Material Flow (part of Materials Service) ──────────────────────────────
+  @All(['material-flow', 'material-flow/*path'])
+  handleMaterialFlow(@Req() req: Request, @Res() res: Response) {
+    return this.proxy(req, res, 'materials', 'material-flow');
   }
 }

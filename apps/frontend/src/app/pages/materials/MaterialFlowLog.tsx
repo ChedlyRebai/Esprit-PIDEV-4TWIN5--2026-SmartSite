@@ -29,11 +29,13 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
   const [anomalies, setAnomalies] = useState<MaterialFlow[]>([]);
   const [filter, setFilter] = useState<'all' | 'IN' | 'OUT' | 'anomaly'>('all');
   const [stats, setStats] = useState<any>(null);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   useEffect(() => {
     loadFlows();
     loadAnomalies();
-  }, [materialId, siteId]);
+  }, [materialId, siteId, startDate, endDate]);
 
   const loadFlows = async () => {
     setLoading(true);
@@ -42,6 +44,8 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
       const data = await materialFlowService.getEnrichedFlows({
         materialId,
         siteId,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
         limit: 100,
       });
       setFlows(data.data);
@@ -52,7 +56,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
       }
     } catch (error) {
       console.error('Error loading flows:', error);
-      toast.error('Erreur chargement des mouvements');
+      toast.error('Error loading movements');
     } finally {
       setLoading(false);
     }
@@ -92,10 +96,10 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
     if (type === AnomalyType.NONE) return null;
     
     const config = {
-      [AnomalyType.EXCESSIVE_OUT]: { label: 'Sortie excessive', color: 'bg-red-100 text-red-700' },
-      [AnomalyType.EXCESSIVE_IN]: { label: 'Entrée excessive', color: 'bg-yellow-100 text-yellow-700' },
-      [AnomalyType.BELOW_SAFETY_STOCK]: { label: 'Stock critique', color: 'bg-orange-100 text-orange-700' },
-      [AnomalyType.UNEXPECTED_MOVEMENT]: { label: 'Mouvement inattendu', color: 'bg-purple-100 text-purple-700' },
+      [AnomalyType.EXCESSIVE_OUT]: { label: 'Excessive Output', color: 'bg-red-100 text-red-700' },
+      [AnomalyType.EXCESSIVE_IN]: { label: 'Excessive Input', color: 'bg-yellow-100 text-yellow-700' },
+      [AnomalyType.BELOW_SAFETY_STOCK]: { label: 'Critical Stock', color: 'bg-orange-100 text-orange-700' },
+      [AnomalyType.UNEXPECTED_MOVEMENT]: { label: 'Unexpected Movement', color: 'bg-purple-100 text-purple-700' },
     };
     
     const cfg = config[type];
@@ -104,11 +108,11 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
 
   const getTypeLabel = (type: FlowType) => {
     switch (type) {
-      case FlowType.IN: return 'Entrée';
-      case FlowType.OUT: return 'Sortie';
-      case FlowType.DAMAGE: return 'Endommagé';
-      case FlowType.RESERVE: return 'Réservé';
-      case FlowType.RETURN: return 'Retour';
+      case FlowType.IN: return 'Input';
+      case FlowType.OUT: return 'Output';
+      case FlowType.DAMAGE: return 'Damaged';
+      case FlowType.RESERVE: return 'Reserved';
+      case FlowType.RETURN: return 'Return';
       default: return type;
     }
   };
@@ -122,11 +126,11 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
             <div className="grid grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">{stats.statistics?.find((s: any) => s._id === 'OUT')?.totalQuantity || 0}</p>
-                <p className="text-xs text-gray-500">Sorties (30j)</p>
+                <p className="text-xs text-gray-500">Outputs (30d)</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">{stats.statistics?.find((s: any) => s._id === 'IN')?.totalQuantity || 0}</p>
-                <p className="text-xs text-gray-500">Entrées (30j)</p>
+                <p className="text-xs text-gray-500">Inputs (30d)</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-orange-600">{stats.statistics?.reduce((sum: number, s: any) => sum + s.anomalies, 0) || 0}</p>
@@ -134,12 +138,48 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-purple-600">{stats.statistics?.reduce((sum: number, s: any) => sum + s.count, 0) || 0}</p>
-                <p className="text-xs text-gray-500">Mouvements totaux</p>
+                <p className="text-xs text-gray-500">Total Movements</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Date Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium mb-1">Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium mb-1">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+            >
+              Reset
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filter Buttons */}
       <div className="flex gap-2">
@@ -148,7 +188,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
           size="sm"
           onClick={() => setFilter('all')}
         >
-          Tous
+          All
         </Button>
         <Button 
           variant={filter === 'IN' ? 'default' : 'outline'} 
@@ -157,7 +197,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
           onClick={() => setFilter('IN')}
         >
           <ArrowDownCircle className="h-4 w-4 mr-1" />
-          Entrées
+          Inputs
         </Button>
         <Button 
           variant={filter === 'OUT' ? 'default' : 'outline'} 
@@ -166,7 +206,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
           onClick={() => setFilter('OUT')}
         >
           <ArrowUpCircle className="h-4 w-4 mr-1" />
-          Sorties
+          Outputs
         </Button>
         <Button 
           variant={filter === 'anomaly' ? 'default' : 'outline'} 
@@ -192,14 +232,14 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
                   {flows.filter(f => f.type === 'IN' || f.type === 'RETURN')
                     .reduce((sum, f) => sum + f.quantity, 0)}
                 </p>
-                <p className="text-xs text-gray-600">Total Entrées</p>
+                <p className="text-xs text-gray-600">Total Inputs</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-600">
                   {flows.filter(f => f.type === 'OUT' || f.type === 'DAMAGE' || f.type === 'ADJUSTMENT')
                     .reduce((sum, f) => sum + f.quantity, 0)}
                 </p>
-                <p className="text-xs text-gray-600">Total Sorties</p>
+                <p className="text-xs text-gray-600">Total Outputs</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-orange-600">
@@ -209,7 +249,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-purple-600">{flows.length}</p>
-                <p className="text-xs text-gray-600">Journaux</p>
+                <p className="text-xs text-gray-600">Logs</p>
               </div>
             </div>
           </CardContent>
@@ -221,19 +261,19 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Journal des mouvements
+            Movement Log
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-              <p className="mt-2 text-gray-500">Chargement...</p>
+              <p className="mt-2 text-gray-500">Loading...</p>
             </div>
           ) : getFilteredFlows().length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p>Aucun mouvement enregistré</p>
+              <p>No movements recorded</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -249,7 +289,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
-                          {getTypeLabel(flow.type)}: {flow.quantity} unités
+                          {getTypeLabel(flow.type)}: {flow.quantity} units
                         </span>
                         {getAnomalyBadge(flow.anomalyDetected)}
                       </div>
@@ -284,7 +324,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
                        </span>
                      </div>
                      {(flow as any).userName && (
-                       <div className="text-xs text-gray-400">Utilisateur: {(flow as any).userName}</div>
+                       <div className="text-xs text-gray-400">User: {(flow as any).userName}</div>
                      )}
                    </div>
                 </div>
@@ -300,7 +340,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
           <CardHeader className="bg-red-50">
             <CardTitle className="flex items-center gap-2 text-red-700">
               <AlertTriangle className="h-5 w-5" />
-              Anomalies non résolues ({anomalies.length})
+              Unresolved Anomalies ({anomalies.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -308,7 +348,7 @@ export default function MaterialFlowLog({ materialId, siteId }: MaterialFlowLogP
               {anomalies.slice(0, 5).map((anomaly) => (
                 <div key={anomaly._id} className="p-2 border-b last:border-0">
                   <div className="flex justify-between">
-                    <span className="font-medium">{anomaly.materialName || 'Matériau'}</span>
+                    <span className="font-medium">{anomaly.materialName || 'Material'}</span>
                     <span className="text-sm text-red-600">{anomaly.anomalyMessage?.substring(0, 50)}...</span>
                   </div>
                 </div>

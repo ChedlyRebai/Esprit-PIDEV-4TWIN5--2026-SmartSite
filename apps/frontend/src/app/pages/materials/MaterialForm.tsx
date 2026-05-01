@@ -52,11 +52,11 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
     expiryDate: '',
   });
 
-  // Nouveaux champs V2
-  const [stockExistant, setStockExistant] = useState<number>(0);
-  const [stockMinimum, setStockMinimum] = useState<number>(10);
-  const [stockEntree, setStockEntree] = useState<number>(0);
-  const [stockSortie, setStockSortie] = useState<number>(0);
+  // New V2 fields
+  const [existingStock, setExistingStock] = useState<number>(0);
+  const [minimumStock, setMinimumStock] = useState<number>(10);
+  const [stockIn, setStockIn] = useState<number>(0);
+  const [stockOut, setStockOut] = useState<number>(0);
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -66,58 +66,58 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
   const [loadingSites, setLoadingSites] = useState(false);
 
   const categories = [
-    'béton', 'fer', 'acier', 'électricité', 'plomberie', 
-    'bois', 'sable', 'gravier', 'ciment', 'brique', 
-    'carrelage', 'peinture', 'isolation', 'toiture', 'autre'
+    'concrete', 'iron', 'steel', 'electricity', 'plumbing', 
+    'wood', 'sand', 'gravel', 'cement', 'brick', 
+    'tile', 'paint', 'insulation', 'roofing', 'other'
   ];
 
-  const units = ['kg', 'm³', 'm²', 'ml', 'pièces', 'tonnes', 'sac', 'autre'];
+  const units = ['kg', 'm³', 'm²', 'ml', 'pieces', 'tons', 'bag', 'other'];
 
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
       case 'name':
-        if (!value || value.trim() === '') return 'Le nom est obligatoire';
-        if (value.trim().length < 2) return 'Le nom doit contenir au moins 2 caractères';
-        if (value.trim().length > 100) return 'Le nom ne peut pas dépasser 100 caractères';
+        if (!value || value.trim() === '') return 'Name is required';
+        if (value.trim().length < 2) return 'Name must contain at least 2 characters';
+        if (value.trim().length > 100) return 'Name cannot exceed 100 characters';
         break;
       case 'code':
-        if (!value || value.trim() === '') return 'Le code est obligatoire';
-        if (!/^[A-Za-z0-9-_]+$/.test(value)) return 'Le code ne peut contenir que des lettres, chiffres, tirets et underscores';
+        if (!value || value.trim() === '') return 'Code is required';
+        if (!/^[A-Za-z0-9-_]+$/.test(value)) return 'Code can only contain letters, numbers, hyphens and underscores';
         break;
       case 'category':
-        if (!value || value === '') return 'La catégorie est obligatoire';
+        if (!value || value === '') return 'Category is required';
         break;
       case 'unit':
-        if (!value || value === '') return 'L\'unité est obligatoire';
+        if (!value || value === '') return 'Unit is required';
         break;
       case 'quantity':
-        if (value === undefined || value === null || value === '') return 'La quantité est obligatoire';
-        if (isNaN(Number(value))) return 'La quantité doit être un nombre';
-        if (Number(value) < 0) return 'La quantité ne peut pas être négative';
-        if (Number(value) > 1000000) return 'La quantité maximale est 1 000 000';
+        if (value === undefined || value === null || value === '') return 'Quantity is required';
+        if (isNaN(Number(value))) return 'Quantity must be a number';
+        if (Number(value) < 0) return 'Quantity cannot be negative';
+        if (Number(value) > 1000000) return 'Maximum quantity is 1,000,000';
         break;
       case 'minimumStock':
-        if (value === undefined || value === null || value === '') return 'Le stock minimum est obligatoire';
-        if (isNaN(Number(value))) return 'Doit être un nombre';
-        if (Number(value) < 0) return 'Ne peut pas être négatif';
-        if (Number(value) > 1000000) return 'Valeur maximale: 1 000 000';
+        if (value === undefined || value === null || value === '') return 'Minimum stock is required';
+        if (isNaN(Number(value))) return 'Must be a number';
+        if (Number(value) < 0) return 'Cannot be negative';
+        if (Number(value) > 1000000) return 'Maximum value: 1,000,000';
         break;
       case 'maximumStock':
-        if (value === undefined || value === null || value === '') return 'Le stock maximum est obligatoire';
-        if (isNaN(Number(value))) return 'Doit être un nombre';
-        if (Number(value) < 0) return 'Ne peut pas être négatif';
-        if (Number(value) > 1000000) return 'Valeur maximale: 1 000 000';
+        if (value === undefined || value === null || value === '') return 'Maximum stock is required';
+        if (isNaN(Number(value))) return 'Must be a number';
+        if (Number(value) < 0) return 'Cannot be negative';
+        if (Number(value) > 1000000) return 'Maximum value: 1,000,000';
         if (formData.minimumStock && Number(value) < formData.minimumStock) {
-          return 'Doit être supérieur ou égal au stock minimum';
+          return 'Must be greater than or equal to minimum stock';
         }
         break;
       case 'reorderPoint':
-        if (value === undefined || value === null || value === '') return 'Le point de commande est obligatoire';
-        if (isNaN(Number(value))) return 'Doit être un nombre';
-        if (Number(value) < 0) return 'Ne peut pas être négatif';
-        if (Number(value) > 1000000) return 'Valeur maximale: 1 000 000';
+        if (value === undefined || value === null || value === '') return 'Reorder point is required';
+        if (isNaN(Number(value))) return 'Must be a number';
+        if (Number(value) < 0) return 'Cannot be negative';
+        if (Number(value) > 1000000) return 'Maximum value: 1,000,000';
         if (formData.minimumStock && Number(value) > formData.minimumStock) {
-          return 'Ne doit pas dépasser le stock minimum';
+          return 'Cannot exceed minimum stock';
         }
         break;
     }
@@ -128,7 +128,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
     const newErrors: FormErrors = {};
     let isValid = true;
 
-    // Valider seulement les champs obligatoires du nouveau formulaire V2
+    // Validate only required fields for the new V2 form
     const requiredFields = ['name', 'code', 'category', 'unit'];
     
     requiredFields.forEach(key => {
@@ -141,7 +141,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
 
     // Validate site for new materials
     if (!initialData && !selectedSiteId) {
-      newErrors.siteId = 'Le chantier est obligatoire';
+      newErrors.siteId = 'Site is required';
       isValid = false;
     }
 
@@ -193,11 +193,11 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
         expiryDate: initialData.expiryDate ? initialData.expiryDate.split('T')[0] : '',
       });
       
-      // Initialiser les nouveaux champs V2
-      setStockExistant((initialData as any).stockExistant || initialData.quantity || 0);
-      setStockMinimum((initialData as any).stockMinimum || initialData.minimumStock || 10);
-      setStockEntree((initialData as any).stockEntree || 0);
-      setStockSortie((initialData as any).stockSortie || 0);
+      // Initialize new V2 fields
+      setExistingStock((initialData as any).stockExistant || initialData.quantity || 0);
+      setMinimumStock((initialData as any).stockMinimum || initialData.minimumStock || 10);
+      setStockIn((initialData as any).stockEntree || 0);
+      setStockOut((initialData as any).stockSortie || 0);
       
       // Handle siteId - could be string or object
       const getSiteId = (sid: any): string => {
@@ -232,10 +232,10 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
         manufacturer: '',
         expiryDate: '',
       });
-      setStockExistant(0);
-      setStockMinimum(10);
-      setStockEntree(0);
-      setStockSortie(0);
+      setExistingStock(0);
+      setMinimumStock(10);
+      setStockIn(0);
+      setStockOut(0);
       setSelectedSiteId('');
     }
   }, [initialData, sites]);
@@ -246,47 +246,47 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
       console.log('🔍 Loading sites from API...');
       const sitesData = await siteService.getSites();
       console.log('📍 Sites loaded:', sitesData.length, sitesData);
-      console.log('📍 First few sites:', sitesData.slice(0, 3).map(s => ({ id: s._id, nom: s.nom })));
+      console.log('📍 First few sites:', sitesData.slice(0, 3).map(s => ({ id: s._id, name: s.nom })));
       setSites(sitesData);
     } catch (error: any) {
-      console.error('❌ Erreur chargement sites:', error.message, error.response?.data);
+      console.error('❌ Error loading sites:', error.message, error.response?.data);
     } finally {
       setLoadingSites(false);
     }
   };
 
   const getStockStatus = () => {
-    const stockActuel = stockExistant + stockEntree - stockSortie;
-    if (stockActuel === 0) return 'out_of_stock';
-    if (stockActuel < stockMinimum) return 'low_stock';
+    const currentStock = existingStock + stockIn - stockOut;
+    if (currentStock === 0) return 'out_of_stock';
+    if (currentStock < minimumStock) return 'low_stock';
     return 'in_stock';
   };
 
   const getStockStatusLabel = () => {
     const status = getStockStatus();
-    const stockActuel = stockExistant + stockEntree - stockSortie;
+    const currentStock = existingStock + stockIn - stockOut;
     switch (status) {
       case 'out_of_stock':
-        return <Badge className="bg-red-500">Rupture de stock</Badge>;
+        return <Badge className="bg-red-500">Out of Stock</Badge>;
       case 'low_stock':
-        return <Badge className="bg-yellow-500">⚠️ Commander ({stockActuel} {'<'} {stockMinimum})</Badge>;
+        return <Badge className="bg-yellow-500">⚠️ Order ({currentStock} {'<'} {minimumStock})</Badge>;
       default:
-        return <Badge className="bg-green-500">✅ En stock ({stockActuel} unités)</Badge>;
+        return <Badge className="bg-green-500">✅ In Stock ({currentStock} units)</Badge>;
     }
   };
 
-  const calculateStockActuel = () => {
-    return stockExistant + stockEntree - stockSortie;
+  const calculateCurrentStock = () => {
+    return existingStock + stockIn - stockOut;
   };
 
-  const calculateQuantiteACommander = () => {
-    const stockActuel = calculateStockActuel();
-    if (stockActuel >= stockMinimum) return 0;
-    return Math.ceil((stockMinimum - stockActuel) * 1.2); // +20% de marge
+  const calculateQuantityToOrder = () => {
+    const currentStock = calculateCurrentStock();
+    if (currentStock >= minimumStock) return 0;
+    return Math.ceil((minimumStock - currentStock) * 1.2); // +20% safety margin
   };
 
-  const doitCommander = () => {
-    return calculateStockActuel() < stockMinimum;
+  const needsReorder = () => {
+    return calculateCurrentStock() < minimumStock;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -304,7 +304,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
     
     // Validate form
     if (!validateForm()) {
-      toast.error('Veuillez corriger les erreurs avant de soumettre');
+      toast.error('Please correct errors before submitting');
       setLoading(false);
       return;
     }
@@ -312,27 +312,27 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
     setLoading(true);
 
     try {
-      // Calculer le stock actuel
-      const stockActuel = stockExistant + stockEntree - stockSortie;
+      // Calculate current stock
+      const currentStock = existingStock + stockIn - stockOut;
 
-      // 🚨 DÉTECTION D'ANOMALIE - Si il y a une sortie de stock (consommation)
-      if (stockSortie > 0) {
+      // 🚨 ANOMALY DETECTION - If there is stock output (consumption)
+      if (stockOut > 0) {
         try {
-          console.log('🚨 Detecting anomaly for consumption:', stockSortie, 'of material:', formData.name);
+          console.log('🚨 Detecting anomaly for consumption:', stockOut, 'of material:', formData.name);
           
-          // Utiliser le service d'anomalie pour détecter les patterns suspects
+          // Use anomaly detection service to detect suspicious patterns
           const anomalyResult = await anomalyDetectionService.processAnomalyDetection(
             initialData?._id || 'new-material',
             formData.name,
-            stockSortie,
-            false // Utiliser la simulation pour l'instant
+            stockOut,
+            false // Use simulation for now
           );
 
           console.log('🔍 Anomaly detection result:', anomalyResult);
 
-          // Si une anomalie est détectée, afficher l'alerte
+          // If anomaly is detected, show alert
           if (anomalyResult.isAnomaly) {
-            // Émettre l'événement d'anomalie pour l'affichage
+            // Emit anomaly event for display
             const anomalyEvent = new CustomEvent('anomalyDetected', {
               detail: {
                 materialId: initialData?._id || 'new-material',
@@ -343,7 +343,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
             });
             window.dispatchEvent(anomalyEvent);
 
-            // Afficher un toast d'alerte
+            // Show alert toast
             if (anomalyResult.riskLevel === 'HIGH') {
               toast.error(`🚨 ${anomalyResult.message}`, {
                 duration: 10000,
@@ -358,7 +358,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
           }
         } catch (anomalyError) {
           console.error('❌ Anomaly detection failed:', anomalyError);
-          // Ne pas bloquer la soumission si la détection d'anomalie échoue
+          // Don't block submission if anomaly detection fails
         }
       }
       
@@ -373,14 +373,14 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
         if (formData.category) updateData.category = formData.category;
         if (formData.unit) updateData.unit = formData.unit;
         
-        // Nouveaux champs V2
-        updateData.stockExistant = stockExistant;
-        updateData.stockMinimum = stockMinimum;
-        updateData.stockEntree = stockEntree;
-        updateData.stockSortie = stockSortie;
-        updateData.stockActuel = stockActuel;
-        updateData.quantity = stockActuel; // Garder quantity synchronisé
-        updateData.needsReorder = stockActuel < stockMinimum;
+        // New V2 fields
+        updateData.stockExistant = existingStock;
+        updateData.stockMinimum = minimumStock;
+        updateData.stockEntree = stockIn;
+        updateData.stockSortie = stockOut;
+        updateData.stockActuel = currentStock;
+        updateData.quantity = currentStock; // Keep quantity synchronized
+        updateData.needsReorder = currentStock < minimumStock;
         
         if (formData.expiryDate) updateData.expiryDate = formData.expiryDate;
         
@@ -390,10 +390,10 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
           console.log('🔄 Site changed from', initialData?.siteId, 'to', selectedSiteId);
           try {
             await materialService.assignMaterialToSite(initialData._id, selectedSiteId);
-            console.log('✅ Site assignation successful');
+            console.log('✅ Site assignment successful');
           } catch (error) {
-            console.error('❌ Erreur assignation site:', error);
-            toast.error('Erreur lors du changement de site');
+            console.error('❌ Error assigning site:', error);
+            toast.error('Error changing site');
           }
         }
         
@@ -401,42 +401,42 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
         
         // Allow update even if only site changed
         if (Object.keys(updateData).length === 0 && !siteChanged) {
-          toast.error('Aucune donnée à mettre à jour');
+          toast.error('No data to update');
           setLoading(false);
           return;
         }
         
         await materialService.updateMaterial(initialData._id, updateData);
-        toast.success('Matériau modifié avec succès!');
+        toast.success('Material updated successfully!');
       } else {
         if (!selectedSiteId) {
-          toast.error('Veuillez sélectionner un chantier');
+          toast.error('Please select a site');
           setLoading(false);
           return;
         }
         
-        // Créer un nouveau matériau avec les nouveaux champs V2
+        // Create new material with new V2 fields
         const createData: any = {
           ...formData,
-          stockExistant,
-          stockMinimum,
-          stockEntree,
-          stockSortie,
-          stockActuel,
-          quantity: stockActuel,
-          needsReorder: stockActuel < stockMinimum,
+          stockExistant: existingStock,
+          stockMinimum: minimumStock,
+          stockEntree: stockIn,
+          stockSortie: stockOut,
+          stockActuel: currentStock,
+          quantity: currentStock,
+          needsReorder: currentStock < minimumStock,
         };
         
         console.log('Creating material with site:', createData, selectedSiteId);
         await materialService.createMaterialWithSite(createData, selectedSiteId);
-        toast.success('Matériau ajouté avec succès!');
+        toast.success('Material added successfully!');
       }
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error('Erreur complète:', error);
+      console.error('Complete error:', error);
       console.error('Error response data:', error.response?.data);
-      const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Opération échouée';
+      const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Operation failed';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -447,11 +447,11 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Modifier le matériau' : 'Ajouter un matériau'}</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Material' : 'Add Material'}</DialogTitle>
           <DialogDescription>
             {initialData 
-              ? 'Modifiez les informations ci-dessous.' 
-              : 'Remplissez les détails du matériau et associez-le à un chantier.'}
+              ? 'Modify the information below.' 
+              : 'Fill in the material details and associate it with a site.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -459,12 +459,12 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Chantier / Site {initialData ? '' : '*'}
+                Site / Location {initialData ? '' : '*'}
               </Label>
               {loadingSites ? (
-                <p className="text-sm text-gray-500">Chargement des sites...</p>
+                <p className="text-sm text-gray-500">Loading sites...</p>
               ) : sites.length === 0 ? (
-                <p className="text-sm text-red-500">Aucun site trouvé. Créez d'abord un site.</p>
+                <p className="text-sm text-red-500">No sites found. Please create a site first.</p>
               ) : (
                 <>
                   <select
@@ -476,7 +476,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
                     }}
                     required={!initialData}
                   >
-                    <option value="">Sélectionner un chantier...</option>
+                    <option value="">Select a site...</option>
                     {sites.map((site) => (
                       <option key={site._id} value={site._id}>
                         {site.nom} - {site.adresse}
@@ -500,14 +500,14 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
               {initialData && initialData.siteName && !selectedSiteId && (
                 <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
                   <MapPin className="h-4 w-4 inline mr-1" />
-                  Site actuel: {initialData.siteName}
+                  Current site: {initialData.siteName}
                 </div>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nom *</Label>
+                <Label htmlFor="name">Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -542,7 +542,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">Catégorie *</Label>
+                <Label htmlFor="category">Category *</Label>
                 <select
                   id="category"
                   className={`w-full px-3 py-2 border rounded-md ${errors.category && touched.category ? 'border-red-500' : ''}`}
@@ -550,7 +550,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
                   onChange={(e) => handleChange('category', e.target.value)}
                   onBlur={() => handleBlur('category')}
                 >
-                  <option value="">Sélectionner...</option>
+                  <option value="">Select...</option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -563,7 +563,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit">Unité *</Label>
+                <Label htmlFor="unit">Unit *</Label>
                 <select
                   id="unit"
                   className={`w-full px-3 py-2 border rounded-md ${errors.unit && touched.unit ? 'border-red-500' : ''}`}
@@ -571,7 +571,7 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
                   onChange={(e) => handleChange('unit', e.target.value)}
                   onBlur={() => handleBlur('unit')}
                 >
-                  <option value="">Sélectionner...</option>
+                  <option value="">Select...</option>
                   {units.map(u => (
                     <option key={u} value={u}>{u}</option>
                   ))}
@@ -585,108 +585,108 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
               </div>
             </div>
 
-            {/* ========== GESTION DU STOCK V2 ========== */}
+            {/* ========== STOCK MANAGEMENT V2 ========== */}
             <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg space-y-4">
               <h3 className="font-semibold text-blue-900 flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Gestion du Stock
+                Stock Management
               </h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="stockExistant">Stock Existant *</Label>
+                  <Label htmlFor="existingStock">Existing Stock *</Label>
                   <Input
-                    id="stockExistant"
+                    id="existingStock"
                     type="number"
                     min="0"
-                    value={stockExistant}
-                    onChange={(e) => setStockExistant(parseInt(e.target.value) || 0)}
-                    placeholder="Quantité déjà présente"
+                    value={existingStock}
+                    onChange={(e) => setExistingStock(parseInt(e.target.value) || 0)}
+                    placeholder="Quantity already present"
                   />
-                  <p className="text-xs text-gray-500">Quantité déjà sur le chantier</p>
+                  <p className="text-xs text-gray-500">Quantity already on site</p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="stockMinimum">Stock Minimum *</Label>
+                  <Label htmlFor="minimumStock">Minimum Stock *</Label>
                   <Input
-                    id="stockMinimum"
+                    id="minimumStock"
                     type="number"
                     min="0"
-                    value={stockMinimum}
-                    onChange={(e) => setStockMinimum(parseInt(e.target.value) || 0)}
-                    placeholder="Seuil minimum"
+                    value={minimumStock}
+                    onChange={(e) => setMinimumStock(parseInt(e.target.value) || 0)}
+                    placeholder="Minimum threshold"
                   />
-                  <p className="text-xs text-gray-500">Seuil de réapprovisionnement</p>
+                  <p className="text-xs text-gray-500">Reorder threshold</p>
                 </div>
               </div>
 
               <div className="border-t pt-3">
-                <p className="text-sm text-gray-600 mb-2 font-medium">Mouvements (Optionnel)</p>
+                <p className="text-sm text-gray-600 mb-2 font-medium">Movements (Optional)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="stockEntree">Entrée</Label>
+                    <Label htmlFor="stockIn">Stock In</Label>
                     <Input
-                      id="stockEntree"
+                      id="stockIn"
                       type="number"
                       min="0"
-                      value={stockEntree}
-                      onChange={(e) => setStockEntree(parseInt(e.target.value) || 0)}
-                      placeholder="Quantité entrée"
+                      value={stockIn}
+                      onChange={(e) => setStockIn(parseInt(e.target.value) || 0)}
+                      placeholder="Quantity added"
                     />
-                    <p className="text-xs text-gray-500">Quantité ajoutée au stock</p>
+                    <p className="text-xs text-gray-500">Quantity added to stock</p>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="stockSortie">Sortie</Label>
+                    <Label htmlFor="stockOut">Stock Out</Label>
                     <Input
-                      id="stockSortie"
+                      id="stockOut"
                       type="number"
                       min="0"
-                      value={stockSortie}
-                      onChange={(e) => setStockSortie(parseInt(e.target.value) || 0)}
-                      placeholder="Quantité sortie"
+                      value={stockOut}
+                      onChange={(e) => setStockOut(parseInt(e.target.value) || 0)}
+                      placeholder="Quantity removed"
                     />
-                    <p className="text-xs text-gray-500">Quantité consommée</p>
+                    <p className="text-xs text-gray-500">Quantity consumed</p>
                   </div>
                 </div>
               </div>
 
-              {/* Calcul Automatique */}
+              {/* Automatic Calculation */}
               <div className="p-3 bg-white border-2 border-blue-300 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">📊 Calcul Automatique</h4>
+                <h4 className="font-semibold text-blue-900 mb-2">📊 Automatic Calculation</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Stock Actuel:</span>
-                    <span className="font-bold text-blue-700">{calculateStockActuel()} {formData.unit || 'unités'}</span>
+                    <span className="text-gray-600">Current Stock:</span>
+                    <span className="font-bold text-blue-700">{calculateCurrentStock()} {formData.unit || 'units'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">État:</span>
+                    <span className="text-gray-600">Status:</span>
                     <span>{getStockStatusLabel()}</span>
                   </div>
-                  {doitCommander() && (
+                  {needsReorder() && (
                     <div className="flex justify-between pt-2 border-t">
-                      <span className="text-gray-600">À commander:</span>
-                      <span className="font-bold text-orange-600">{calculateQuantiteACommander()} {formData.unit || 'unités'}</span>
+                      <span className="text-gray-600">To order:</span>
+                      <span className="font-bold text-orange-600">{calculateQuantityToOrder()} {formData.unit || 'units'}</span>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {doitCommander() && (
+            {needsReorder() && (
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center gap-2 text-yellow-800">
                   <AlertTriangle className="h-4 w-4" />
-                  <span className="font-semibold">Alerte stock</span>
+                  <span className="font-semibold">Stock Alert</span>
                 </div>
                 <p className="text-sm text-yellow-700 mt-1">
-                  Ce matériau nécessite une commande de {calculateQuantiteACommander()} {formData.unit || 'unités'} (+20% de marge de sécurité).
+                  This material requires an order of {calculateQuantityToOrder()} {formData.unit || 'units'} (+20% safety margin).
                 </p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="expiryDate">Date d'expiration (optionnel)</Label>
+              <Label htmlFor="expiryDate">Expiry Date (optional)</Label>
               <Input
                 id="expiryDate"
                 type="date"
@@ -697,10 +697,10 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Annuler
+              Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Enregistrement...' : (initialData ? 'Mettre à jour' : 'Créer')}
+              {loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}
             </Button>
           </DialogFooter>
         </form>

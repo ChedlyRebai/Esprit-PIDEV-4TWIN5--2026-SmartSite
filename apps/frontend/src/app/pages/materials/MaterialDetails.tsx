@@ -71,12 +71,12 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
       );
       onClose();
     } else {
-      toast.error('Fonction de commande non disponible');
+      toast.error('Order function not available');
     }
   };
 
   const shouldShowOrderButton = () => {
-    // Utiliser stockMinimum en priorité, sinon reorderPoint
+    // Use stockMinimum first, otherwise reorderPoint
     const threshold = material.stockMinimum || material.reorderPoint || material.minimumStock || 0;
     return material.quantity === 0 || material.quantity <= threshold;
   };
@@ -85,12 +85,12 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
     const threshold = material.stockMinimum || material.reorderPoint || material.minimumStock || 0;
     
     if (material.quantity === 0) {
-      return <Badge variant="destructive">Rupture</Badge>;
+      return <Badge variant="destructive">Out of Stock</Badge>;
     }
     if (material.quantity <= threshold) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Stock bas</Badge>;
+      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Low Stock</Badge>;
     }
-    return <Badge variant="default" className="bg-green-100 text-green-800">En stock</Badge>;
+    return <Badge variant="default" className="bg-green-100 text-green-800">In Stock</Badge>;
   };
 
   return (
@@ -99,7 +99,7 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Package className="h-5 w-5" />
-            Détails du matériau: {material.name}
+            Material Details: {material.name}
           </DialogTitle>
         </DialogHeader>
 
@@ -118,7 +118,7 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
                   <Factory className="h-4 w-4" />
-                  <span>Catégorie</span>
+                  <span>Category</span>
                 </div>
                 <p className="text-lg font-bold">{material.category}</p>
               </CardContent>
@@ -127,7 +127,7 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
                   <Package className="h-4 w-4" />
-                  <span>Quantité</span>
+                  <span>Quantity</span>
                 </div>
                 <p className="text-lg font-bold">{material.quantity} {material.unit}</p>
               </CardContent>
@@ -136,9 +136,9 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
                   <MapPin className="h-4 w-4" />
-                  <span>Chantier Assigné</span>
+                  <span>Assigned Site</span>
                 </div>
-                <p className="text-lg font-bold">{material.siteName || 'Non assigné'}</p>
+                <p className="text-lg font-bold">{material.siteName || 'Not assigned'}</p>
                 {material.siteCoordinates && (
                   <p className="text-xs text-gray-500 mt-1">
                     📍 {material.siteCoordinates.lat.toFixed(4)}, {material.siteCoordinates.lng.toFixed(4)}
@@ -148,7 +148,7 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
             </Card>
           </div>
 
-          {/* Météo du chantier - Nouveau MaterialWeatherWidget */}
+          {/* Site Weather - New MaterialWeatherWidget */}
           {(material.siteCoordinates || material.siteAddress || material.siteName) && (
             <MaterialWeatherWidget
               siteCoordinates={material.siteCoordinates}
@@ -156,12 +156,12 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
               siteName={material.siteName}
               materialCategory={material.category}
               onWeatherUpdate={(weather) => {
-                console.log('🌤️ Météo mise à jour:', weather);
+                console.log('🌤️ Weather updated:', weather);
               }}
             />
           )}
 
-          {/* Prédiction IA - Nouveau AIPredictionWidget */}
+          {/* AI Prediction - New AIPredictionWidget */}
           <AIPredictionWidget
             material={{
               _id: material._id,
@@ -174,7 +174,7 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
               siteAddress: material.siteAddress
             }}
             onPredictionUpdate={(prediction) => {
-              console.log('🤖 Prédiction mise à jour:', prediction);
+              console.log('🤖 Prediction updated:', prediction);
             }}
           />
 
@@ -182,32 +182,32 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Niveaux de stock
+                Stock Levels
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Stock actuel:</span>
+                  <span className="text-gray-600">Current Stock:</span>
                   <span className="font-bold">{material.quantity} {material.unit}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Stock minimum:</span>
+                  <span className="text-gray-600">Minimum Stock:</span>
                   <span>{material.minimumStock} {material.unit}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Stock maximum:</span>
+                  <span className="text-gray-600">Maximum Stock:</span>
                   <span>{material.maximumStock} {material.unit}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Point de commande:</span>
+                  <span className="text-gray-600">Reorder Point:</span>
                   <span>{material.reorderPoint} {material.unit}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Statut:</span>
+                  <span className="text-gray-600">Status:</span>
                   {getStatusBadge()}
                 </div>
                 {material.expiryDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Date d'expiration:</span>
+                    <span className="text-gray-600">Expiry Date:</span>
                     <span className={new Date(material.expiryDate) < new Date() ? 'text-red-600 font-medium' : ''}>
                       {new Date(material.expiryDate).toLocaleDateString()}
                     </span>
@@ -215,53 +215,53 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
                 )}
                 {material.manufacturer && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Fabricant:</span>
+                    <span className="text-gray-600">Manufacturer:</span>
                     <span>{material.manufacturer}</span>
                   </div>
-                   )}
-                 </div>
-               </CardContent>
-             </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Aggregated Flow Stats */}
-            {aggregateStats && (
-              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Synthèse des Mouvements</span>
-                  </h3>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-green-600">{aggregateStats.totalEntries}</p>
-                      <p className="text-xs text-gray-500">Total Entrées</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-red-600">{aggregateStats.totalExits}</p>
-                      <p className="text-xs text-gray-500">Total Sorties</p>
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-2xl font-bold ${aggregateStats.netFlow >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-                        {aggregateStats.netFlow}
-                      </p>
-                      <p className="text-xs text-gray-500">Solde Net</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-purple-600">{aggregateStats.totalAnomalies}</p>
-                      <p className="text-xs text-gray-500">Anomalies</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
+          {/* Aggregated Flow Stats */}
+          {aggregateStats && (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50">
               <CardContent className="pt-6">
-                <h3 className="font-semibold mb-3">Mouvements récents</h3>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Movement Summary</span>
+                </h3>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{aggregateStats.totalEntries}</p>
+                    <p className="text-xs text-gray-500">Total Entries</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-red-600">{aggregateStats.totalExits}</p>
+                    <p className="text-xs text-gray-500">Total Exits</p>
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-2xl font-bold ${aggregateStats.netFlow >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {aggregateStats.netFlow}
+                    </p>
+                    <p className="text-xs text-gray-500">Net Balance</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-purple-600">{aggregateStats.totalAnomalies}</p>
+                    <p className="text-xs text-gray-500">Anomalies</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="font-semibold mb-3">Recent Movements</h3>
               {loading ? (
-                <p className="text-center py-4">Chargement...</p>
+                <p className="text-center py-4">Loading...</p>
               ) : movements.length === 0 ? (
-                <p className="text-center py-4 text-gray-500">Aucun mouvement enregistré</p>
+                <p className="text-center py-4 text-gray-500">No movements recorded</p>
               ) : (
                 <div className="space-y-2">
                   {movements.slice(-5).reverse().map((movement, index) => (
@@ -282,10 +282,10 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
                         </span>
                       </div>
                       <Badge variant="outline">
-                        {movement.type === 'in' ? 'Entrée' : 
-                         movement.type === 'out' ? 'Sortie' : 
-                         movement.type === 'damage' ? 'Endommagé' : 
-                         movement.type === 'reserve' ? 'Réservé' : movement.type}
+                        {movement.type === 'in' ? 'Entry' : 
+                         movement.type === 'out' ? 'Exit' : 
+                         movement.type === 'damage' ? 'Damaged' : 
+                         movement.type === 'reserve' ? 'Reserved' : movement.type}
                       </Badge>
                     </div>
                   ))}
@@ -296,7 +296,7 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose}>
-              Fermer
+              Close
             </Button>
             {shouldShowOrderButton() && (
               <Button 
@@ -310,12 +310,12 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
                 {material.quantity === 0 ? (
                   <>
                     <AlertTriangle className="h-4 w-4" />
-                    Commander Urgent
+                    Order Urgent
                   </>
                 ) : (
                   <>
                     <Truck className="h-4 w-4" />
-                    Commander
+                    Order
                   </>
                 )}
               </Button>

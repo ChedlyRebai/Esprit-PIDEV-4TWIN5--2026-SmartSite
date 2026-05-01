@@ -51,6 +51,7 @@ export interface Material {
   minimumStock: number;
   maximumStock: number;
   reorderPoint: number;
+  stockMinimum?: number; // Backend field for reorder threshold
   qualityGrade?: number;
   location?: string;
   siteId?: string;
@@ -456,16 +457,6 @@ const materialService = {
     }
   },
 
-  async getAllPredictions(): Promise<any[]> {
-    try {
-      const response = await apiClient.get('/prediction/all');
-      return response.data;
-    } catch (error) {
-      console.error('Erreur getAllPredictions:', error);
-      throw error;
-    }
-  },
-
   // ========== ML TRAINING - UPLOAD CSV ==========
   async uploadHistoricalData(materialId: string, file: File): Promise<{
     success: boolean;
@@ -589,10 +580,12 @@ const materialService = {
   // ✅ Nouvelle méthode pour récupérer toutes les prédictions IA
   async getAllPredictions(): Promise<any[]> {
     try {
-      const response = await apiClient.get('/predictions');
+      console.log('🔮 Fetching all predictions from /predictions/all');
+      const response = await apiClient.get('/predictions/all');
+      console.log('✅ Predictions received:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur getAllPredictions:', error);
+      console.error('❌ Erreur getAllPredictions:', error);
       throw error;
     }
   },

@@ -48,7 +48,7 @@ export default function AutoOrderButton({
   const handleAutoOrder = async () => {
     if (!recommendation) return;
     if (!siteId) {
-      toast.error('Site manquant pour creer la commande');
+      toast.error('Missing site to create the order');
       return;
     }
 
@@ -56,7 +56,7 @@ export default function AutoOrderButton({
     try {
       const suppliers = await intelligentOrderService.getSupplierSuggestions(materialId);
       if (suppliers.length === 0) {
-        toast.error('Aucun fournisseur disponible pour ce materiau');
+        toast.error('No supplier available for this material');
         return;
       }
 
@@ -68,15 +68,15 @@ export default function AutoOrderButton({
         destinationSiteId: siteId,
         supplierId: selectedSupplier.supplierId,
         estimatedDurationMinutes: selectedSupplier.estimatedDeliveryDays * 24 * 60,
-        notes: `Commande automatique - Rupture prevue dans ${recommendation.predictedHoursToOutOfStock}h`,
+        notes: `Automatic order - Stockout predicted in ${recommendation.predictedHoursToOutOfStock}h`,
       };
 
       await orderService.createOrder(orderData);
-      toast.success(`Commande creee! ${recommendation.recommendedQuantity} ${materialCode} commandes`, { duration: 5000 });
+      toast.success(`Order created! ${recommendation.recommendedQuantity} ${materialCode} ordered`, { duration: 5000 });
       onOrderCreated?.();
     } catch (error: any) {
       console.error('Error creating auto order:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la creation de la commande');
+      toast.error(error.response?.data?.message || 'Error creating the order');
     } finally {
       setOrdering(false);
     }
@@ -86,7 +86,7 @@ export default function AutoOrderButton({
     return (
       <Button variant="outline" size="sm" disabled className={className}>
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        Analyse...
+        Analyzing...
       </Button>
     );
   }
@@ -122,13 +122,13 @@ export default function AutoOrderButton({
       {recommendation.urgencyLevel === 'critical' && (
         <Badge variant="destructive" className="animate-pulse">
           <AlertTriangle className="h-3 w-3 mr-1" />
-          Rupture imminente!
+          Imminent stockout!
         </Badge>
       )}
       {recommendation.urgencyLevel === 'warning' && (
         <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
           <Clock className="h-3 w-3 mr-1" />
-          {Math.floor(recommendation.predictedHoursToOutOfStock)}h restants
+          {Math.floor(recommendation.predictedHoursToOutOfStock)}h remaining
         </Badge>
       )}
       <Button
@@ -137,14 +137,14 @@ export default function AutoOrderButton({
         onClick={handleAutoOrder}
         disabled={ordering}
         className={`${getButtonClass()} ${className}`}
-        title={`Commander ${recommendation.recommendedQuantity} unites (prediction: ${recommendation.predictedHoursToOutOfStock}h avant rupture)`}
+        title={`Order ${recommendation.recommendedQuantity} units (prediction: ${recommendation.predictedHoursToOutOfStock}h until stockout)`}
       >
         {ordering ? (
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         ) : (
           <ShoppingCart className="h-4 w-4 mr-2" />
         )}
-        Commander ({recommendation.recommendedQuantity})
+        Order ({recommendation.recommendedQuantity})
       </Button>
     </div>
   );

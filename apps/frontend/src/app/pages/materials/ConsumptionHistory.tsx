@@ -55,15 +55,15 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       if (siteId) params.siteId = siteId;
       if (dateFrom) params.startDate = dateFrom;
       if (dateTo) params.endDate = dateTo;
-      if (typeFilter !== 'all') params.flowType = typeFilter; // Changé de 'type' à 'flowType'
+      if (typeFilter !== 'all') params.flowType = typeFilter;
 
-      console.log('📤 Paramètres envoyés:', params);
+      console.log('📤 Parameters sent:', params);
 
       const { data } = await axios.get('/api/consumption-history', { params });
       
-      console.log('📊 Réponse historique:', data);
+      console.log('📊 History response:', data);
       
-      // Le service retourne { data: [...], pagination: {...} }
+      // The service returns { data: [...], pagination: {...} }
       if (data && data.data) {
         setEntries(data.data);
       } else if (Array.isArray(data)) {
@@ -73,7 +73,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       }
     } catch (error: any) {
       console.error('Error loading history:', error);
-      toast.error(error.response?.data?.message || 'Erreur chargement historique');
+      toast.error(error.response?.data?.message || 'Error loading history');
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       if (siteId) params.siteId = siteId;
       if (dateFrom) params.startDate = dateFrom;
       if (dateTo) params.endDate = dateTo;
-      if (typeFilter !== 'all') params.flowType = typeFilter; // Changé de 'type' à 'flowType'
+      if (typeFilter !== 'all') params.flowType = typeFilter;
 
       const response = await axios.get('/api/consumption-history/export', {
         params,
@@ -100,14 +100,14 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `historique_consommation_${Date.now()}.xlsx`);
+      link.setAttribute('download', `consumption_history_${Date.now()}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       
-      toast.success('Export réussi!');
+      toast.success('Export successful!');
     } catch (error) {
-      toast.error('Erreur lors de l\'export');
+      toast.error('Error during export');
     }
   };
 
@@ -145,15 +145,15 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
     };
     
     const labels: Record<string, string> = {
-      IN: 'Entrée',
-      OUT: 'Sortie',
-      ADJUSTMENT: 'Ajustement',
-      TRANSFER: 'Transfert',
-      RETURN: 'Retour',
-      WASTE: 'Déchet',
-      DAMAGE: 'Dommage',
-      RESERVE: 'Réserve',
-      DAILY_CONSUMPTION: 'Consommation',
+      IN: 'In',
+      OUT: 'Out',
+      ADJUSTMENT: 'Adjustment',
+      TRANSFER: 'Transfer',
+      RETURN: 'Return',
+      WASTE: 'Waste',
+      DAMAGE: 'Damage',
+      RESERVE: 'Reserve',
+      DAILY_CONSUMPTION: 'Consumption',
     };
     
     return (
@@ -165,7 +165,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('fr-FR', {
+    return date.toLocaleString('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -180,19 +180,19 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Historique de Consommation</CardTitle>
+            <CardTitle>Consumption History</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                 <Filter className="h-4 w-4 mr-2" />
-                Filtres
+                Filters
               </Button>
               <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
-                Exporter
+                Export
               </Button>
               <Button variant="outline" size="sm" onClick={loadHistory} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Actualiser
+                Refresh
               </Button>
             </div>
           </div>
@@ -200,11 +200,11 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
           {showFilters && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="text-sm text-gray-600">Recherche</label>
+                <label className="text-sm text-gray-600">Search</label>
                 <div className="relative mt-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Matériau, site, utilisateur..."
+                    placeholder="Material, site, user..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -219,18 +219,18 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
                   value={typeFilter} 
                   onChange={(e) => setTypeFilter(e.target.value)}
                 >
-                  <option value="all">Tous</option>
-                  <option value="IN">Entrée</option>
-                  <option value="OUT">Sortie</option>
-                  <option value="ADJUSTMENT">Ajustement</option>
-                  <option value="TRANSFER">Transfert</option>
-                  <option value="RETURN">Retour</option>
-                  <option value="WASTE">Déchet</option>
+                  <option value="all">All</option>
+                  <option value="IN">In</option>
+                  <option value="OUT">Out</option>
+                  <option value="ADJUSTMENT">Adjustment</option>
+                  <option value="TRANSFER">Transfer</option>
+                  <option value="RETURN">Return</option>
+                  <option value="WASTE">Waste</option>
                 </select>
               </div>
               
               <div>
-                <label className="text-sm text-gray-600">Date début</label>
+                <label className="text-sm text-gray-600">Start date</label>
                 <Input
                   type="date"
                   value={dateFrom}
@@ -240,7 +240,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
               </div>
               
               <div>
-                <label className="text-sm text-gray-600">Date fin</label>
+                <label className="text-sm text-gray-600">End date</label>
                 <Input
                   type="date"
                   value={dateTo}
@@ -260,7 +260,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
           ) : filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>Aucun mouvement trouvé</p>
+              <p>No movements found</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -299,7 +299,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
                       
                       {entry.reason && (
                         <p className="text-sm text-gray-500 mt-1">
-                          <span className="font-medium">Raison:</span> {entry.reason}
+                          <span className="font-medium">Reason:</span> {entry.reason}
                         </p>
                       )}
                     </div>

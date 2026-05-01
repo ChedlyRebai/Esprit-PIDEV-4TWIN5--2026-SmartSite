@@ -239,6 +239,125 @@ export class SupplierRatingService {
   }
 
   /**
+   * 🔍 Vérifier si le dialog de notation doit être affiché
+   */
+  async shouldShowDialog(
+    materialId: string,
+    userId: string,
+  ): Promise<{
+    shouldShow: boolean;
+    consumptionPercentage: number;
+    material?: Material;
+    reason?: string;
+  }> {
+    const material = await this.materialModel.findById(materialId);
+    if (!material) {
+      return {
+        shouldShow: false,
+        consumptionPercentage: 0,
+        reason: 'Matériau non trouvé',
+      };
+    }
+
+    // Calculer le % de consommation
+    const totalInitial =
+      (material.stockExistant || 0) + (material.stockEntree || 0);
+    const consumptionPercentage =
+      totalInitial > 0
+        ? Math.round(((material.stockSortie || 0) / totalInitial) * 100)
+        : 0;
+
+    // Vérifier si consommation > 30%
+    if (consumptionPercentage <= 30) {
+      return {
+        shouldShow: false,
+        consumptionPercentage,
+        reason: 'Consommation insuffisante (< 30%)',
+      };
+    }
+
+    // Vérifier si un rating existe déjà pour ce matériau/utilisateur
+    const existingRating = await this.ratingModel.findOne({
+      materialId: new Types.ObjectId(materialId),
+      userId: new Types.ObjectId(userId),
+    });
+
+    if (existingRating) {
+      // Si déjà noté, ne pas afficher
+      return {
+        shouldShow: false,
+        consumptionPercentage,
+        reason: 'Déjà noté par cet utilisateur',
+      };
+    }
+
+    // Vérifier si le dialog a déjà été affiché récemment (dans les 24h)
+    const recentDialogShown = await this.ratingModel.findOne({
+      materialId: new Types.ObjectId(materialId),
+      userId: new Types.ObjectId(userId),
+      dialogShown: true,
+      dialogShownAt: {
+        $gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      },
+    });
+
+    if (recentDialogShown) {
+      return {
+        shouldShow: false,
+        consumptionPercentage,
+        reason: 'Dialog déjà affiché dans les 24h',
+      };
+    }
+
+    return {
+      shouldShow: true,
+      consumptionPercentage,
+      material,
+    };
+  }
+
+  /**
+   * ✅ Marquer le dialog comme affiché
+   */
+  async markDialogAsShown(
+    materialId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
+    try {
+      // Créer un enregistrement temporaire pour tracker l'affichage du dialog
+      const tempRating = new this.ratingModel({
+        materialId: new Types.ObjectId(materialId),
+        materialName: 'temp',
+        materialCode: 'temp',
+        supplierId: new Types.ObjectId('000000000000000000000000'),
+        supplierName: 'temp',
+        siteId: new Types.ObjectId('000000000000000000000000'),
+        siteName: 'temp',
+        userId: new Types.ObjectId(userId),
+        userName: 'temp',
+        avis: 'POSITIF',
+        note: 0,
+        hasReclamation: false,
+        consumptionPercentage: 0,
+        dialogShown: true,
+        dialogShownAt: new Date(),
+        status: 'PENDING',
+      });
+
+      await tempRating.save();
+      this.logger.log(
+        `✅ Dialog marqué comme affiché: material=${materialId}, user=${userId}`,
+      );
+      return { success: true };
+    } catch (error) {
+      this.logger.error(
+        `❌ Erreur marquage dialog: ${error.message}`,
+      );
+      return { success: false };
+    }
+  }
+
+  /**
    * 📊 Récupérer les statistiques globales
    */
   async getGlobalStats(): Promise<{

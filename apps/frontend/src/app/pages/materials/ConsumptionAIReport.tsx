@@ -13,7 +13,7 @@ import {
 import axios from "axios";
 
 interface ConsumptionAlert {
-  type: 'NORMAL' | 'GASPILLAGE' | 'VOL_POSSIBLE' | 'OVER_CONSUMPTION' | 'ANOMALIE';
+  type: 'NORMAL' | 'WASTE' | 'POSSIBLE_THEFT' | 'OVER_CONSUMPTION' | 'ANOMALY';
   severity: 'INFO' | 'WARNING' | 'DANGER' | 'CRITICAL';
   message: string;
   date: string;
@@ -61,6 +61,7 @@ export default function ConsumptionAIReport({
 }: ConsumptionAIReportProps) {
   const [report, setReport] = useState<ConsumptionAnalysisReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [days, setDays] = useState(30);
 
   const generateReport = async () => {
@@ -73,13 +74,30 @@ export default function ConsumptionAIReport({
 
       if (data.success && data.report) {
         setReport(data.report);
-        toast.success('Rapport IA généré avec succès!');
+        toast.success('✅ AI report generated successfully!');
       } else {
-        toast.error(data.message || 'Erreur lors de la génération du rapport');
+        const errorMessage = data.message || 'Error generating report';
+        
+        if (errorMessage.includes('Aucune donnée de consommation') || errorMessage.includes('No consumption data')) {
+          toast.error('📊 No consumption data available. Please record stock movements (outgoing) first.', {
+            duration: 5000
+          });
+        } else {
+          toast.error(errorMessage);
+        }
       }
     } catch (error: any) {
       console.error('Error generating AI report:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la génération du rapport');
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Error generating report';
+      
+      if (errorMessage.includes('Aucune donnée de consommation') || errorMessage.includes('No consumption data')) {
+        toast.error('📊 No consumption data found. Record stock movements for this material.', {
+          duration: 5000
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -90,6 +108,26 @@ export default function ConsumptionAIReport({
       generateReport();
     }
   }, [open]);
+
+  const handleSyncData = async () => {
+    setSyncing(true);
+    try {
+      const { data } = await axios.post('/api/consumption-history/sync');
+      
+      if (data.success) {
+        toast.success(`✅ ${data.synced} entries synchronized successfully!`);
+        // Regenerate report after sync
+        setTimeout(() => generateReport(), 1000);
+      } else {
+        toast.error('Error during synchronization');
+      }
+    } catch (error: any) {
+      console.error('Error syncing data:', error);
+      toast.error(error.response?.data?.message || 'Error during synchronization');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const getRiskLevelColor = (level: string) => {
     switch (level) {
@@ -133,7 +171,7 @@ export default function ConsumptionAIReport({
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <Brain className="h-6 w-6 text-purple-600" />
-              Rapport d'Analyse IA - {materialName || 'Matériau'}
+              AI Analysis Report - {materialName || 'Material'}
             </DialogTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -144,75 +182,75 @@ export default function ConsumptionAIReport({
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-purple-600 mb-4" />
-            <p className="text-gray-600">Génération du rapport IA en cours...</p>
-            <p className="text-sm text-gray-500 mt-2">Analyse de {days} jours de données</p>
+            <p className="text-gray-600">Generating AI report...</p>
+            <p className="text-sm text-gray-500 mt-2">Analyzing {days} days of data</p>
           </div>
         ) : report ? (
           <div className="space-y-6">
-            {/* En-tête du rapport */}
+            {/* Report Header */}
             <Card className={`border-2 ${getRiskLevelColor(report.riskLevel)}`}>
               <CardContent className="p-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Matériau</p>
+                    <p className="text-sm text-gray-600">Material</p>
                     <p className="font-bold text-lg">{report.materialName}</p>
                     <p className="text-sm text-gray-500">{report.materialCode}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Niveau de Risque</p>
+                    <p className="text-sm text-gray-600">Risk Level</p>
                     <Badge className={`text-lg px-4 py-2 ${getRiskLevelColor(report.riskLevel)}`}>
-                      {report.riskLevel === 'CRITICAL' ? '🚨 CRITIQUE' :
-                       report.riskLevel === 'HIGH' ? '⚠️ ÉLEVÉ' :
-                       report.riskLevel === 'MEDIUM' ? '📊 MOYEN' : '✅ FAIBLE'}
+                      {report.riskLevel === 'CRITICAL' ? '🚨 CRITICAL' :
+                       report.riskLevel === 'HIGH' ? '⚠️ HIGH' :
+                       report.riskLevel === 'MEDIUM' ? '📊 MEDIUM' : '✅ LOW'}
                     </Badge>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Statistiques */}
+            {/* Statistics */}
             <div className="grid grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-600">Consommation Totale</p>
+                  <p className="text-sm text-gray-600">Total Consumption</p>
                   <p className="text-2xl font-bold">{report.totalConsumption.toFixed(1)}</p>
-                  <p className="text-xs text-gray-500">sur {report.period.days} jours</p>
+                  <p className="text-xs text-gray-500">over {report.period.days} days</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-600">Moyenne Journalière</p>
+                  <p className="text-sm text-gray-600">Daily Average</p>
                   <p className="text-2xl font-bold">{report.averageDailyConsumption.toFixed(1)}</p>
-                  <p className="text-xs text-gray-500">unités/jour</p>
+                  <p className="text-xs text-gray-500">units/day</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-600">Écart</p>
+                  <p className="text-sm text-gray-600">Deviation</p>
                   <p className={`text-2xl font-bold ${report.deviationPercentage > 0 ? 'text-red-600' : 'text-green-600'}`}>
                     {report.deviationPercentage > 0 ? '+' : ''}{report.deviationPercentage.toFixed(1)}%
                   </p>
-                  <p className="text-xs text-gray-500">vs attendu</p>
+                  <p className="text-xs text-gray-500">vs expected</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-600">Statut</p>
+                  <p className="text-sm text-gray-600">Status</p>
                   <Badge className={getStatusColor(report.consumptionStatus)}>
-                    {report.consumptionStatus === 'OVER_CONSUMPTION' ? 'SURCONSO' :
-                     report.consumptionStatus === 'UNDER_CONSUMPTION' ? 'SOUS-CONSO' : 'NORMAL'}
+                    {report.consumptionStatus === 'OVER_CONSUMPTION' ? 'OVERCONSUMPTION' :
+                     report.consumptionStatus === 'UNDER_CONSUMPTION' ? 'UNDERCONSUMPTION' : 'NORMAL'}
                   </Badge>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Problèmes Possibles */}
+            {/* Possible Issues */}
             {report.possibleIssues.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Shield className="h-5 w-5 text-red-600" />
-                    Problèmes Détectés
+                    Detected Issues
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -228,13 +266,13 @@ export default function ConsumptionAIReport({
               </Card>
             )}
 
-            {/* Alertes */}
+            {/* Alerts */}
             {report.alerts.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <AlertCircle className="h-5 w-5 text-orange-600" />
-                    Alertes ({report.alerts.length})
+                    Alerts ({report.alerts.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -248,8 +286,8 @@ export default function ConsumptionAIReport({
                           <div className="flex-1">
                             <p className="text-sm font-medium">{alert.message}</p>
                             <p className="text-xs text-gray-600 mt-1">
-                              {new Date(alert.date).toLocaleDateString('fr-FR')} - 
-                              Quantité: {alert.quantity} (attendu: {alert.expectedQuantity.toFixed(1)})
+                              {new Date(alert.date).toLocaleDateString('en-US')} - 
+                              Quantity: {alert.quantity} (expected: {alert.expectedQuantity.toFixed(1)})
                             </p>
                           </div>
                         </div>
@@ -259,13 +297,13 @@ export default function ConsumptionAIReport({
               </Card>
             )}
 
-            {/* Recommandations */}
+            {/* Recommendations */}
             {report.recommendations.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <CheckCircle className="h-5 w-5 text-green-600" />
-                    Recommandations
+                    Recommendations
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -285,20 +323,59 @@ export default function ConsumptionAIReport({
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => generateReport()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Régénérer
+                Regenerate
               </Button>
               <Button onClick={onClose}>
-                Fermer
+                Close
               </Button>
             </div>
           </div>
         ) : (
           <div className="text-center py-12">
             <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600">Aucun rapport disponible</p>
-            <Button className="mt-4" onClick={generateReport}>
-              Générer le rapport
-            </Button>
+            <p className="text-gray-600 font-medium mb-2">No report available</p>
+            <p className="text-sm text-gray-500 mb-4">
+              To generate an AI analysis report, consumption data must be available.
+            </p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left max-w-md mx-auto">
+              <p className="text-sm font-medium text-blue-800 mb-2">📋 Prerequisites:</p>
+              <ul className="text-xs text-blue-700 space-y-1">
+                <li>• Stock movements (outgoing) must be recorded</li>
+                <li>• At least 7 days of consumption data</li>
+                <li>• Material must be assigned to a site</li>
+              </ul>
+            </div>
+            
+            <div className="flex gap-2 justify-center">
+              <Button 
+                variant="outline" 
+                onClick={handleSyncData}
+                disabled={syncing}
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync data
+                  </>
+                )}
+              </Button>
+              <Button onClick={generateReport} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate report'
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
