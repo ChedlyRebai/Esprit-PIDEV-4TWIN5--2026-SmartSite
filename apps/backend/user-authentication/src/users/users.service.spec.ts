@@ -416,11 +416,11 @@ describe('UsersService', () => {
         populate: jest.fn().mockReturnValue({
           sort: jest.fn().mockReturnValue({
             exec: jest.fn().mockResolvedValue(null),
-        mockUserModel.find.mockReturnValueOnce({
-          populate: jest.fn().mockReturnValue({
-            exec: jest.fn().mockResolvedValue(mockUsers),
           }),
-        });
+        }),
+      });
+
+      const result = await service.mypermission('invalidId');
 
       expect(result).toEqual({ error: 'User not found' });
     });
@@ -441,15 +441,15 @@ describe('UsersService', () => {
         firstName: 'Manager',
         lastName: 'User',
       };
-        mockUserModel.find.mockReturnValueOnce({
-          populate: jest.fn().mockReturnValue({
-            exec: jest.fn().mockRejectedValueOnce(new Error('Populate error')),
-          }),
-        });
+
       mockUserModel.findById.mockReturnValueOnce({
-        mockUserModel.find.mockReturnValueOnce({
-          exec: jest.fn().mockResolvedValueOnce([{ _id: mockUserId }]),
-        });
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      mockUserModel.findById.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockManager),
+      });
+
       const result = await service.assignManager(mockUserId.toString(), mockManagerId.toString());
 
       expect(result.message).toBe('Gestionnaire affecté avec succès');
@@ -458,6 +458,30 @@ describe('UsersService', () => {
 
     it('should throw NotFoundException when user not found', async () => {
       mockUserModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.assignManager(mockUserId.toString(), mockManagerId.toString()),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when manager not found', async () => {
+      const mockUser = { _id: mockUserId, firstName: 'John' };
+
+      mockUserModel.findById.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      mockUserModel.findById.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.assignManager(mockUserId.toString(), mockManagerId.toString()),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
         exec: jest.fn().mockResolvedValue(null),
       });
 
