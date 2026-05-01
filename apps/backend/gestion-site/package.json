@@ -74,8 +74,11 @@
       "!*.module.ts",
       "!src/**/*.module.ts",
       "!src/main.ts",
+      "!src/app.module.ts",
       "!**/node_modules/**",
-      "!**/dist/**"
+      "!**/dist/**",
+      "!**/*.interface.ts",
+      "!**/*.enum.ts"
     ],
     "coverageDirectory": "./coverage",
     "testEnvironment": "node",
