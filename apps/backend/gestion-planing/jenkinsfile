@@ -8,6 +8,8 @@ pipeline {
         skipDefaultCheckout(true)
     }
 
+   
+
     environment {
         REGISTRY = 'docker.io'
         REGISTRY_CREDENTIALS = 'docker-hub'
@@ -26,6 +28,7 @@ pipeline {
         }
 
         stage('Checkout') {
+            
             steps {
                 checkout([
                     $class: 'GitSCM',
@@ -54,6 +57,9 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            when {
+                branch 'feat/api-gatewway'
+            }
             steps {
                 withSonarQubeEnv('sq1') {
                     withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
@@ -61,17 +67,17 @@ pipeline {
                             def scannerHome = tool 'SonarScanner'
 
                             sh """
-                            cd apps/backend/gestion-planing
+                                cd apps/backend/gestion-planing
 
-                            ${scannerHome}/bin/sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.sources=src \
-                            -Dsonar.tests=src \
-                            -Dsonar.test.inclusions=**/*.spec.ts \
-                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                            -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.login=${SONAR_LOGIN}
-                        """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.sources=src \
+                                -Dsonar.tests=src \
+                                -Dsonar.test.inclusions=**/*.spec.ts \
+                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_LOGIN}
+                            """
                         }
                     }
                 }
