@@ -29,7 +29,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/feat/api-gatewway']], // FIXED
+                    branches: [[name: '*/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
                         credentialsId: 'pidev-github-credentials'
@@ -51,7 +51,16 @@ pipeline {
                     echo "Commit: ${env.GIT_COMMIT_SHORT}"
                 }
             }
-        }   
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir('apps/backend/gestion-planing') {
+                    sh 'npm run test:cov'
+                    echo "✅ Tests and coverage generated"
+                }
+            }
+        }
 
         stage('SonarQube Analysis') {
             steps {
@@ -60,19 +69,21 @@ pipeline {
                         script {
                             def scannerHome = tool 'SonarScanner'
                             
-                                withEnv(["SONAR_LOGIN=${SONAR_LOGIN}"]) {
-                                    sh """
-                                        ${scannerHome}/bin/sonar-scanner \
-                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                        -Dsonar.sources=src \
-                                        -Dsonar.tests=src \
-                                        -Dsonar.test.inclusions=**/*.spec.ts \
-                                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                                        -Dsonar.login=\$SONAR_LOGIN
-                                    """
-                                }
-                            
+                            sh """
+                                cd apps/backend/gestion-planing
+                                
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName='SmartSite - Gestion Planning' \
+                                -Dsonar.sources=src \
+                                -Dsonar.tests=src \
+                                -Dsonar.test.inclusions=**/*.spec.ts \
+                                -Dsonar.exclusions=**/*.module.ts,**/node_modules/**,**/dist/** \
+                                -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/** \
+                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_LOGIN}
+                            """
                         }
                     }
                 }
