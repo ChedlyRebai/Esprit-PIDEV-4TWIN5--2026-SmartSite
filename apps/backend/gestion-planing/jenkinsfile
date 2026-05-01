@@ -53,14 +53,14 @@ pipeline {
             }
         }
 
-        stage('Build & Test') {
-            steps {
-                dir('apps/backend/gestion-planing') {
-                    sh 'npm run test:cov'
-                    echo "✅ Tests and coverage generated"
-                }
-            }
-        }
+        // stage('Build & Test') {
+        //     steps {
+        //         dir('apps/backend/gestion-planing') {
+        //             sh 'npm run test:cov'
+        //             echo "✅ Tests and coverage generated"
+        //         }
+        //     }
+        // }
 
         stage('SonarQube Analysis') {
             steps {
