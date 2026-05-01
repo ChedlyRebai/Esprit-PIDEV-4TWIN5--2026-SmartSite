@@ -37,6 +37,50 @@ pipeline {
             }
         }
 
+        stage('Semgrep Security Scan') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh '''
+                        if command -v semgrep &> /dev/null; then
+                            semgrep --config=auto \
+                                    --include="*.ts" \
+                                    --exclude="*.spec.ts" \
+                                    --exclude="node_modules" \
+                                    --exclude="dist" \
+                                    --severity=ERROR \
+                                    --error \
+                                    src/ || echo "⚠️ Semgrep: vulnérabilités détectées — vérifier le rapport"
+                        else
+                            echo "⚠️ Semgrep non installé — scan ignoré"
+                        fi
+                    '''
+                    echo "✅ Semgrep scan terminé"
+                }
+            }
+        }
+
+        stage('Trivy Dependency Scan') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh '''
+                        if command -v trivy &> /dev/null; then
+                            trivy fs . \
+                                --scanners vuln \
+                                --exit-code 0 \
+                                --severity HIGH,CRITICAL \
+                                --ignore-unfixed \
+                                --format table \
+                                --skip-dirs node_modules/.cache \
+                                --skip-dirs dist
+                        else
+                            echo "⚠️ Trivy non installé — scan ignoré"
+                        fi
+                    '''
+                    echo "✅ Trivy dependency scan terminé"
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 dir("${SERVICE_DIR}") {
