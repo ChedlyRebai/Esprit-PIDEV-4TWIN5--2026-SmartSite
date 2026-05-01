@@ -55,10 +55,10 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('apps/backend/gestion-planing') {
+                dir('apps/backend/notification') {
                     sh 'npm install'
                     sh 'npm run test:cov'
-                    echo "✅ Tests and coverage generated"
+                    echo ' Tests and coverage generated'
                 }
             }
         }
@@ -70,10 +70,10 @@ pipeline {
                         script {
                             def scannerHome = tool 'SonarScanner'
                             sh """
-                                cd apps/backend/gestion-planing
+                                cd apps/backend/notification
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName='SmartSite - Gestion Planning' \
+                                -Dsonar.projectName='SmartSite - Notification' \
                                 -Dsonar.sources=src \
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
