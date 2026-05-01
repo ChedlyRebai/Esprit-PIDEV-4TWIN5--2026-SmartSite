@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { PaiementService } from './paiement.service';
 import { Payment } from './entities/payment.entity';
 
@@ -7,15 +9,21 @@ describe('PaiementService', () => {
   let service: PaiementService;
   let mockPaymentModel: any;
 
+  const validObjectId = new Types.ObjectId().toString();
+
   beforeEach(async () => {
     mockPaymentModel = {
-      find: jest.fn(),
-      findById: jest.fn(),
-      findOne: jest.fn(),
-      create: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
+      find: jest.fn().mockReturnThis(),
+      findById: jest.fn().mockReturnThis(),
+      findByIdAndUpdate: jest.fn().mockReturnThis(),
       findByIdAndDelete: jest.fn(),
+      aggregate: jest.fn(),
+      countDocuments: jest.fn(),
+      sort: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
       exec: jest.fn(),
+      save: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -31,6 +39,10 @@ describe('PaiementService', () => {
     service = module.get<PaiementService>(PaiementService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -38,107 +50,112 @@ describe('PaiementService', () => {
   describe('findAll', () => {
     it('should return an array of payments', async () => {
       const mockPayments = [
-        { _id: '1', montant: 100, status: 'completed' },
-        { _id: '2', montant: 200, status: 'pending' },
+        { _id: validObjectId, amount: 100, status: 'completed' },
+        { _id: validObjectId, amount: 200, status: 'pending' },
       ];
 
-      mockPaymentModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayments),
-      });
+      mockPaymentModel.exec.mockResolvedValue(mockPayments);
 
       const result = await service.findAll();
       expect(result).toEqual(mockPayments);
       expect(mockPaymentModel.find).toHaveBeenCalled();
-    });
-
-    it('should handle errors when finding payments', async () => {
-      mockPaymentModel.find.mockReturnValue({
-        exec: jest.fn().mockRejectedValue(new Error('Database error')),
-      });
-
-      await expect(service.findAll()).rejects.toThrow('Database error');
+      expect(mockPaymentModel.sort).toHaveBeenCalledWith({ createdAt: -1 });
     });
   });
 
   describe('findOne', () => {
-    it('should return a single payment', async () => {
-      const mockPayment = { _id: '1', montant: 100, status: 'completed' };
+    it('should throw BadRequestException for invalid ID', async () => {
+      await expect(service.findOne('invalid-id')).rejects.toThrow(BadRequestException);
+    });
 
-      mockPaymentModel.findById.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayment),
-      });
+    it('should throw NotFoundException if payment not found', async () => {
+      mockPaymentModel.exec.mockResolvedValue(null);
 
-      const result = await service.findOne('1');
+      await expect(service.findOne(validObjectId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return a payment if found', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100, status: 'completed' };
+      mockPaymentModel.exec.mockResolvedValue(mockPayment);
+
+      const result = await service.findOne(validObjectId);
       expect(result).toEqual(mockPayment);
-      expect(mockPaymentModel.findById).toHaveBeenCalledWith('1');
-    });
-
-    it('should return null if payment not found', async () => {
-      mockPaymentModel.findById.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      const result = await service.findOne('nonexistent');
-      expect(result).toBeNull();
     });
   });
 
-  describe('create', () => {
-    it('should create a new payment', async () => {
-      const createDto = { montant: 100, projectId: 'proj1', status: 'pending' };
-      const mockCreatedPayment = { _id: '1', ...createDto };
-
-      mockPaymentModel.create.mockResolvedValue(mockCreatedPayment);
-
-      const result = await service.create(createDto as any);
-      expect(result).toEqual(mockCreatedPayment);
-      expect(mockPaymentModel.create).toHaveBeenCalledWith(createDto);
+  describe('findBySite', () => {
+    it('should throw BadRequestException for invalid siteId', async () => {
+      await expect(service.findBySite('invalid-id')).rejects.toThrow(BadRequestException);
     });
 
-    it('should handle validation errors', async () => {
-      const invalidDto = { montant: -100 };
+    it('should return payments for a site', async () => {
+      const mockPayments = [{ _id: validObjectId, siteId: validObjectId, amount: 100 }];
+      mockPaymentModel.exec.mockResolvedValue(mockPayments);
 
-      mockPaymentModel.create.mockRejectedValue(new Error('Validation error'));
-
-      await expect(service.create(invalidDto as any)).rejects.toThrow('Validation error');
-    });
-  });
-
-  describe('update', () => {
-    it('should update a payment', async () => {
-      const updateDto = { status: 'completed' };
-      const mockUpdatedPayment = { _id: '1', montant: 100, status: 'completed' };
-
-      mockPaymentModel.findByIdAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUpdatedPayment),
-      });
-
-      const result = await service.update('1', updateDto as any);
-      expect(result).toEqual(mockUpdatedPayment);
-      expect(mockPaymentModel.findByIdAndUpdate).toHaveBeenCalledWith('1', updateDto, { new: true });
+      const result = await service.findBySite(validObjectId);
+      expect(result).toEqual(mockPayments);
     });
   });
 
   describe('remove', () => {
-    it('should delete a payment', async () => {
-      const mockDeletedPayment = { _id: '1', montant: 100, status: 'completed' };
-
-      mockPaymentModel.findByIdAndDelete.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockDeletedPayment),
-      });
-
-      const result = await service.remove('1');
-      expect(result).toEqual(mockDeletedPayment);
-      expect(mockPaymentModel.findByIdAndDelete).toHaveBeenCalledWith('1');
+    it('should throw BadRequestException for invalid ID', async () => {
+      await expect(service.remove('invalid-id')).rejects.toThrow(BadRequestException);
     });
 
-    it('should return null if payment to delete not found', async () => {
-      mockPaymentModel.findByIdAndDelete.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
+    it('should throw NotFoundException if payment not found', async () => {
+      mockPaymentModel.findByIdAndDelete.mockResolvedValue(null);
+
+      await expect(service.remove(validObjectId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should delete a payment successfully', async () => {
+      mockPaymentModel.findByIdAndDelete.mockResolvedValue({ _id: validObjectId });
+
+      await service.remove(validObjectId);
+      expect(mockPaymentModel.findByIdAndDelete).toHaveBeenCalledWith(validObjectId);
+    });
+  });
+
+  describe('getPaymentStatus', () => {
+    it('should throw BadRequestException for invalid siteId', async () => {
+      await expect(service.getPaymentStatus('invalid-id')).rejects.toThrow(BadRequestException);
+    });
+
+    it('should return payment status for a site', async () => {
+      const mockPayments = [
+        { amount: 100, status: 'completed' },
+        { amount: 200, status: 'completed' },
+      ];
+      mockPaymentModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPayments),
       });
 
-      const result = await service.remove('nonexistent');
-      expect(result).toBeNull();
+      const result = await service.getPaymentStatus(validObjectId, 500);
+      expect(result).toEqual({
+        hasPaid: true,
+        totalPaid: 300,
+        remaining: 200,
+      });
+    });
+  });
+
+  describe('getTotalPaymentsBySite', () => {
+    it('should throw BadRequestException for invalid siteId', async () => {
+      await expect(service.getTotalPaymentsBySite('invalid-id')).rejects.toThrow(BadRequestException);
+    });
+
+    it('should return total payments for a site', async () => {
+      mockPaymentModel.aggregate.mockResolvedValue([{ total: 500 }]);
+
+      const result = await service.getTotalPaymentsBySite(validObjectId);
+      expect(result).toBe(500);
+    });
+
+    it('should return 0 if no payments found', async () => {
+      mockPaymentModel.aggregate.mockResolvedValue([]);
+
+      const result = await service.getTotalPaymentsBySite(validObjectId);
+      expect(result).toBe(0);
     });
   });
 });
