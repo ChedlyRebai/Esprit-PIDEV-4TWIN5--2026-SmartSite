@@ -8,6 +8,10 @@ pipeline {
         skipDefaultCheckout(true)
     }
 
+    when {
+        branch 'feat/api-gatewway'
+    }
+
     environment {
         REGISTRY = 'docker.io'
         REGISTRY_CREDENTIALS = 'docker-hub'
@@ -66,7 +70,7 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.sources=src \
-                                -Dsonar.branch.name=feat/api-gatewway \
+                                
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
                                 -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
