@@ -41,6 +41,24 @@ pipeline {
             }
         }
 
+        stage('Trivy Image Scan') {
+            steps {
+                sh """
+                    if command -v trivy &> /dev/null; then
+                        trivy image \
+                            --exit-code 0 \
+                            --severity HIGH,CRITICAL \
+                            --ignore-unfixed \
+                            --format table \
+                            ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    else
+                        echo "⚠️ Trivy non installé — scan image ignoré"
+                    fi
+                """
+                echo "✅ Trivy image scan terminé"
+            }
+        }
+
         stage('Docker Push') {
             steps {
                 echo "📤 Push vers Docker Hub (${DOCKER_IMAGE})..."
