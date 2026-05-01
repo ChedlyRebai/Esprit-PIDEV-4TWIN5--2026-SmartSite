@@ -51,7 +51,7 @@ pipeline {
                     echo "Branch: ${env.GIT_BRANCH}"
                     echo "Commit: ${env.GIT_COMMIT_SHORT}"
                 }
-            }
+            }   
         }
 
         stage('SonarQube Analysis') {
