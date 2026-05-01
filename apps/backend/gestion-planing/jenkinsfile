@@ -69,10 +69,8 @@ pipeline {
                     withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
-                            
                             sh """
                                 cd apps/backend/gestion-planing
-                                
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName='SmartSite - Gestion Planning' \
