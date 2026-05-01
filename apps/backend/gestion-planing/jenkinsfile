@@ -8,9 +8,7 @@ pipeline {
         skipDefaultCheckout(true)
     }
 
-    when {
-        branch 'feat/api-gatewway'
-    }
+   
 
     environment {
         REGISTRY = 'docker.io'
