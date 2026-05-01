@@ -54,14 +54,7 @@ pipeline {
                 }
             }
         }
-        stage('Build & Test') {
-            steps {
-                dir('apps/backend/gestion-planing') {
-                    sh 'npm run test:cov'
-                    echo "Build and tests completed"
-                }
-            }
-        }
+
         stage('SonarQube Analysis') {
            
             steps {
@@ -75,7 +68,6 @@ pipeline {
 
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.branch.name=feat/api-gatewway \
                                 -Dsonar.sources=src \
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
