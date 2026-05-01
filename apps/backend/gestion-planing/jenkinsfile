@@ -29,7 +29,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/feat/gatewway']],
+                    branches: [[name: '*/devops']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
                         credentialsId: 'pidev-github-credentials'
@@ -74,7 +74,7 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName='SmartSite - Gestion Planning' \
-                                -Dsonar.branch.name=feat/gatewway \
+                                -Dsonar.branch.name=devops \
                                 -Dsonar.sources=src \
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
