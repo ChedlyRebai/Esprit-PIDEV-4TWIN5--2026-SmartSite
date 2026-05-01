@@ -61,11 +61,12 @@ pipeline {
                             def scannerHome = tool 'SonarScanner'
 
                             sh """
+                                cd apps/backend/gestion-planing
+
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.sources=apps/backend/gestion-planing/src \
-                                -Dsonar.tests=apps/backend/gestion-planing/src \
-                                -Dsonar.projectBaseDir=apps/backend/gestion-planing \
+                                -Dsonar.sources=src \
+                                -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
                                 -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                                 -Dsonar.host.url=${SONAR_HOST_URL} \
