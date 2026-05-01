@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'CI_BUILD_NUMBER', defaultValue: '', description: 'Numéro du build CI qui a déclenché ce CD')
+    }
+
     environment {
         SERVICE_NAME  = 'resource-optimization'
         SERVICE_DIR   = 'apps/backend/resource-optimization'
@@ -13,6 +17,11 @@ pipeline {
             steps {
                 checkout scm
                 echo "✅ Code récupéré depuis GitHub"
+                script {
+                    if (params.CI_BUILD_NUMBER) {
+                        echo "🔗 Déclenché par CI build #${params.CI_BUILD_NUMBER}"
+                    }
+                }
             }
         }
 
@@ -90,7 +99,7 @@ EOF
 
     post {
         success {
-            echo "🎉 CD réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🎉 CD réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}${params.CI_BUILD_NUMBER ? ' (depuis CI #' + params.CI_BUILD_NUMBER + ')' : ''}"
         }
         failure {
             echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"

@@ -66,19 +66,33 @@ pipeline {
             }
         }
 
-        stage('Quality Gate (disabled)') {
+        stage('Quality Gate') {
             steps {
-                echo "⚠️ Quality Gate check disabled to avoid pipeline abort due to server processing time. Check SonarQube dashboard for results."
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                echo "🚀 CI passé — déclenchement du pipeline CD..."
+                build job: 'resource-optimization-cd',
+                      wait: false,
+                      parameters: [
+                          string(name: 'CI_BUILD_NUMBER', value: "${BUILD_NUMBER}")
+                      ]
+                echo "✅ Pipeline CD déclenché"
             }
         }
     }
 
     post {
         success {
-            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER} — CD en cours..."
         }
         failure {
-            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER} — CD non déclenché"
         }
         always {
             cleanWs()
