@@ -51,7 +51,7 @@ pipeline {
                     echo "Commit: ${env.GIT_COMMIT_SHORT}"
                 }
             }
-        }
+        }   
 
         stage('SonarQube Analysis') {
             steps {
@@ -59,21 +59,20 @@ pipeline {
                     withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
-
-                            dir('apps/backend/gestion-planing') {
+                            
                                 withEnv(["SONAR_LOGIN=${SONAR_LOGIN}"]) {
                                     sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.sources=src \
-                                -Dsonar.tests=src \
-                                -Dsonar.test.inclusions=**/*.spec.ts \
-                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=\$SONAR_LOGIN
-                            """
+                                        ${scannerHome}/bin/sonar-scanner \
+                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                        -Dsonar.sources=src \
+                                        -Dsonar.tests=src \
+                                        -Dsonar.test.inclusions=**/*.spec.ts \
+                                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                                        -Dsonar.login=\$SONAR_LOGIN
+                                    """
                                 }
-                            }
+                            
                         }
                     }
                 }
