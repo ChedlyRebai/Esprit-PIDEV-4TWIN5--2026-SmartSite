@@ -14,6 +14,11 @@ const mockIncident = {
 const mockIncidentsService = {
   findAll: jest.fn(),
   findOne: jest.fn(),
+  findBySite: jest.fn(),
+  findByProject: jest.fn(),
+  countBySite: jest.fn(),
+  countByProject: jest.fn(),
+  getDashboardStats: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
@@ -49,6 +54,79 @@ describe('IncidentsController', () => {
       const result = await controller.findOne('507f1f77bcf86cd799439011');
       expect(result).toEqual(mockIncident);
       expect(mockIncidentsService.findOne).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+    });
+  });
+
+  describe('findBySite', () => {
+    it('retourne les incidents d\'un site', async () => {
+      mockIncidentsService.findBySite.mockResolvedValue([mockIncident]);
+      const result = await controller.findBySite('site-123');
+      expect(result).toEqual([mockIncident]);
+      expect(mockIncidentsService.findBySite).toHaveBeenCalledWith('site-123');
+    });
+  });
+
+  describe('findByProject', () => {
+    it('retourne les incidents d\'un projet', async () => {
+      mockIncidentsService.findByProject.mockResolvedValue([mockIncident]);
+      const result = await controller.findByProject('proj-123');
+      expect(result).toEqual([mockIncident]);
+      expect(mockIncidentsService.findByProject).toHaveBeenCalledWith('proj-123');
+    });
+  });
+
+  describe('countBySite', () => {
+    it('retourne le nombre d\'incidents d\'un site', async () => {
+      mockIncidentsService.countBySite.mockResolvedValue(5);
+      const result = await controller.countBySite('site-123');
+      expect(result).toEqual({ count: 5, siteId: 'site-123' });
+      expect(mockIncidentsService.countBySite).toHaveBeenCalledWith('site-123');
+    });
+  });
+
+  describe('countByProject', () => {
+    it('retourne le nombre d\'incidents d\'un projet', async () => {
+      mockIncidentsService.countByProject.mockResolvedValue(3);
+      const result = await controller.countByProject('proj-123');
+      expect(result).toEqual({ count: 3, projectId: 'proj-123' });
+      expect(mockIncidentsService.countByProject).toHaveBeenCalledWith('proj-123');
+    });
+  });
+
+  describe('getDashboardStats', () => {
+    it('retourne les stats sans filtres', async () => {
+      const stats = { summary: { total: 10 } };
+      mockIncidentsService.getDashboardStats.mockResolvedValue(stats);
+      const result = await controller.getDashboardStats();
+      expect(result).toEqual(stats);
+      expect(mockIncidentsService.getDashboardStats).toHaveBeenCalledWith({
+        assignedToCin: undefined,
+        projectId: undefined,
+        siteId: undefined,
+      });
+    });
+
+    it('retourne les stats filtrées par assignedToCin', async () => {
+      const stats = { summary: { total: 3 } };
+      mockIncidentsService.getDashboardStats.mockResolvedValue(stats);
+      const result = await controller.getDashboardStats('CIN123');
+      expect(result).toEqual(stats);
+      expect(mockIncidentsService.getDashboardStats).toHaveBeenCalledWith({
+        assignedToCin: 'CIN123',
+        projectId: undefined,
+        siteId: undefined,
+      });
+    });
+
+    it('retourne les stats filtrées par projectId et siteId', async () => {
+      const stats = { summary: { total: 2 } };
+      mockIncidentsService.getDashboardStats.mockResolvedValue(stats);
+      await controller.getDashboardStats(undefined, 'proj-1', 'site-1');
+      expect(mockIncidentsService.getDashboardStats).toHaveBeenCalledWith({
+        assignedToCin: undefined,
+        projectId: 'proj-1',
+        siteId: 'site-1',
+      });
     });
   });
 
