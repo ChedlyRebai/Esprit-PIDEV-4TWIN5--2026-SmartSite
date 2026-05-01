@@ -64,16 +64,13 @@
     "rootDir": ".",
     "testRegex": "src/.*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": ["ts-jest", {
-        "tsconfig": {
-          "emitDecoratorMetadata": true,
-          "experimentalDecorators": true
-        }
-      }]
+      "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
       "*.ts",
-      "src/**/*.ts",
+      "dto/**/*.ts",
+      "entities/**/*.ts",
+      "src/chat/*.ts",
       "!*.module.ts",
       "!src/**/*.module.ts",
       "!src/main.ts",

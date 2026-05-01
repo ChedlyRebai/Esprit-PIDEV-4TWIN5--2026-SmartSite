@@ -6,6 +6,7 @@ pipeline {
         SERVICE_DIR   = 'apps/backend/gestion-projects'
         DOCKER_IMAGE  = "asmaamh/smartsite-gestion-projects"
         PORT          = '3007'
+        DOCKER_HOST   = 'tcp://localhost:2375'
     }
 
     tools {

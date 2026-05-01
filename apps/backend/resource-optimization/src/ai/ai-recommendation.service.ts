@@ -131,7 +131,7 @@ export class AIRecommendationService {
     // Simulation de l'utilisation du budget par tâche
     const taskBudgetUsage = tasks.map(task => ({
       taskId: task._id,
-      estimatedCost: budgetPerTask * (task.priority === 'urgent' ? 1.5 : task.priority === 'high' ? 1.2 : 1),
+      estimatedCost: budgetPerTask * this.getTaskPriorityMultiplier(task.priority),
       priority: task.priority,
     }));
 
@@ -147,6 +147,12 @@ export class AIRecommendationService {
       overrunPercentage,
       isOverBudget: budgetOverrun > 0,
     };
+  }
+
+  private getTaskPriorityMultiplier(priority: string): number {
+    if (priority === 'urgent') return 1.5;
+    if (priority === 'high') return 1.2;
+    return 1;
   }
 
   private analyzeTimeline(tasks: any[]) {
@@ -754,45 +760,26 @@ export class AIRecommendationService {
    * Estimer la durée optimale d'une tâche en jours
    */
   private estimateTaskDuration(task: any): number {
-    // Base duration selon la priorité
-    let baseDuration = 5; // 5 jours par défaut
+    const baseDuration = this.getBaseTaskDuration(task.priority);
+    const adjustedDuration = this.applyComplexityMultiplier(baseDuration, task.complexity);
+    const subtasksBonus = task.subtasks && Array.isArray(task.subtasks)
+      ? task.subtasks.length * 0.5
+      : 0;
 
-    switch (task.priority) {
-      case 'urgent':
-        baseDuration = 2;
-        break;
-      case 'high':
-        baseDuration = 3;
-        break;
-      case 'medium':
-        baseDuration = 5;
-        break;
-      case 'low':
-        baseDuration = 7;
-        break;
-    }
+    return Math.max(1, adjustedDuration + subtasksBonus); // Minimum 1 jour
+  }
 
-    // Ajustement selon la complexité (si disponible)
-    if (task.complexity) {
-      switch (task.complexity) {
-        case 'simple':
-          baseDuration *= 0.5;
-          break;
-        case 'medium':
-          baseDuration *= 1;
-          break;
-        case 'complex':
-          baseDuration *= 2;
-          break;
-      }
-    }
+  private getBaseTaskDuration(priority: string): number {
+    if (priority === 'urgent') return 2;
+    if (priority === 'high') return 3;
+    if (priority === 'low') return 7;
+    return 5;
+  }
 
-    // Ajustement selon le nombre de sous-tâches
-    if (task.subtasks && Array.isArray(task.subtasks)) {
-      baseDuration += task.subtasks.length * 0.5;
-    }
-
-    return Math.max(1, baseDuration); // Minimum 1 jour
+  private applyComplexityMultiplier(duration: number, complexity?: string): number {
+    if (complexity === 'simple') return duration * 0.5;
+    if (complexity === 'complex') return duration * 2;
+    return duration;
   }
 
   /**

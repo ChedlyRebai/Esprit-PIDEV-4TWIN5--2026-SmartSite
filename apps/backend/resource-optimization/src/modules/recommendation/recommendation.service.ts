@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ExternalDataService } from '../external-data/external-data.service';
-import { AIRecommendation, AIRecommendationService } from '../../ai/ai-recommendation.service';
+import {
+  AIRecommendation,
+  AIRecommendationService,
+} from '../../ai/ai-recommendation.service';
 import { ResourceAnalysisService } from '../resource-analysis/resource-analysis.service';
 import { AlertService } from '../alert/alert.service';
 
@@ -51,17 +54,22 @@ export class RecommendationService {
   private readonly logger = new Logger(RecommendationService.name);
 
   constructor(
-    @InjectModel('Recommendation') private recommendationModel: Model<Recommendation>,
+    @InjectModel('Recommendation')
+    private recommendationModel: Model<Recommendation>,
     private readonly externalDataService: ExternalDataService,
     private readonly aiRecommendationService: AIRecommendationService,
     private readonly resourceAnalysisService: ResourceAnalysisService,
     private readonly alertService: AlertService,
-  ) { }
+  ) {}
 
-  async create(createRecommendationDto: CreateRecommendationDto): Promise<Recommendation> {
+  async create(
+    createRecommendationDto: CreateRecommendationDto,
+  ): Promise<Recommendation> {
     const newRecommendation = new this.recommendationModel({
       ...createRecommendationDto,
-      scope: createRecommendationDto.scope || (createRecommendationDto.projectId ? 'project' : 'site'),
+      scope:
+        createRecommendationDto.scope ||
+        (createRecommendationDto.projectId ? 'project' : 'site'),
       status: 'pending',
       createdAt: new Date(),
     });
@@ -82,7 +90,11 @@ export class RecommendationService {
     return this.recommendationModel.find(query).sort({ createdAt: -1 }).exec();
   }
 
-  async getSummary(siteId?: string, projectId?: string, scope?: string): Promise<{
+  async getSummary(
+    siteId?: string,
+    projectId?: string,
+    scope?: string,
+  ): Promise<{
     totalPotentialSavings: string;
     approvedSavings: string;
     realizedSavings: string;
@@ -111,7 +123,10 @@ export class RecommendationService {
     return this.recommendationModel.findById(id).exec();
   }
 
-  async update(id: string, updateRecommendationDto: Partial<Recommendation>): Promise<Recommendation | null> {
+  async update(
+    id: string,
+    updateRecommendationDto: Partial<Recommendation>,
+  ): Promise<Recommendation | null> {
     return this.recommendationModel
       .findByIdAndUpdate(id, updateRecommendationDto, { new: true })
       .exec();
@@ -136,17 +151,20 @@ export class RecommendationService {
     );
 
     // Update recommendation status
-    const updatedRecommendation = await this.recommendationModel.findByIdAndUpdate(
-      id,
-      {
-        status: 'approved',
-        approvedAt: new Date(),
-        beforeMetrics: beforeMetrics,
-      },
-      { new: true }
-    );
+    const updatedRecommendation =
+      await this.recommendationModel.findByIdAndUpdate(
+        id,
+        {
+          status: 'approved',
+          approvedAt: new Date(),
+          beforeMetrics: beforeMetrics,
+        },
+        { new: true },
+      );
 
-    this.logger.log(`Recommendation ${id} approved with before metrics captured`);
+    this.logger.log(
+      `Recommendation ${id} approved with before metrics captured`,
+    );
     return updatedRecommendation;
   }
 
@@ -168,22 +186,25 @@ export class RecommendationService {
     const improvement = this.calculateImprovement(
       recommendation.beforeMetrics,
       afterMetrics,
-      recommendation.type
+      recommendation.type,
     );
 
     // Update recommendation with results
-    const updatedRecommendation = await this.recommendationModel.findByIdAndUpdate(
-      id,
-      {
-        status: 'implemented',
-        implementedAt: new Date(),
-        afterMetrics: afterMetrics,
-        improvement: improvement,
-      },
-      { new: true }
-    );
+    const updatedRecommendation =
+      await this.recommendationModel.findByIdAndUpdate(
+        id,
+        {
+          status: 'implemented',
+          implementedAt: new Date(),
+          afterMetrics: afterMetrics,
+          improvement: improvement,
+        },
+        { new: true },
+      );
 
-    this.logger.log(`Recommendation ${id} implemented with improvement: ${JSON.stringify(improvement)}`);
+    this.logger.log(
+      `Recommendation ${id} implemented with improvement: ${JSON.stringify(improvement)}`,
+    );
     return updatedRecommendation;
   }
 
@@ -202,14 +223,17 @@ export class RecommendationService {
           ? await this.externalDataService.getAllSiteData(siteId)
           : null;
 
-      const budgetScope: 'project' | 'site' = scope || (projectId ? 'project' : 'site');
-      const siteData = (context as any)?.site || (context as any)?.siteData || null;
+      const budgetScope: 'project' | 'site' =
+        scope || (projectId ? 'project' : 'site');
+      const siteData =
+        (context as any)?.site || (context as any)?.siteData || null;
       const projectData = (context as any)?.project || null;
       const tasksData = (context as any)?.tasks || [];
       const teamsData = (context as any)?.teams || [];
-      const budgetTotal = budgetScope === 'project'
-        ? Number(projectData?.budget) || 0
-        : Number(siteData?.budget) || 0;
+      const budgetTotal =
+        budgetScope === 'project'
+          ? Number(projectData?.budget) || 0
+          : Number(siteData?.budget) || 0;
       const spentBudget = this.calculateSpentBudget(tasksData) || 0;
 
       return {
@@ -222,23 +246,36 @@ export class RecommendationService {
         },
         tasks: {
           total: tasksData.length,
-          completed: tasksData.filter(t => t.status === 'completed').length,
-          inProgress: tasksData.filter(t => t.status === 'in_progress').length,
-          overdue: tasksData.filter(t =>
-            t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed'
+          completed: tasksData.filter((t) => t.status === 'completed').length,
+          inProgress: tasksData.filter((t) => t.status === 'in_progress')
+            .length,
+          overdue: tasksData.filter(
+            (t) =>
+              t.dueDate &&
+              new Date(t.dueDate) < new Date() &&
+              t.status !== 'completed',
           ).length,
           avgDuration: this.calculateAverageTaskDuration(tasksData),
         },
         teams: {
           total: teamsData.length,
-          totalMembers: teamsData.reduce((sum, team) => sum + (team.members?.length || 0), 0),
+          totalMembers: teamsData.reduce(
+            (sum, team) => sum + (team.members?.length || 0),
+            0,
+          ),
           avgWorkload: this.calculateAverageWorkload(teamsData, tasksData),
         },
         efficiency: {
           taskCompletionRate: this.calculateTaskCompletionRate(tasksData),
-          budgetUtilization: this.calculateBudgetUtilization(budgetTotal, tasksData),
-          teamProductivity: this.calculateTeamProductivity(teamsData, tasksData),
-        }
+          budgetUtilization: this.calculateBudgetUtilization(
+            budgetTotal,
+            tasksData,
+          ),
+          teamProductivity: this.calculateTeamProductivity(
+            teamsData,
+            tasksData,
+          ),
+        },
       };
     } catch (error) {
       this.logger.error('Error capturing metrics:', error);
@@ -249,7 +286,11 @@ export class RecommendationService {
   /**
    * Calculate improvement between before and after metrics
    */
-  private calculateImprovement(before: any, after: any, recommendationType: string): any {
+  private calculateImprovement(
+    before: any,
+    after: any,
+    recommendationType: string,
+  ): any {
     if (!before || !after) return null;
 
     const improvement: any = {
@@ -260,36 +301,44 @@ export class RecommendationService {
     switch (recommendationType) {
       case 'budget':
         improvement.budgetSavings = before.budget.spent - after.budget.spent;
-        improvement.budgetUtilizationImprovement = before.efficiency.budgetUtilization
-          ? ((after.efficiency.budgetUtilization - before.efficiency.budgetUtilization) /
-            before.efficiency.budgetUtilization) * 100
+        improvement.budgetUtilizationImprovement = before.efficiency
+          .budgetUtilization
+          ? ((after.efficiency.budgetUtilization -
+              before.efficiency.budgetUtilization) /
+              before.efficiency.budgetUtilization) *
+            100
           : 0;
         break;
 
       case 'task_distribution':
-        improvement.workloadBalanceImprovement =
-          Math.abs(after.teams.avgWorkload - before.teams.avgWorkload);
+        improvement.workloadBalanceImprovement = Math.abs(
+          after.teams.avgWorkload - before.teams.avgWorkload,
+        );
         improvement.productivityImprovement =
-          after.efficiency.teamProductivity - before.efficiency.teamProductivity;
+          after.efficiency.teamProductivity -
+          before.efficiency.teamProductivity;
         break;
 
       case 'timeline':
         improvement.overdueTasksReduction =
           before.tasks.overdue - after.tasks.overdue;
         improvement.completionRateImprovement =
-          after.efficiency.taskCompletionRate - before.efficiency.taskCompletionRate;
+          after.efficiency.taskCompletionRate -
+          before.efficiency.taskCompletionRate;
         break;
 
       case 'individual_task_management':
         improvement.taskDurationImprovement =
           before.tasks.avgDuration - after.tasks.avgDuration;
         improvement.personalEfficiencyImprovement =
-          after.efficiency.taskCompletionRate - before.efficiency.taskCompletionRate;
+          after.efficiency.taskCompletionRate -
+          before.efficiency.taskCompletionRate;
         break;
 
       default:
         improvement.overallEfficiencyImprovement =
-          after.efficiency.taskCompletionRate - before.efficiency.taskCompletionRate;
+          after.efficiency.taskCompletionRate -
+          before.efficiency.taskCompletionRate;
         break;
     }
 
@@ -302,15 +351,15 @@ export class RecommendationService {
   }
 
   private calculateAverageTaskDuration(tasks: any[]): number {
-    const completedTasks = tasks.filter(t =>
-      t.status === 'completed' && t.startDate && t.endDate
+    const completedTasks = tasks.filter(
+      (t) => t.status === 'completed' && t.startDate && t.endDate,
     );
     if (completedTasks.length === 0) return 0;
 
     const totalDuration = completedTasks.reduce((sum, task) => {
       const start = new Date(task.startDate);
       const end = new Date(task.endDate);
-      return sum + ((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)); // days
+      return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24); // days
     }, 0);
 
     return totalDuration / completedTasks.length;
@@ -327,7 +376,7 @@ export class RecommendationService {
 
   private calculateTaskCompletionRate(tasks: any[]): number {
     if (tasks.length === 0) return 0;
-    const completed = tasks.filter(t => t.status === 'completed').length;
+    const completed = tasks.filter((t) => t.status === 'completed').length;
     return (completed / tasks.length) * 100;
   }
 
@@ -344,7 +393,7 @@ export class RecommendationService {
     }, 0);
     if (totalMembers === 0) return 0;
 
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
+    const completedTasks = tasks.filter((t) => t.status === 'completed').length;
     return completedTasks / totalMembers;
   }
 
@@ -352,7 +401,9 @@ export class RecommendationService {
    * Cumulative budget-related series: each approval adds estimated savings;
    * optional spent snapshot from beforeMetrics captured at approval.
    */
-  private buildBudgetInfluenceOnApprovals(recommendations: Recommendation[]): Array<{
+  private buildBudgetInfluenceOnApprovals(
+    recommendations: Recommendation[],
+  ): Array<{
     step: number;
     label: string;
     title: string;
@@ -438,21 +489,33 @@ export class RecommendationService {
     return points;
   }
 
-  /**
-   * Get analytics data for a site
-   */
-  async getAnalytics(siteId?: string, projectId?: string, scope?: string): Promise<any> {
-    const recommendations = await this.findAll(siteId, undefined, projectId, scope);
+  async getAnalytics(
+    siteId?: string,
+    projectId?: string,
+    scope?: string,
+  ): Promise<any> {
+    const recommendations = await this.findAll(
+      siteId,
+      undefined,
+      projectId,
+      scope,
+    );
 
     const analytics = {
       totalRecommendations: recommendations.length,
-      approvedRecommendations: recommendations.filter(r => r.status === 'approved').length,
-      implementedRecommendations: recommendations.filter(r => r.status === 'implemented').length,
+      approvedRecommendations: recommendations.filter(
+        (r) => r.status === 'approved',
+      ).length,
+      implementedRecommendations: recommendations.filter(
+        (r) => r.status === 'implemented',
+      ).length,
 
       /** Approuvées mais pas encore mises en œuvre : snapshot pris à l’approbation (courbe « après » au prochain jalon) */
       pendingImplementationSnapshots: recommendations
-        .filter(r => r.status === 'approved' && r.beforeMetrics && !r.afterMetrics)
-        .map(r => ({
+        .filter(
+          (r) => r.status === 'approved' && r.beforeMetrics && !r.afterMetrics,
+        )
+        .map((r) => ({
           recommendationId: r._id,
           type: r.type,
           title: r.title,
@@ -468,8 +531,8 @@ export class RecommendationService {
 
       // Before/After comparisons (référence à l’approbation vs mesure après mise en œuvre)
       beforeAfterComparisons: recommendations
-        .filter(r => r.beforeMetrics && r.afterMetrics)
-        .map(r => ({
+        .filter((r) => r.beforeMetrics && r.afterMetrics)
+        .map((r) => ({
           recommendationId: r._id,
           type: r.type,
           title: r.title,
@@ -479,20 +542,24 @@ export class RecommendationService {
         })),
 
       /** Curve: cumulative estimated savings vs approval order; spent snapshot from approval-time metrics */
-      budgetInfluenceOnApprovals: this.buildBudgetInfluenceOnApprovals(recommendations),
+      budgetInfluenceOnApprovals:
+        this.buildBudgetInfluenceOnApprovals(recommendations),
     };
 
     // Calculate total improvements
-    recommendations.forEach(r => {
+    recommendations.forEach((r) => {
       if (r.improvement) {
         if (r.improvement.budgetSavings) {
-          analytics.totalImprovements.budgetSavings += r.improvement.budgetSavings;
+          analytics.totalImprovements.budgetSavings +=
+            r.improvement.budgetSavings;
         }
         if (r.improvement.completionRateImprovement) {
-          analytics.totalImprovements.taskCompletionImprovement += r.improvement.completionRateImprovement;
+          analytics.totalImprovements.taskCompletionImprovement +=
+            r.improvement.completionRateImprovement;
         }
         if (r.improvement.overallEfficiencyImprovement) {
-          analytics.totalImprovements.efficiencyGains += r.improvement.overallEfficiencyImprovement;
+          analytics.totalImprovements.efficiencyGains +=
+            r.improvement.overallEfficiencyImprovement;
         }
       }
     });
@@ -501,7 +568,12 @@ export class RecommendationService {
   }
 
   private mapPriority(priority: string): number {
-    const scores: Record<string, number> = { urgent: 10, high: 8, medium: 5, low: 3 };
+    const scores: Record<string, number> = {
+      urgent: 10,
+      high: 8,
+      medium: 5,
+      low: 3,
+    };
     return scores[priority] || 5;
   }
 
@@ -526,12 +598,16 @@ export class RecommendationService {
     };
   }
 
-  private buildEnergyRecommendations(siteId: string, siteBudget: number): CreateRecommendationDto[] {
+  private buildEnergyRecommendations(
+    siteId: string,
+    siteBudget: number,
+  ): CreateRecommendationDto[] {
     return [
       {
         type: 'energy',
         title: 'Reduire les pics de consommation',
-        description: 'Lisser la consommation pendant les heures creuses pour reduire les couts.',
+        description:
+          'Lisser la consommation pendant les heures creuses pour reduire les couts.',
         priority: 8,
         estimatedSavings: Math.round((siteBudget || 0) * 0.03),
         estimatedCO2Reduction: 120,
@@ -546,7 +622,11 @@ export class RecommendationService {
     ];
   }
 
-  private buildAlertRecommendations(siteId: string, summary: any, siteBudget: number): CreateRecommendationDto[] {
+  private buildAlertRecommendations(
+    siteId: string,
+    summary: any,
+    siteBudget: number,
+  ): CreateRecommendationDto[] {
     const recommendations: CreateRecommendationDto[] = [];
     if (!summary) return recommendations;
 
@@ -554,7 +634,8 @@ export class RecommendationService {
       recommendations.push({
         type: 'budget',
         title: 'Alerte depassement budget',
-        description: 'Des alertes budget ont ete detectees. Renforcer le controle des depenses.',
+        description:
+          'Des alertes budget ont ete detectees. Renforcer le controle des depenses.',
         priority: 9,
         estimatedSavings: Math.round((siteBudget || 0) * 0.05),
         estimatedCO2Reduction: 0,
@@ -562,7 +643,7 @@ export class RecommendationService {
         actionItems: [
           'Verifier les postes de depenses critiques',
           'Revoir les fournisseurs prioritaires',
-          'Mettre a jour les seuils d\'alerte budget',
+          "Mettre a jour les seuils d'alerte budget",
         ],
         siteId,
         scope: 'site',
@@ -573,14 +654,15 @@ export class RecommendationService {
       recommendations.push({
         type: 'energy',
         title: 'Alerte pic energie',
-        description: 'Des pics d\'energie ont ete detectes. Optimiser les plages de fonctionnement.',
+        description:
+          "Des pics d'energie ont ete detectes. Optimiser les plages de fonctionnement.",
         priority: 7,
         estimatedSavings: Math.round((siteBudget || 0) * 0.02),
         estimatedCO2Reduction: 80,
         confidenceScore: 75,
         actionItems: [
           'Analyser les equipements responsables',
-          'Activer les modes economie d\'energie',
+          "Activer les modes economie d'energie",
         ],
         siteId,
         scope: 'site',
@@ -590,24 +672,31 @@ export class RecommendationService {
     return recommendations;
   }
 
-  async generateForProject(projectId: string, siteId?: string): Promise<Recommendation[]> {
-    const context = await this.externalDataService.getProjectContext(projectId, siteId);
+  async generateForProject(
+    projectId: string,
+    siteId?: string,
+  ): Promise<Recommendation[]> {
+    const context = await this.externalDataService.getProjectContext(
+      projectId,
+      siteId,
+    );
     const saved: Recommendation[] = [];
 
     if (context.project) {
-      const projectRecs = await this.aiRecommendationService.generateRecommendations({
-        projectId,
-        siteId,
-        project: context.project,
-        site: context.site,
-        sites: context.sites,
-        tasks: context.tasks,
-        teams: context.teams,
-        incidents: context.incidents,
-        budget: Number(context.project?.budget) || 0,
-        budgetScope: 'project',
-        totalSitesBudget: context.projectStats.totalSitesBudget,
-      });
+      const projectRecs =
+        await this.aiRecommendationService.generateRecommendations({
+          projectId,
+          siteId,
+          project: context.project,
+          site: context.site,
+          sites: context.sites,
+          tasks: context.tasks,
+          teams: context.teams,
+          incidents: context.incidents,
+          budget: Number(context.project?.budget) || 0,
+          budgetScope: 'project',
+          totalSitesBudget: context.projectStats.totalSitesBudget,
+        });
 
       for (const rec of projectRecs) {
         const dto = this.mapAIToCreateDto(rec, 'project', projectId, siteId);
@@ -616,36 +705,49 @@ export class RecommendationService {
     }
 
     if (context.site && siteId) {
-      const siteTasks = context.tasks.filter(t => t.siteId === siteId);
-      const siteIncidents = context.incidents.filter(i => i.siteId === siteId);
-      const siteRecs = await this.aiRecommendationService.generateRecommendations({
-        projectId,
-        siteId,
-        project: context.project,
-        site: context.site,
-        sites: context.sites,
-        tasks: siteTasks,
-        teams: context.teams,
-        incidents: siteIncidents,
-        budget: Number(context.site?.budget) || 0,
-        budgetScope: 'site',
-      });
+      const siteTasks = context.tasks.filter((t) => t.siteId === siteId);
+      const siteIncidents = context.incidents.filter(
+        (i) => i.siteId === siteId,
+      );
+      const siteRecs =
+        await this.aiRecommendationService.generateRecommendations({
+          projectId,
+          siteId,
+          project: context.project,
+          site: context.site,
+          sites: context.sites,
+          tasks: siteTasks,
+          teams: context.teams,
+          incidents: siteIncidents,
+          budget: Number(context.site?.budget) || 0,
+          budgetScope: 'site',
+        });
 
       for (const rec of siteRecs) {
         const dto = this.mapAIToCreateDto(rec, 'site', projectId, siteId);
         saved.push(await this.create(dto));
       }
 
-      const energyAnalysis = await this.resourceAnalysisService.analyzeEnergyConsumption(siteId, 30);
+      const energyAnalysis =
+        await this.resourceAnalysisService.analyzeEnergyConsumption(siteId, 30);
       if (energyAnalysis.peakPeriods.length > 0) {
-        const extra = this.buildEnergyRecommendations(siteId, Number(context.site?.budget) || 0);
+        const extra = this.buildEnergyRecommendations(
+          siteId,
+          Number(context.site?.budget) || 0,
+        );
         for (const dto of extra) {
           saved.push(await this.create(dto));
         }
       }
 
-      const alertSummary = await this.alertService.getAlertsSummary(siteId).catch(() => null);
-      const alertRecs = this.buildAlertRecommendations(siteId, alertSummary, Number(context.site?.budget) || 0);
+      const alertSummary = await this.alertService
+        .getAlertsSummary(siteId)
+        .catch(() => null);
+      const alertRecs = this.buildAlertRecommendations(
+        siteId,
+        alertSummary,
+        Number(context.site?.budget) || 0,
+      );
       for (const dto of alertRecs) {
         saved.push(await this.create(dto));
       }
@@ -658,15 +760,17 @@ export class RecommendationService {
     const context = await this.externalDataService.getAllSiteData(siteId);
     const saved: Recommendation[] = [];
 
-    const siteRecs = await this.aiRecommendationService.generateRecommendations({
-      siteId,
-      site: context.site,
-      tasks: context.tasks,
-      teams: context.teams,
-      incidents: context.incidents,
-      budget: Number(context.site?.budget) || 0,
-      budgetScope: 'site',
-    });
+    const siteRecs = await this.aiRecommendationService.generateRecommendations(
+      {
+        siteId,
+        site: context.site,
+        tasks: context.tasks,
+        teams: context.teams,
+        incidents: context.incidents,
+        budget: Number(context.site?.budget) || 0,
+        budgetScope: 'site',
+      },
+    );
 
     for (const rec of siteRecs) {
       const dto = this.mapAIToCreateDto(rec, 'site', undefined, siteId);
@@ -674,7 +778,10 @@ export class RecommendationService {
     }
 
     // Recommandations basées sur les milestones
-    const milestoneRecs = this.buildMilestoneRecommendations(siteId, context.milestones);
+    const milestoneRecs = this.buildMilestoneRecommendations(
+      siteId,
+      context.milestones,
+    );
     for (const dto of milestoneRecs) {
       saved.push(await this.create(dto));
     }
@@ -685,16 +792,26 @@ export class RecommendationService {
       saved.push(await this.create(dto));
     }
 
-    const energyAnalysis = await this.resourceAnalysisService.analyzeEnergyConsumption(siteId, 30);
+    const energyAnalysis =
+      await this.resourceAnalysisService.analyzeEnergyConsumption(siteId, 30);
     if (energyAnalysis.peakPeriods.length > 0) {
-      const extra = this.buildEnergyRecommendations(siteId, Number(context.site?.budget) || 0);
+      const extra = this.buildEnergyRecommendations(
+        siteId,
+        Number(context.site?.budget) || 0,
+      );
       for (const dto of extra) {
         saved.push(await this.create(dto));
       }
     }
 
-    const alertSummary = await this.alertService.getAlertsSummary(siteId).catch(() => null);
-    const alertRecs = this.buildAlertRecommendations(siteId, alertSummary, Number(context.site?.budget) || 0);
+    const alertSummary = await this.alertService
+      .getAlertsSummary(siteId)
+      .catch(() => null);
+    const alertRecs = this.buildAlertRecommendations(
+      siteId,
+      alertSummary,
+      Number(context.site?.budget) || 0,
+    );
     for (const dto of alertRecs) {
       saved.push(await this.create(dto));
     }
@@ -702,21 +819,27 @@ export class RecommendationService {
     return saved;
   }
 
-  private buildMilestoneRecommendations(siteId: string, milestones: any[]): CreateRecommendationDto[] {
+  private buildMilestoneRecommendations(
+    siteId: string,
+    milestones: any[],
+  ): CreateRecommendationDto[] {
     const recs: CreateRecommendationDto[] = [];
     if (!milestones || milestones.length === 0) return recs;
 
     const now = new Date();
-    const overdue = milestones.filter(m =>
-      m.status !== 'completed' && m.dueDate && new Date(m.dueDate) < now
+    const overdue = milestones.filter(
+      (m) => m.status !== 'completed' && m.dueDate && new Date(m.dueDate) < now,
     );
-    const upcoming = milestones.filter(m =>
-      m.status !== 'completed' && m.dueDate &&
-      new Date(m.dueDate) >= now &&
-      (new Date(m.dueDate).getTime() - now.getTime()) < 7 * 24 * 60 * 60 * 1000
+    const upcoming = milestones.filter(
+      (m) =>
+        m.status !== 'completed' &&
+        m.dueDate &&
+        new Date(m.dueDate) >= now &&
+        new Date(m.dueDate).getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000,
     );
-    const completed = milestones.filter(m => m.status === 'completed');
-    const completionRate = milestones.length > 0 ? (completed.length / milestones.length) * 100 : 0;
+    const completed = milestones.filter((m) => m.status === 'completed');
+    const completionRate =
+      milestones.length > 0 ? (completed.length / milestones.length) * 100 : 0;
 
     if (overdue.length > 0) {
       recs.push({
@@ -748,7 +871,7 @@ export class RecommendationService {
         estimatedCO2Reduction: 0,
         confidenceScore: 80,
         actionItems: [
-          'Vérifier l\'avancement de chaque jalon urgent',
+          "Vérifier l'avancement de chaque jalon urgent",
           'Mobiliser les équipes concernées',
           'Préparer les livrables en avance',
         ],
@@ -779,18 +902,29 @@ export class RecommendationService {
     return recs;
   }
 
-  private buildTaskRecommendations(siteId: string, tasks: any[]): CreateRecommendationDto[] {
+  private buildTaskRecommendations(
+    siteId: string,
+    tasks: any[],
+  ): CreateRecommendationDto[] {
     const recs: CreateRecommendationDto[] = [];
     if (!tasks || tasks.length === 0) return recs;
 
     const now = new Date();
-    const completed = tasks.filter(t => t.status === 'completed' || t.status === 'done');
-    const inProgress = tasks.filter(t => t.status === 'in_progress' || t.status === 'in progress');
-    const overdue = tasks.filter(t =>
-      t.status !== 'completed' && t.status !== 'done' &&
-      t.endDate && new Date(t.endDate) < now
+    const completed = tasks.filter(
+      (t) => t.status === 'completed' || t.status === 'done',
     );
-    const completionRate = tasks.length > 0 ? (completed.length / tasks.length) * 100 : 0;
+    const inProgress = tasks.filter(
+      (t) => t.status === 'in_progress' || t.status === 'in progress',
+    );
+    const overdue = tasks.filter(
+      (t) =>
+        t.status !== 'completed' &&
+        t.status !== 'done' &&
+        t.endDate &&
+        new Date(t.endDate) < now,
+    );
+    const completionRate =
+      tasks.length > 0 ? (completed.length / tasks.length) * 100 : 0;
 
     if (overdue.length > 0) {
       recs.push({
@@ -823,7 +957,7 @@ export class RecommendationService {
         confidenceScore: 70,
         actionItems: [
           'Appliquer la méthode Kanban pour limiter le WIP',
-          'Terminer les tâches en cours avant d\'en commencer de nouvelles',
+          "Terminer les tâches en cours avant d'en commencer de nouvelles",
           'Prioriser les tâches à fort impact',
         ],
         siteId,

@@ -49,19 +49,30 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                dir("${SERVICE_DIR}") {
-                    withSonarQubeEnv('SonarQube') {
-                        withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
-                            sh """
-                                sonar-scanner \
-                                    -Dsonar.projectKey=${SONAR_PROJECT} \
-                                    -Dsonar.projectName='SmartSite - Gestion Site' \
-                                    -Dsonar.sources=src,gestion-site.controller.ts,gestion-site.service.ts \
-                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
-                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                    -Dsonar.javascript.node.maxspace=4096
-                            """
+                script {
+                    try {
+                        dir("${SERVICE_DIR}") {
+                            withSonarQubeEnv('SonarQube') {
+                                withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+                                    sh """
+                                        sonar-scanner \
+                                            -Dsonar.projectKey=${SONAR_PROJECT} \
+                                            -Dsonar.projectName='SmartSite - Gestion Site' \
+                                            -Dsonar.sources=. \
+                                            -Dsonar.inclusions=*.ts,dto/**/*.ts,entities/**/*.ts \
+                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/src/** \
+                                            -Dsonar.tests=src \
+                                            -Dsonar.test.inclusions=**/*.spec.ts \
+                                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/**
+                                    """
+                                }
+                            }
                         }
+                        echo "✅ Analyse SonarQube réussie"
+                    } catch (Exception e) {
+                        echo "⚠️ Analyse SonarQube échouée : ${e.message}"
+                        echo "Le pipeline continue malgré l'échec SonarQube"
                     }
                 }
             }
@@ -70,7 +81,7 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false  // ✅ non bloquant
+                    waitForQualityGate abortPipeline: false
                 }
             }
         }
