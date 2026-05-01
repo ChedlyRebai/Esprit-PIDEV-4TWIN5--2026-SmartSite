@@ -116,12 +116,15 @@ describe('AIRecommendationService', () => {
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it('retourne des recommandations de fallback en cas d\'erreur', async () => {
-      // Force an error by passing invalid data
-      const request = null as any;
-      const result = await service.generateRecommendations(request);
+    it('retourne des recommandations de fallback en cas d\'erreur interne', async () => {
+      // Spy on analyzeProjectData to force an exception inside the try block
+      jest.spyOn(service as any, 'analyzeProjectData').mockImplementation(() => {
+        throw new Error('forced error');
+      });
+      const result = await service.generateRecommendations({ budget: 1000, tasks: [], teams: [] });
       expect(result.length).toBeGreaterThan(0);
       expect(result[0].type).toBe('budget');
+      jest.restoreAllMocks();
     });
 
     it('génère des recommandations pour scope projet avec totalSitesBudget', async () => {
