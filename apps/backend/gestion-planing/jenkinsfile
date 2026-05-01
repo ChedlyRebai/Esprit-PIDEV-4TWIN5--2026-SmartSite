@@ -5,24 +5,22 @@ pipeline {
         timestamps()
         timeout(time: 1, unit: 'HOURS')
         buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
     }
-    tools {
-        sonarQubeScanner 'SonarScanner'
-    }
+
     environment {
         REGISTRY = 'docker.io'
-        REGESTRY_CREDENTIALS = 'docker-hub'
+        REGISTRY_CREDENTIALS = 'docker-hub'
         DOCKER_USERNAME = 'chedlyrebai'
         PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
-        SONARQUEBE_HOST = 'http://localhost:9000'
-        SONAR_PROJECT_KEY = 'pidev-key'
 
-        SONAR_LOGIN = credentials('pidev-key')
-        TAG_NUMBER = 50
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_PROJECT_KEY = 'pidev-key'
     }
 
     stages {
-        stage('Clean worspace') {
+
+        stage('Clean workspace') {
             steps {
                 cleanWs()
             }
@@ -31,24 +29,24 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout([
-            $class: 'GitSCM',
-            branches: [[name: '*/feat/api-gatewway']],
-            userRemoteConfigs: [[
-                url: 'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
-                credentialsId: 'pidev-github-credentials'
-            ]]
-        ])
+                    $class: 'GitSCM',
+                    branches: [[name: '*/feat/api-gatewway']], // FIXED
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
+                        credentialsId: 'pidev-github-credentials'
+                    ]]
+                ])
 
                 script {
                     env.GIT_COMMIT_SHORT = sh(
-                script: 'git rev-parse --short HEAD',
-                returnStdout: true
-            ).trim()
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
 
                     env.GIT_BRANCH = sh(
-                script: 'git rev-parse --abbrev-ref HEAD',
-                returnStdout: true
-            ).trim()
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
 
                     echo "Branch: ${env.GIT_BRANCH}"
                     echo "Commit: ${env.GIT_COMMIT_SHORT}"
@@ -70,7 +68,7 @@ pipeline {
                                   -Dsonar.tests=. \
                                   -Dsonar.test.inclusions=**/*.spec.ts \
                                   -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                  -Dsonar.host.url=${SONARQUEBE_HOST} \
+                                  -Dsonar.host.url=${SONAR_HOST_URL} \
                                   -Dsonar.login=${SONAR_LOGIN}
                             """
                         }
@@ -78,15 +76,5 @@ pipeline {
                 }
             }
         }
-
-    // stage('Build Docker Image'){
-    //     steps{
-    //         sript {
-    //             sh '''
-    //                 docker build -t ${PLANNING_IMAGE}:${GIT_COMMIT_SHORT} .
-    //             '''
-    //         }
-    //     }
-    // }
     }
 }
