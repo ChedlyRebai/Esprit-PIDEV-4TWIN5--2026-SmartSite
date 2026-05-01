@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME  = 'gestion-site'
-        SERVICE_DIR   = 'apps/backend/gestion-site'
-        SONAR_PROJECT = 'smartsite-gestion-site'
+        SERVICE_NAME  = 'paiement'
+        SERVICE_DIR   = 'apps/backend/paiement'
+        SONAR_PROJECT = 'smartsite-paiement'
     }
 
     tools {
@@ -55,11 +55,11 @@ pipeline {
                             sh """
                                 sonar-scanner \
                                     -Dsonar.projectKey=${SONAR_PROJECT} \
-                                    -Dsonar.projectName='SmartSite - Gestion Site' \
-                                    -Dsonar.sources=.,dto,entities,src/chat \
-                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts \
+                                    -Dsonar.projectName='SmartSite - Paiement' \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
                                     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                    -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/**,src/main.ts
+                                    -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
                             """
                         }
                     }
@@ -77,7 +77,7 @@ pipeline {
 
         stage('Trigger CD') {
             steps {
-                build job: 'gestion-site-CD', wait: false
+                build job: 'paiement-CD', wait: false
                 echo "🚀 Pipeline CD déclenché automatiquement"
             }
         }
