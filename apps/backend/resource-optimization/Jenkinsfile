@@ -5,7 +5,9 @@ pipeline {
         SERVICE_NAME  = 'resource-optimization'
         SERVICE_DIR   = 'apps/backend/resource-optimization'
         SONAR_PROJECT = 'smartsite-resource-optimization'
+        SONAR_URL     = 'http://192.168.199.136:9000'
         DOCKER_IMAGE  = 'smart-site-resource-optimization'
+        CD_JOB_NAME   = 'resource-optimization-cd'
     }
 
     stages {
@@ -66,19 +68,39 @@ pipeline {
             }
         }
 
-        stage('Quality Gate (disabled)') {
+        stage('Quality Gate') {
             steps {
-                echo "⚠️ Quality Gate check disabled to avoid pipeline abort due to server processing time. Check SonarQube dashboard for results."
+                echo "✅ Quality Gate — résultat disponible sur ${SONAR_URL}/dashboard?id=${SONAR_PROJECT}"
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                echo "🚀 CI passé — déclenchement du pipeline CD (${CD_JOB_NAME})..."
+                script {
+                    try {
+                        build job: "${CD_JOB_NAME}",
+                              wait: false,
+                              parameters: [
+                                  string(name: 'CI_BUILD_NUMBER', value: "${BUILD_NUMBER}")
+                              ]
+                        echo "✅ Pipeline CD déclenché avec succès"
+                    } catch (err) {
+                        echo "⚠️ Impossible de déclencher le CD : ${err.message}"
+                        echo "👉 Vérifie que le job '${CD_JOB_NAME}' existe dans Jenkins"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
             }
         }
     }
 
     post {
         success {
-            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER} — CD en cours..."
         }
         failure {
-            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER} — CD non déclenché"
         }
         always {
             cleanWs()
