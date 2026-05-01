@@ -126,9 +126,9 @@ describe('PaiementService', () => {
         { amount: 100, status: 'completed' },
         { amount: 200, status: 'completed' },
       ];
-      mockPaymentModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayments),
-      });
+      
+      // Mock the find method to return a promise that resolves to the array
+      mockPaymentModel.find = jest.fn().mockResolvedValue(mockPayments);
 
       const result = await service.getPaymentStatus(validObjectId, 500);
       expect(result).toEqual({
