@@ -1,20 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { FactureService } from './facture.service';
 import { Facture } from '../entities/facture.entity';
+import { Payment } from '../entities/payment.entity';
 
 describe('FactureService', () => {
   let service: FactureService;
   let mockFactureModel: any;
+  let mockPaymentModel: any;
+
+  const validObjectId = new Types.ObjectId().toString();
 
   beforeEach(async () => {
     mockFactureModel = {
-      find: jest.fn(),
-      findById: jest.fn(),
-      findOne: jest.fn(),
-      create: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
-      findByIdAndDelete: jest.fn(),
+      find: jest.fn().mockReturnThis(),
+      findById: jest.fn().mockReturnThis(),
+      findOne: jest.fn().mockReturnThis(),
+      countDocuments: jest.fn(),
+      sort: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      exec: jest.fn(),
+      save: jest.fn(),
+    };
+
+    mockPaymentModel = {
+      findById: jest.fn().mockReturnThis(),
       exec: jest.fn(),
     };
 
@@ -25,10 +38,18 @@ describe('FactureService', () => {
           provide: getModelToken(Facture.name),
           useValue: mockFactureModel,
         },
+        {
+          provide: getModelToken(Payment.name),
+          useValue: mockPaymentModel,
+        },
       ],
     }).compile();
 
     service = module.get<FactureService>(FactureService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -36,74 +57,107 @@ describe('FactureService', () => {
   });
 
   describe('findAll', () => {
-    it('should return an array of factures', async () => {
+    it('should return paginated factures', async () => {
       const mockFactures = [
-        { _id: '1', numero: 'FAC-001', montant: 1000 },
-        { _id: '2', numero: 'FAC-002', montant: 2000 },
+        { _id: validObjectId, numeroFacture: 'FAC-001', amount: 1000 },
+        { _id: validObjectId, numeroFacture: 'FAC-002', amount: 2000 },
       ];
 
-      mockFactureModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockFactures),
-      });
+      mockFactureModel.exec.mockResolvedValue(mockFactures);
+      mockFactureModel.countDocuments.mockResolvedValue(2);
 
-      const result = await service.findAll();
-      expect(result).toEqual(mockFactures);
+      const result = await service.findAll({ page: 1, limit: 10 });
+      
+      expect(result.factures).toEqual(mockFactures);
+      expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+    });
+
+    it('should filter by siteNom', async () => {
+      mockFactureModel.exec.mockResolvedValue([]);
+      mockFactureModel.countDocuments.mockResolvedValue(0);
+
+      await service.findAll({ siteNom: 'Test Site', page: 1, limit: 10 });
+      
       expect(mockFactureModel.find).toHaveBeenCalled();
     });
   });
 
   describe('findOne', () => {
-    it('should return a single facture', async () => {
-      const mockFacture = { _id: '1', numero: 'FAC-001', montant: 1000 };
+    it('should throw BadRequestException for invalid ID', async () => {
+      await expect(service.findOne('invalid-id')).rejects.toThrow(BadRequestException);
+    });
 
-      mockFactureModel.findById.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockFacture),
-      });
+    it('should throw NotFoundException if facture not found', async () => {
+      mockFactureModel.exec.mockResolvedValue(null);
 
-      const result = await service.findOne('1');
+      await expect(service.findOne(validObjectId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return a facture if found', async () => {
+      const mockFacture = { _id: validObjectId, numeroFacture: 'FAC-001', amount: 1000 };
+      mockFactureModel.exec.mockResolvedValue(mockFacture);
+
+      const result = await service.findOne(validObjectId);
       expect(result).toEqual(mockFacture);
-      expect(mockFactureModel.findById).toHaveBeenCalledWith('1');
     });
   });
 
-  describe('create', () => {
-    it('should create a new facture', async () => {
-      const createDto = { numero: 'FAC-001', montant: 1000, projectId: 'proj1' };
-      const mockCreatedFacture = { _id: '1', ...createDto };
+  describe('createFromPayment', () => {
+    it('should throw BadRequestException for invalid payment ID', async () => {
+      await expect(service.createFromPayment('invalid-id', 'Site Name')).rejects.toThrow(BadRequestException);
+    });
 
-      mockFactureModel.create.mockResolvedValue(mockCreatedFacture);
+    it('should throw NotFoundException if payment not found', async () => {
+      mockPaymentModel.exec.mockResolvedValue(null);
 
-      const result = await service.create(createDto as any);
-      expect(result).toEqual(mockCreatedFacture);
-      expect(mockFactureModel.create).toHaveBeenCalledWith(createDto);
+      await expect(service.createFromPayment(validObjectId, 'Site Name')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if facture already exists', async () => {
+      const mockPayment = { _id: validObjectId, siteId: validObjectId, amount: 1000 };
+      mockPaymentModel.exec.mockResolvedValue(mockPayment);
+      mockFactureModel.findOne.mockResolvedValue({ _id: validObjectId });
+
+      await expect(service.createFromPayment(validObjectId, 'Site Name')).rejects.toThrow(BadRequestException);
     });
   });
 
-  describe('update', () => {
-    it('should update a facture', async () => {
-      const updateDto = { montant: 1500 };
-      const mockUpdatedFacture = { _id: '1', numero: 'FAC-001', montant: 1500 };
+  describe('generatePdfContent', () => {
+    it('should generate PDF HTML content', async () => {
+      const mockFacture = {
+        numeroFacture: 'FAC-001',
+        siteNom: 'Test Site',
+        amount: 1000,
+        paymentMethod: 'card',
+        paymentDate: new Date(),
+        description: 'Test payment',
+      };
 
-      mockFactureModel.findByIdAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUpdatedFacture),
-      });
-
-      const result = await service.update('1', updateDto as any);
-      expect(result).toEqual(mockUpdatedFacture);
+      const result = await service.generatePdfContent(mockFacture as any);
+      
+      expect(result).toContain('FAC-001');
+      expect(result).toContain('Test Site');
+      expect(result).toContain('Payment Receipt');
     });
-  });
 
-  describe('remove', () => {
-    it('should delete a facture', async () => {
-      const mockDeletedFacture = { _id: '1', numero: 'FAC-001', montant: 1000 };
+    it('should include remaining budget info when provided', async () => {
+      const mockFacture = {
+        numeroFacture: 'FAC-001',
+        siteNom: 'Test Site',
+        amount: 1000,
+        paymentMethod: 'card',
+        paymentDate: new Date(),
+      };
 
-      mockFactureModel.findByIdAndDelete.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockDeletedFacture),
-      });
+      const siteInfo = { budget: 5000, totalPaid: 3000, remaining: 2000 };
 
-      const result = await service.remove('1');
-      expect(result).toEqual(mockDeletedFacture);
-      expect(mockFactureModel.findByIdAndDelete).toHaveBeenCalledWith('1');
+      const result = await service.generatePdfContent(mockFacture as any, siteInfo);
+      
+      expect(result).toContain('Total Budget');
+      expect(result).toContain('Amount Paid');
+      expect(result).toContain('Remaining');
     });
   });
 });

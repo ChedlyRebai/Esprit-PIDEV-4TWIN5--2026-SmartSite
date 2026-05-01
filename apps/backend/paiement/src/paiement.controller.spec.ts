@@ -9,9 +9,12 @@ describe('PaiementController', () => {
   const mockPaiementService = {
     findAll: jest.fn(),
     findOne: jest.fn(),
+    findBySite: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    getPaymentStatus: jest.fn(),
+    getTotalPaymentsBySite: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -40,8 +43,8 @@ describe('PaiementController', () => {
   describe('findAll', () => {
     it('should return an array of payments', async () => {
       const mockPayments = [
-        { _id: '1', montant: 100, status: 'completed' },
-        { _id: '2', montant: 200, status: 'pending' },
+        { _id: '1', amount: 100, status: 'completed' },
+        { _id: '2', amount: 200, status: 'pending' },
       ];
 
       mockPaiementService.findAll.mockResolvedValue(mockPayments);
@@ -54,7 +57,7 @@ describe('PaiementController', () => {
 
   describe('findOne', () => {
     it('should return a single payment', async () => {
-      const mockPayment = { _id: '1', montant: 100, status: 'completed' };
+      const mockPayment = { _id: '1', amount: 100, status: 'completed' };
 
       mockPaiementService.findOne.mockResolvedValue(mockPayment);
 
@@ -64,40 +67,46 @@ describe('PaiementController', () => {
     });
   });
 
-  describe('create', () => {
-    it('should create a new payment', async () => {
-      const createDto = { montant: 100, projectId: 'proj1', status: 'pending' };
-      const mockCreatedPayment = { _id: '1', ...createDto };
+  describe('findBySite', () => {
+    it('should return payments for a site', async () => {
+      const mockPayments = [{ _id: '1', siteId: 'site1', amount: 100 }];
 
-      mockPaiementService.create.mockResolvedValue(mockCreatedPayment);
+      mockPaiementService.findBySite.mockResolvedValue(mockPayments);
 
-      const result = await controller.create(createDto as any);
-      expect(result).toEqual(mockCreatedPayment);
-      expect(service.create).toHaveBeenCalledWith(createDto);
+      const result = await controller.findBySite('site1');
+      expect(result).toEqual(mockPayments);
+      expect(service.findBySite).toHaveBeenCalledWith('site1');
     });
   });
 
-  describe('update', () => {
-    it('should update a payment', async () => {
-      const updateDto = { status: 'completed' };
-      const mockUpdatedPayment = { _id: '1', montant: 100, status: 'completed' };
+  describe('getTotalPaymentsBySite', () => {
+    it('should return total payments for a site', async () => {
+      mockPaiementService.getTotalPaymentsBySite.mockResolvedValue(500);
 
-      mockPaiementService.update.mockResolvedValue(mockUpdatedPayment);
+      const result = await controller.getTotalPaymentsBySite('site1');
+      expect(result).toBe(500);
+      expect(service.getTotalPaymentsBySite).toHaveBeenCalledWith('site1');
+    });
+  });
 
-      const result = await controller.update('1', updateDto as any);
-      expect(result).toEqual(mockUpdatedPayment);
-      expect(service.update).toHaveBeenCalledWith('1', updateDto);
+  describe('checkSitePaid', () => {
+    it('should return payment status for a site', async () => {
+      const mockStatus = { hasPaid: true, totalPaid: 300, remaining: 200 };
+
+      mockPaiementService.getPaymentStatus.mockResolvedValue(mockStatus);
+
+      const result = await controller.checkSitePaid('site1', '500');
+      expect(result).toEqual(mockStatus);
+      expect(service.getPaymentStatus).toHaveBeenCalledWith('site1', 500);
     });
   });
 
   describe('remove', () => {
     it('should delete a payment', async () => {
-      const mockDeletedPayment = { _id: '1', montant: 100, status: 'completed' };
-
-      mockPaiementService.remove.mockResolvedValue(mockDeletedPayment);
+      mockPaiementService.remove.mockResolvedValue(undefined);
 
       const result = await controller.remove('1');
-      expect(result).toEqual(mockDeletedPayment);
+      expect(result).toBeUndefined();
       expect(service.remove).toHaveBeenCalledWith('1');
     });
   });
