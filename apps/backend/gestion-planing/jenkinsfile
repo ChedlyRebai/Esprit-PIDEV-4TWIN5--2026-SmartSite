@@ -8,8 +8,6 @@ pipeline {
         skipDefaultCheckout(true)
     }
 
-   
-
     environment {
         REGISTRY = 'docker.io'
         REGISTRY_CREDENTIALS = 'docker-hub'
@@ -56,16 +54,15 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-           
             steps {
                 withSonarQubeEnv('sq1') {
                     withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
 
-                            sh """
-                                cd apps/backend/gestion-planing
-
+                            dir('apps/backend/gestion-planing') {
+                                withEnv(["SONAR_LOGIN=${SONAR_LOGIN}"]) {
+                                    sh """
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.sources=src \
@@ -73,8 +70,10 @@ pipeline {
                                 -Dsonar.test.inclusions=**/*.spec.ts \
                                 -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                                 -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONAR_LOGIN}
+                                -Dsonar.login=\$SONAR_LOGIN
                             """
+                                }
+                            }
                         }
                     }
                 }
