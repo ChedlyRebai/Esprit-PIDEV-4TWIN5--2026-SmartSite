@@ -12,7 +12,7 @@ pipeline {
         REGISTRY = 'docker.io'
         REGISTRY_CREDENTIALS = 'docker-hub'
         DOCKER_USERNAME = 'chedlyrebai'
-        PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
+        PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/user-authentication-api"
 
         SONAR_HOST_URL = 'http://localhost:9000'
         SONAR_PROJECT_KEY = 'pidev-users-auth'
@@ -55,7 +55,7 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('apps/backend/gestion-planing') {
+                dir('apps/backend/user-authentication') {
                     sh 'npm install'
                     sh 'npm run test:cov'
                     echo "Tests and coverage generated"
