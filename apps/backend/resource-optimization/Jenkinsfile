@@ -6,6 +6,7 @@ pipeline {
         SERVICE_DIR   = 'apps/backend/resource-optimization'
         SONAR_PROJECT = 'smartsite-resource-optimization'
         DOCKER_IMAGE  = 'smart-site-resource-optimization'
+        CD_JOB_NAME   = 'resource-optimization-cd'   // ← Mets ici le nom exact de ton job CD Jenkins
     }
 
     stages {
@@ -76,13 +77,21 @@ pipeline {
 
         stage('Trigger CD') {
             steps {
-                echo "🚀 CI passé — déclenchement du pipeline CD..."
-                build job: 'resource-optimization-cd',
-                      wait: false,
-                      parameters: [
-                          string(name: 'CI_BUILD_NUMBER', value: "${BUILD_NUMBER}")
-                      ]
-                echo "✅ Pipeline CD déclenché"
+                echo "🚀 CI passé — déclenchement du pipeline CD (${CD_JOB_NAME})..."
+                script {
+                    try {
+                        build job: "${CD_JOB_NAME}",
+                              wait: false,
+                              parameters: [
+                                  string(name: 'CI_BUILD_NUMBER', value: "${BUILD_NUMBER}")
+                              ]
+                        echo "✅ Pipeline CD déclenché avec succès"
+                    } catch (err) {
+                        echo "⚠️ Impossible de déclencher le CD : ${err.message}"
+                        echo "👉 Vérifie que le job '${CD_JOB_NAME}' existe dans Jenkins"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
             }
         }
     }
