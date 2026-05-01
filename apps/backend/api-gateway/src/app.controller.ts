@@ -21,12 +21,10 @@ export class AppController {
     resources:    (process.env.RESOURCE_OPTIMIZATION_URL ?? 'http://localhost:3007') + '/api',
     // incident-management has no global prefix
     incidents:    process.env.INCIDENT_URL                ?? 'http://localhost:3003',
-<<<<<<< HEAD
     // materials-service uses /api global prefix
     materials:    (process.env.MATERIALS_SERVICE_URL     ?? 'http://localhost:3002') + '/api',
-=======
-    users:       process.env.USER_AUTHENTICATION_URL       ?? 'http://localhost:3000',
->>>>>>> fafd6580f7727256d7c72698d0bca5abaf7e06bf
+    // user-authentication service
+    users:        process.env.USER_AUTHENTICATION_URL     ?? 'http://localhost:3000',
   };
 
   // ── Generic proxy ───────────────────────────────────────────────────────────
@@ -157,7 +155,6 @@ export class AppController {
     return this.proxy(req, res, 'incidents', 'incidents');
   }
 
-<<<<<<< HEAD
   // ── Materials Service ───────────────────────────────────────────────────────
   @All(['materials', 'materials/*path'])
   handleMaterials(@Req() req: Request, @Res() res: Response) {
@@ -168,10 +165,11 @@ export class AppController {
   @All(['material-flow', 'material-flow/*path'])
   handleMaterialFlow(@Req() req: Request, @Res() res: Response) {
     return this.proxy(req, res, 'materials', 'material-flow');
-=======
+  }
+
+  // ── User Authentication ─────────────────────────────────────────────────────
   @All(['users', 'users/*path'])
   handleUsers(@Req() req: Request, @Res() res: Response) {
     return this.proxy(req, res, 'users', 'users');
->>>>>>> fafd6580f7727256d7c72698d0bca5abaf7e06bf
   }
 }
