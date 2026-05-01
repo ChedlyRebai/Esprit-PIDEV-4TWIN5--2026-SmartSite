@@ -54,11 +54,16 @@ pipeline {
                 }
             }
         }
-
-        stage('SonarQube Analysis') {
-            when {
-                branch 'feat/api-gatewway'
+        stage('Build & Test') {
+            steps {
+                dir('apps/backend/gestion-planing') {
+                    sh 'npm run test:cov'
+                    echo "Build and tests completed"
+                }
             }
+        }
+        stage('SonarQube Analysis') {
+           
             steps {
                 withSonarQubeEnv('sq1') {
                     withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
@@ -70,6 +75,7 @@ pipeline {
 
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.branch.name=feat/api-gatewway \
                                 -Dsonar.sources=src \
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
