@@ -55,17 +55,16 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv(installationName: 'sq1') {
-                    withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
-                        sh '''
-                            sonar-scanner \
-                                -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                                -Dsonar.sources=. \
-                                -Dsonar.host.url=$SONAR_HOST_URL \
-                                -Dsonar.login=$SONAR_LOGIN
-                        '''
-                    }
-                }
+                sh """
+                sonar-scanner \
+                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                  -Dsonar.sources=src \
+                  -Dsonar.tests=src \
+                  -Dsonar.test.inclusions=**/*.spec.ts \
+                  -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                  -Dsonar.host.url=${SONAR_HOST_URL} \
+                  -Dsonar.login=${SONAR_TOKEN}
+                """
             }
         }
 
