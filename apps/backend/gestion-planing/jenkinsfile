@@ -19,7 +19,6 @@ pipeline {
     }
 
     stages {
-
         stage('Clean workspace') {
             steps {
                 cleanWs()
@@ -51,7 +50,7 @@ pipeline {
                     echo "Branch: ${env.GIT_BRANCH}"
                     echo "Commit: ${env.GIT_COMMIT_SHORT}"
                 }
-            }   
+            }
         }
 
         stage('SonarQube Analysis') {
@@ -63,13 +62,14 @@ pipeline {
 
                             sh """
                                 ${scannerHome}/bin/sonar-scanner \
-                                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                  -Dsonar.sources=. \
-                                  -Dsonar.tests=. \
-                                  -Dsonar.test.inclusions=**/*.spec.ts \
-                                  -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                  -Dsonar.host.url=${SONAR_HOST_URL} \
-                                  -Dsonar.login=${SONAR_LOGIN}
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.sources=apps/backend/gestion-planing/src \
+                                -Dsonar.tests=apps/backend/gestion-planing/src \
+                                -Dsonar.projectBaseDir=apps/backend/gestion-planing \
+                                -Dsonar.test.inclusions=**/*.spec.ts \
+                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_LOGIN}
                             """
                         }
                     }
