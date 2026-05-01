@@ -15,7 +15,7 @@ pipeline {
         PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
 
         SONAR_HOST_URL = 'http://localhost:9000'
-        SONAR_PROJECT_KEY = 'pidev-key'
+        SONAR_PROJECT_KEY = 'pidev-key-notification'
     }
 
     stages {
@@ -66,7 +66,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sq1') {
-                    withCredentials([string(credentialsId: 'pidev-sonar', variable: 'SONAR_LOGIN')]) {
+                    withCredentials([string(credentialsId: 'pidev-key-notification', variable: 'SONAR_LOGIN')]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
                             sh """
