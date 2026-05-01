@@ -50,10 +50,10 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withCredentials([string(
-                    credentialsId: 'mongodb-uri',
-                    variable: 'MONGODB_URI'
-                )]) {
+                withCredentials([
+                    string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI'),
+                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
+                ]) {
                     sh """
                         docker stop ${SERVICE_NAME} || true
                         docker rm ${SERVICE_NAME} || true
@@ -64,6 +64,8 @@ pipeline {
                             -e PORT=${PORT} \
                             -e NODE_ENV=production \
                             -e MONGODB_URI="\${MONGODB_URI}" \
+                            -e GROQ_API_KEY="\${GROQ_API_KEY}" \
+                            -e GROQ_MODEL=llama-3.3-70b-versatile \
                             ${DOCKER_IMAGE}:latest
                     """
                     echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
