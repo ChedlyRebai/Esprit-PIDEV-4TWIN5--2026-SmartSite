@@ -81,7 +81,7 @@ describe('FactureController', () => {
 
       mockFactureService.findAll.mockResolvedValue(mockFactures);
 
-      const filter = { siteId: 'site123' };
+      const filter = { siteNom: 'Site A' };
       const result = await controller.findAll(filter);
 
       expect(factureService.findAll).toHaveBeenCalledWith(filter);
@@ -183,7 +183,7 @@ describe('FactureController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getPdf('facture456', undefined, mockResponse);
+      await controller.getPdf('facture456', '', mockResponse);
 
       expect(factureService.findOne).toHaveBeenCalledWith('facture456');
       expect(paiementService.getPaymentStatus).not.toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe('FactureController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      const filter = { siteId: 'site123' };
+      const filter = { siteNom: 'Site A' };
       await controller.exportCsv(filter, mockResponse);
 
       expect(factureService.exportFacturesCsv).toHaveBeenCalledWith(filter);
