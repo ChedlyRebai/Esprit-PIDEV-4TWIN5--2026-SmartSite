@@ -20,6 +20,7 @@ describe('LocalStrategy', () => {
     }).compile();
 
     
+
     strategy = module.get<LocalStrategy>(LocalStrategy);
   });
 
