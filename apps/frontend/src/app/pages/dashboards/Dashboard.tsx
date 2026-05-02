@@ -1,20 +1,37 @@
+import { lazy, Suspense, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { AssignedIncidentFlash } from '../../components/AssignedIncidentFlash';
-import DirectorDashboard from './DirectorDashboard';
-import ProjectManagerDashboard from './ProjectManagerDashboard';
-import SiteManagerDashboard from './SiteManagerDashboard';
-import WorksManagerDashboard from './WorksManagerDashboard';
-import AccountantDashboard from './AccountantDashboard';
-import ProcurementDashboard from './ProcurementDashboard';
-import QHSEDashboard from './QHSEDashboard';
-import ClientDashboard from './ClientDashboard';
-import SubcontractorDashboard from './SubcontractorDashboard';
-import UserDashboard from './UserDashboard';
-import { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Sparkles } from 'lucide-react';
-import ProfessionalPowerBiDashboard from '../../components/ProfessionalPowerBiDashboard';
-import PowerBiAdvancedDashboard from '../../components/PowerBiAdvancedDashboard';
+
+const DirectorDashboard = lazy(() => import('./DirectorDashboard'));
+const ProjectManagerDashboard = lazy(() => import('./ProjectManagerDashboard'));
+const SiteManagerDashboard = lazy(() => import('./SiteManagerDashboard'));
+const WorksManagerDashboard = lazy(() => import('./WorksManagerDashboard'));
+const AccountantDashboard = lazy(() => import('./AccountantDashboard'));
+const ProcurementDashboard = lazy(() => import('./ProcurementDashboard'));
+const QHSEDashboard = lazy(() => import('./QHSEDashboard'));
+const ClientDashboard = lazy(() => import('./ClientDashboard'));
+const SubcontractorDashboard = lazy(() => import('./SubcontractorDashboard'));
+const UserDashboard = lazy(() => import('./UserDashboard'));
+const ProfessionalPowerBiDashboard = lazy(() => import('../../components/ProfessionalPowerBiDashboard'));
+const PowerBiAdvancedDashboard = lazy(() => import('../../components/PowerBiAdvancedDashboard'));
+
+function DashboardLoadingState() {
+  return (
+    <div className="min-h-[60vh] px-4 py-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="h-6 w-40 animate-pulse rounded-full bg-muted" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-28 animate-pulse rounded-xl border border-border bg-muted/40" />
+          ))}
+        </div>
+        <div className="h-72 animate-pulse rounded-2xl border border-border bg-muted/40" />
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user);
@@ -118,7 +135,9 @@ export default function Dashboard() {
     <>
       {/* Flash Notification for Assigned Incidents - All Users */}
       {user?.cin && <AssignedIncidentFlash userCin={user.cin} />}
-      {renderDashboard()}
+      <Suspense fallback={<DashboardLoadingState />}>
+        {renderDashboard()}
+      </Suspense>
     </>
   );
 }
