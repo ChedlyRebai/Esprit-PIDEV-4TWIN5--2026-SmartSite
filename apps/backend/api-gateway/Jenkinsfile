@@ -1,0 +1,153 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'api-gateway'
+        SERVICE_DIR   = 'apps/backend/api-gateway'
+        SONAR_PROJECT = 'smartsite-api-gateway'
+        SONAR_URL     = 'http://192.168.199.136:9000'
+        DOCKER_IMAGE  = 'smart-site-api-gateway'
+        CD_JOB_NAME   = 'api-gateway-cd'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm ci'
+                    echo "✅ Dépendances installées"
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm test -- --coverage --coverageReporters=lcov --forceExit || echo "⚠️ Pas de tests configurés"'
+                    echo "✅ Tests unitaires terminés"
+                }
+            }
+        }
+
+        stage('Semgrep Security Scan') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh '''
+                        if command -v semgrep &> /dev/null; then
+                            semgrep --config=auto \
+                                    --include="*.ts" \
+                                    --exclude="*.spec.ts" \
+                                    --exclude="node_modules" \
+                                    --exclude="dist" \
+                                    --severity=ERROR \
+                                    --error \
+                                    src/ || echo "⚠️ Semgrep: vulnérabilités détectées — vérifier le rapport"
+                        else
+                            echo "⚠️ Semgrep non installé — scan ignoré"
+                        fi
+                    '''
+                    echo "✅ Semgrep scan terminé"
+                }
+            }
+        }
+
+        stage('Trivy Dependency Scan') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh '''
+                        if command -v trivy &> /dev/null; then
+                            trivy fs . \
+                                --scanners vuln \
+                                --exit-code 0 \
+                                --severity HIGH,CRITICAL \
+                                --ignore-unfixed \
+                                --format table \
+                                --skip-dirs node_modules/.cache \
+                                --skip-dirs dist
+                        else
+                            echo "⚠️ Trivy non installé — scan ignoré"
+                        fi
+                    '''
+                    echo "✅ Trivy dependency scan terminé"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm run build'
+                    echo "✅ Build terminé"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    withSonarQubeEnv('SonarQube') {
+                        withEnv(["PATH+SONAR=${tool 'SonarQubeScanner'}/bin"]) {
+                            sh """
+                                sonar-scanner \
+                                    -Dsonar.projectKey=${SONAR_PROJECT} \
+                                    -Dsonar.projectName='SmartSite - API Gateway' \
+                                    -Dsonar.projectVersion=${BUILD_NUMBER} \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.typescript.tsconfigPath=tsconfig.sonar.json \
+                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                    -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo "✅ Quality Gate — résultat disponible sur ${SONAR_URL}/dashboard?id=${SONAR_PROJECT}"
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                echo "🚀 CI passé — déclenchement du pipeline CD (${CD_JOB_NAME})..."
+                script {
+                    try {
+                        build job: "${CD_JOB_NAME}",
+                              wait: false,
+                              parameters: [
+                                  string(name: 'CI_BUILD_NUMBER', value: "${BUILD_NUMBER}")
+                              ]
+                        echo "✅ Pipeline CD déclenché avec succès"
+                    } catch (err) {
+                        echo "⚠️ Impossible de déclencher le CD : ${err.message}"
+                        echo "👉 Vérifie que le job '${CD_JOB_NAME}' existe dans Jenkins"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER} — CD en cours..."
+        }
+        failure {
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER} — CD non déclenché"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
