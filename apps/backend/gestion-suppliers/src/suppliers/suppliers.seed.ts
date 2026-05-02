@@ -12,7 +12,7 @@ export class SuppliersSeedService {
   ) {}
 
   async seedSuppliers(): Promise<void> {
-    const count = await this.supplierModel.countDocuments();
+    const count = await this.supplierModel.countDocuments().exec();
     if (count > 0) {
       this.logger.log('Fournisseurs déjà présents dans la base de données');
       return;

@@ -40,7 +40,7 @@ export class ChatService implements OnModuleInit {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         { role: 'system', content: this.systemPrompt },
         ...conversationHistory.map((m) => ({
-          role: m.role as 'user' | 'assistant',
+          role: m.role,
           content: m.content,
         })),
         { role: 'user', content: message },
