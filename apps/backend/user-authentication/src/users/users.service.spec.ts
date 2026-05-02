@@ -150,7 +150,8 @@ describe('UsersService', () => {
         { _id: mockUserId, firstName: 'John', role: { name: 'admin' } },
         { _id: new Types.ObjectId(), firstName: 'Jane', role: { name: 'user' } },
       ];
-      mockUserModel.find.mockReturnValue({
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnValue({
           exec: jest.fn().mockResolvedValue(mockUsers),
         }),
@@ -163,7 +164,8 @@ describe('UsersService', () => {
     });
 
     it('should handle empty users list', async () => {
-      mockUserModel.find.mockReturnValue({
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnValue({
           exec: jest.fn().mockResolvedValue([]),
         }),
@@ -175,13 +177,14 @@ describe('UsersService', () => {
     });
 
     it('should fallback to find without populate on error', async () => {
-      mockUserModel.find.mockReturnValue({
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnValue({
           exec: jest.fn().mockRejectedValueOnce(new Error('Populate error')),
         }),
       });
 
-      mockUserModel.find.mockReturnValue({
+      mockUserModel.find.mockReturnValueOnce({
         exec: jest.fn().mockResolvedValueOnce([{ _id: mockUserId }]),
       });
 
@@ -196,7 +199,8 @@ describe('UsersService', () => {
       const mockPendingUsers = [
         { _id: mockUserId, firstName: 'John', status: 'pending', role: { name: 'user' } },
       ];
-      mockUserModel.find.mockReturnValue({
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnValue({
           exec: jest.fn().mockResolvedValue(mockPendingUsers),
         }),
@@ -309,8 +313,9 @@ describe('UsersService', () => {
       const mockClients = [
         { _id: mockUserId, firstName: 'Client User', role: { name: 'client' } },
       ];
-      mockUserModel.find.mockReturnValue({
-        populate: jest.fn().mockReturnValue(mockClients),
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(mockClients) }),
       });
 
       const result = await service.getAllclients();
@@ -482,30 +487,7 @@ describe('UsersService', () => {
       ).rejects.toThrow(NotFoundException);
     });
   });
-        exec: jest.fn().mockResolvedValue(null),
-      });
 
-      await expect(
-        mockUserModel.find.mockReturnValueOnce({
-          populate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(mockClients) }),
-        });
-
-    it('should throw NotFoundException when manager not found', async () => {
-      const mockUser = { _id: mockUserId, firstName: 'John' };
-
-      mockUserModel.findById.mockReturnValueOnce({
-        exec: jest.fn().mockResolvedValue(mockUser),
-      });
-
-      mockUserModel.findById.mockReturnValueOnce({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      await expect(
-        service.assignManager(mockUserId.toString(), mockManagerId.toString()),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
 
   describe('modifyManager', () => {
     it('should modify user manager', async () => {
@@ -670,7 +652,8 @@ describe('UsersService', () => {
         },
       ];
 
-      mockUserModel.find.mockReturnValue({
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnValue({
           populate: jest.fn().mockReturnValue({
             exec: jest.fn().mockResolvedValue(mockUsers),
@@ -806,4 +789,6 @@ describe('UsersService', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
 });
+
