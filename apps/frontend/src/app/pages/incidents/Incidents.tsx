@@ -11,7 +11,7 @@ import {
   Sparkles,
   Loader2,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -47,7 +47,34 @@ import { trackAuditEvent } from "../../action/audit.action";
 import { incidentMatchesSearch } from "../../utils/incidentSearchFilter";
 import { incidentEvents } from "../../components/IncidentBadge";
 import { NotificationPanel } from "../../components/NotificationPanel";
-import { IncidentBiDashboard } from "../../components/IncidentBiDashboard";
+
+const IncidentBiDashboard = lazy(() => import("../../components/IncidentBiDashboard").then((module) => ({ default: module.IncidentBiDashboard })));
+
+function IncidentDashboardSkeleton() {
+  return (
+    <div className="space-y-5 min-h-[760px]">
+      <div className="h-28 animate-pulse rounded-2xl bg-slate-200/70" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="h-24 animate-pulse rounded-2xl bg-slate-200/70" />
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="h-80 animate-pulse rounded-2xl bg-slate-200/70" />
+        <div className="h-80 animate-pulse rounded-2xl bg-slate-200/70" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="h-80 animate-pulse rounded-2xl bg-slate-200/70" />
+        <div className="h-80 animate-pulse rounded-2xl bg-slate-200/70" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-200/70" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // API pour rechercher des utilisateurs
 const api = axios.create({
@@ -1283,7 +1310,9 @@ Pour toute question, veuillez contacter l'administrateur système.
         </div>
       </div>
 
-      <IncidentBiDashboard userCin={user?.cin} />
+      <Suspense fallback={<IncidentDashboardSkeleton />}>
+        <IncidentBiDashboard userCin={user?.cin} />
+      </Suspense>
 
       <Card className="border-none shadow-lg">
         <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
