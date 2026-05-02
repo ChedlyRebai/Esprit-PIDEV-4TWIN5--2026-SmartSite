@@ -23,6 +23,7 @@ describe('AuditLogsService', () => {
       ],
     }).compile();
 
+    
     service = module.get<AuditLogsService>(AuditLogsService);
   });
 
@@ -30,23 +31,19 @@ describe('AuditLogsService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should have create method', () => {
-    expect(typeof service.create).toBe('function');
+  it('should have createLog method', () => {
+    expect(typeof service.createLog).toBe('function');
   });
 
   it('should have findAll method', () => {
     expect(typeof service.findAll).toBe('function');
   });
 
-  it('should have findById method', () => {
-    expect(typeof service.findById).toBe('function');
+  it('should have findLatestLogin method', () => {
+    expect(typeof service.findLatestLogin).toBe('function');
   });
 
-  it('should have delete method', () => {
-    expect(typeof service.delete).toBe('function');
-  });
-
-  it('should have deleteOldLogs method', () => {
-    expect(typeof service.deleteOldLogs).toBe('function');
+  it('should have getRetentionDays method', () => {
+    expect(typeof service.getRetentionDays).toBe('function');
   });
 });

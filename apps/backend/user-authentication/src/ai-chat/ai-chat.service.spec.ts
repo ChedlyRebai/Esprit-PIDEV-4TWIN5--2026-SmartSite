@@ -1,12 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { AiChatService } from './ai-chat.service';
 
 describe('AiChatService', () => {
   let service: AiChatService;
+  let mockConfigService: any;
 
   beforeEach(async () => {
+    mockConfigService = {
+      get: jest.fn().mockReturnValue(''),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AiChatService],
+      providers: [
+        AiChatService,
+        { provide: ConfigService, useValue: mockConfigService },
+      ],
     }).compile();
 
     service = module.get<AiChatService>(AiChatService);
@@ -16,12 +25,8 @@ describe('AiChatService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should be an object', () => {
-    expect(typeof service).toBe('object');
-  });
-
-  it('should have service methods', () => {
-    // Basic check that service has properties
-    expect(Object.keys(service).length >= 0).toBe(true);
+  
+  it('should have sendMessage method', () => {
+    expect(typeof service.sendMessage).toBe('function');
   });
 });
