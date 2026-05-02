@@ -58,6 +58,7 @@ pipeline {
                                         sonar-scanner \
                                             -Dsonar.projectKey=${SONAR_PROJECT} \
                                             -Dsonar.projectName='SmartSite - Paiement' \
+                                            -Dsonar.branch.name=Projects-management \
                                             -Dsonar.sources=src \
                                             -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
                                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
