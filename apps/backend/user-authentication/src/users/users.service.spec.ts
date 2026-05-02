@@ -828,6 +828,7 @@ describe('UsersService', () => {
 
       expect(result).toEqual(mockUsers);
     });
+    
 
     it('should return empty array when role not found', async () => {
       mockRolesService.findByName.mockResolvedValue(null);
