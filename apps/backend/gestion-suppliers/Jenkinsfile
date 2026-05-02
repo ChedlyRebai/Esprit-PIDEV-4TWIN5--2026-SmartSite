@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS'
+    }
+
     environment {
         SERVICE_NAME    = 'gestion-suppliers'
         DOCKER_IMAGE    = "smartsite/${SERVICE_NAME}"
