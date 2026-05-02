@@ -12,6 +12,7 @@ describe('AiChatController', () => {
       getConversationHistory: jest.fn().mockResolvedValue([]),
       clearConversation: jest.fn().mockResolvedValue({ success: true }),
     };
+    
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AiChatController],
@@ -31,7 +32,7 @@ describe('AiChatController', () => {
     expect(controller).toBeDefined();
   });
 
-  
+
   describe('Chat Endpoints', () => {
     it('should process chat messages', async () => {
       const messageDto = { message: 'Hello', userId: '123' };

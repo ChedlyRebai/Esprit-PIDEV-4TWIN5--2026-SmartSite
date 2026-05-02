@@ -819,6 +819,7 @@ describe('UsersService', () => {
 
       mockRolesService.findByName.mockResolvedValue({ _id: mockRoleId });
 
+      
       mockUserModel.find.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(mockUsers),
@@ -828,7 +829,7 @@ describe('UsersService', () => {
 
       expect(result).toEqual(mockUsers);
     });
-    
+
 
     it('should return empty array when role not found', async () => {
       mockRolesService.findByName.mockResolvedValue(null);

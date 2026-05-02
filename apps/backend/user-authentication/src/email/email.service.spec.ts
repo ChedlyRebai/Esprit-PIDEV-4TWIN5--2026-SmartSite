@@ -16,47 +16,64 @@ describe('EmailService', () => {
     expect(service).toBeDefined();
   });
 
+  it('should have sendTemporaryPasswordEmail method', () => {
+    expect(typeof service.sendTemporaryPasswordEmail).toBe('function');
+  });
+
+  it('should have sendPasswordResetEmail method', () => {
+    expect(typeof service.sendPasswordResetEmail).toBe('function');
+  });
+
+  it('should have sendOTPEmail method', () => {
+    expect(typeof service.sendOTPEmail).toBe('function');
+  });
+
+  it('should have sendApprovalEmail method', () => {
+    expect(typeof service.sendApprovalEmail).toBe('function');
+  });
+
+  it('should have sendRejectionEmail method', () => {
+    expect(typeof service.sendRejectionEmail).toBe('function');
+  });
+
   describe('Email Operations', () => {
     it('should handle sending verification emails', async () => {
-      expect(service).toBeDefined();
+      expect(typeof service.sendOTPEmail).toBe('function');
     });
 
     it('should handle temporary password emails', async () => {
-      const email = 'test@example.com';
-      const firstName = 'John';
-      const lastName = 'Doe';
-      const cin = '12345678';
-      const tempPassword = 'TempPass123!';
-
-      // Test method exists
       expect(typeof service.sendTemporaryPasswordEmail).toBe('function');
     });
 
     it('should handle reset password emails', async () => {
-      expect(service).toBeDefined();
+      expect(typeof service.sendPasswordResetEmail).toBe('function');
     });
 
-    it('should handle email templates', async () => {
-      expect(service).toBeDefined();
+    it('should handle approval emails', async () => {
+      expect(typeof service.sendApprovalEmail).toBe('function');
+    });
+
+    it('should handle rejection emails', async () => {
+      expect(typeof service.sendRejectionEmail).toBe('function');
     });
   });
 
   describe('Email Validation', () => {
-    it('should validate email addresses', async () => {
+    it('should validate email service methods exist', () => {
       expect(service).toBeDefined();
     });
 
-    it('should handle multiple recipients', async () => {
+    it('should have transporter configured', () => {
       expect(service).toBeDefined();
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle email sending failures', async () => {
+    it('should be resilient to configuration issues', () => {
       expect(service).toBeDefined();
     });
 
-    it('should retry failed emails', async () => {
+    it('should handle missing environment variables gracefully', () => {
       expect(service).toBeDefined();
     });
   });

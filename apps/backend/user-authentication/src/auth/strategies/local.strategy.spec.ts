@@ -11,6 +11,7 @@ describe('LocalStrategy', () => {
       validateUser: jest.fn().mockResolvedValue({ _id: '123', cin: '12345678' }),
     };
 
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LocalStrategy,
@@ -21,6 +22,7 @@ describe('LocalStrategy', () => {
     strategy = module.get<LocalStrategy>(LocalStrategy);
   });
   
+
 
   it('should be defined', () => {
     expect(strategy).toBeDefined();
