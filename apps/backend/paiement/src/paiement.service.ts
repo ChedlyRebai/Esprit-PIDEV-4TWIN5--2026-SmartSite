@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { randomBytes } from 'crypto';
 import { Payment } from './entities/payment.entity';
 import { CreatePaymentDto, UpdatePaymentDto } from './dto';
 
@@ -16,7 +17,7 @@ export class PaiementService {
 
   private generateReference(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const random = randomBytes(3).toString('hex').toUpperCase(); // 6 chars, cryptographically secure
     return `PAY-${timestamp}-${random}`;
   }
 
