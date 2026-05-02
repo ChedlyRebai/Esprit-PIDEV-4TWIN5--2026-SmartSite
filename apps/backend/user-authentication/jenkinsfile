@@ -67,51 +67,23 @@ pipeline {
             steps {
                 withSonarQubeEnv('sq1') {
                     withCredentials([string(credentialsId: 'pidev-users-auth', variable: 'SONAR_LOGIN')]) {
-                        dir('apps/backend/user-authentication') {
-                            sh """
-                        ${tool 'SonarScanner'}/bin/sonar-scanner \
-                        -Dsonar.projectKey=pidev-users-auth \
-                        -Dsonar.projectName="SmartSite - Gestion users" \
-                        -Dsonar.sources=src \
-                        -Dsonar.tests=src,test \
-                        -Dsonar.test.inclusions="**/*.spec.ts,**/*.e2e-spec.ts" \
-                        -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/*.module.ts" \
-                        -Dsonar.coverage.exclusions="**/*.spec.ts,**/*.e2e-spec.ts,**/*.module.ts,test/**" \
-                        -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                        -Dsonar.login=${SONAR_LOGIN} \
-                        -Dsonar.host.url=${SONAR_HOST_URL}
-                    """
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+
+                            sh '''
+                                cd apps/backend/user-authentication
+
+                                ''' + scannerHome + '''/bin/sonar-scanner \
+                                -Dsonar.projectKey=pidev-users-auth \
+                                -Dsonar.projectName="SmartSite - Gestion users" \
+                                
+                                -Dsonar.host.url=$SONAR_HOST_URL \
+                            '''
                         }
                     }
                 }
             }
         }
-        // stage('SonarQube Analysis') {
-        //     steps {
-        //         withSonarQubeEnv('sq1') {
-        //             withCredentials([string(credentialsId: 'pidev-users-auth', variable: 'SONAR_LOGIN')]) {
-        //                 script {
-        //                     def scannerHome = tool 'SonarScanner'
-
-        //                     sh '''
-        //                         cd apps/backend/user-authentication
-
-        //                         ''' + scannerHome + '''/bin/sonar-scanner \
-        //                         -Dsonar.projectKey=pidev-users-auth \
-        //                         -Dsonar.projectName="SmartSite - Gestion users" \
-
-        //                         -Dsonar.test.inclusions=**/*.spec.ts \
-        //                         -Dsonar.exclusions=**/node_modules/**,**/dist/** \
-        //                         -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts \
-        //                         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-        //                         -Dsonar.host.url=$SONAR_HOST_URL \
-        //                     '''
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
 
         stage('Quality Gate') {
             steps {
