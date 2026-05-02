@@ -69,20 +69,21 @@ pipeline {
                     withCredentials([string(credentialsId: 'pidev-users-auth', variable: 'SONAR_LOGIN')]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
-                            sh """
-                                cd apps/backend/user-authentication
-                                ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName='SmartSite - Gestion users' \
-                                -Dsonar.sources=src \
-                                -Dsonar.tests=src \
-                                -Dsonar.test.inclusions=**/*.spec.ts \
-                                -Dsonar.exclusions=**/*.module.ts,**/node_modules/**,**/dist/** \
-                                -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/** \
-                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONAR_LOGIN}
-                            """
+                            sh '''
+                        cd apps/backend/user-authentication
+
+                        '"${scannerHome}"'/bin/sonar-scanner \
+                        -Dsonar.projectKey=pidev-users-auth \
+                        -Dsonar.projectName="SmartSite - Gestion users" \
+                        -Dsonar.sources=src \
+                        -Dsonar.tests=src \
+                        -Dsonar.test.inclusions=**/*.spec.ts \
+                        -Dsonar.exclusions=**/*.module.ts,**/node_modules/**,**/dist/** \
+                        -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/** \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=$SONAR_LOGIN
+                    '''
                         }
                     }
                 }
