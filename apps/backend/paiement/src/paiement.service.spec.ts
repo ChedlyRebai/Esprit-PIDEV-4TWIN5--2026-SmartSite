@@ -11,8 +11,14 @@ describe('PaiementService', () => {
 
   const validObjectId = new Types.ObjectId().toString();
 
+  const mockSave = jest.fn();
+
   beforeEach(async () => {
-    mockPaymentModel = {
+    mockPaymentModel = jest.fn().mockImplementation(() => ({
+      save: mockSave,
+    }));
+
+    Object.assign(mockPaymentModel, {
       find: jest.fn().mockReturnThis(),
       findById: jest.fn().mockReturnThis(),
       findByIdAndUpdate: jest.fn().mockReturnThis(),
@@ -23,8 +29,7 @@ describe('PaiementService', () => {
       skip: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       exec: jest.fn(),
-      save: jest.fn(),
-    };
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,6 +50,113 @@ describe('PaiementService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('create', () => {
+    it('should throw BadRequestException for invalid siteId', async () => {
+      const dto = {
+        siteId: 'invalid-id',
+        amount: 100,
+        paymentMethod: 'card',
+      };
+      await expect(service.create(dto as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid paymentDate', async () => {
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+        paymentDate: 'invalid-date',
+      };
+      await expect(service.create(dto as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for future paymentDate', async () => {
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+        paymentDate: futureDate.toISOString(),
+      };
+      await expect(service.create(dto as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should create a payment successfully', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100, status: 'pending' };
+      mockSave.mockResolvedValue(mockPayment);
+
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+        description: 'Test payment',
+      };
+
+      const result = await service.create(dto as any);
+      expect(result).toEqual(mockPayment);
+      expect(mockSave).toHaveBeenCalled();
+    });
+
+    it('should create payment with custom reference', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100, reference: 'MY-REF' };
+      mockSave.mockResolvedValue(mockPayment);
+
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+        reference: 'MY-REF',
+      };
+
+      const result = await service.create(dto as any);
+      expect(result).toEqual(mockPayment);
+    });
+
+    it('should convert "paid" status to "completed"', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100, status: 'completed' };
+      mockSave.mockResolvedValue(mockPayment);
+
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+        status: 'paid',
+      };
+
+      await service.create(dto as any);
+      expect(mockSave).toHaveBeenCalled();
+    });
+
+    it('should create payment with userId', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100 };
+      mockSave.mockResolvedValue(mockPayment);
+
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+      };
+
+      const result = await service.create(dto as any, validObjectId);
+      expect(result).toEqual(mockPayment);
+    });
+
+    it('should create payment with invalid userId (null createdBy)', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100 };
+      mockSave.mockResolvedValue(mockPayment);
+
+      const dto = {
+        siteId: validObjectId,
+        amount: 100,
+        paymentMethod: 'card',
+      };
+
+      const result = await service.create(dto as any, 'invalid-user-id');
+      expect(result).toEqual(mockPayment);
+    });
   });
 
   describe('findAll', () => {
@@ -97,6 +209,93 @@ describe('PaiementService', () => {
     });
   });
 
+  describe('update', () => {
+    it('should throw BadRequestException for invalid ID', async () => {
+      await expect(service.update('invalid-id', {})).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException if payment not found', async () => {
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+      await expect(service.update(validObjectId, {})).rejects.toThrow(NotFoundException);
+    });
+
+    it('should update a payment successfully', async () => {
+      const mockPayment = { _id: validObjectId, amount: 200, status: 'completed' };
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPayment),
+      });
+
+      const result = await service.update(validObjectId, { amount: 200 });
+      expect(result).toEqual(mockPayment);
+    });
+
+    it('should convert "paid" status to "completed" on update', async () => {
+      const mockPayment = { _id: validObjectId, status: 'completed' };
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPayment),
+      });
+
+      const result = await service.update(validObjectId, { status: 'paid' });
+      expect(result).toEqual(mockPayment);
+    });
+
+    it('should throw BadRequestException for invalid paymentDate on update', async () => {
+      await expect(
+        service.update(validObjectId, { paymentDate: 'invalid-date' })
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for future paymentDate on update', async () => {
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+      await expect(
+        service.update(validObjectId, { paymentDate: futureDate.toISOString() })
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid siteId on update', async () => {
+      await expect(
+        service.update(validObjectId, { siteId: 'invalid-site-id' })
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should update with valid siteId', async () => {
+      const mockPayment = { _id: validObjectId, siteId: validObjectId };
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPayment),
+      });
+
+      const result = await service.update(validObjectId, { siteId: validObjectId });
+      expect(result).toEqual(mockPayment);
+    });
+
+    it('should update with userId', async () => {
+      const mockPayment = { _id: validObjectId, amount: 100 };
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPayment),
+      });
+
+      const result = await service.update(validObjectId, { description: 'Updated' }, validObjectId);
+      expect(result).toEqual(mockPayment);
+    });
+
+    it('should update reference and paymentMethod', async () => {
+      const mockPayment = { _id: validObjectId, reference: 'NEW-REF', paymentMethod: 'cash' };
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPayment),
+      });
+
+      const result = await service.update(validObjectId, {
+        reference: 'NEW-REF',
+        paymentMethod: 'cash',
+        description: 'Updated desc',
+      });
+      expect(result).toEqual(mockPayment);
+    });
+  });
+
   describe('remove', () => {
     it('should throw BadRequestException for invalid ID', async () => {
       await expect(service.remove('invalid-id')).rejects.toThrow(BadRequestException);
@@ -126,8 +325,6 @@ describe('PaiementService', () => {
         { amount: 100, status: 'completed' },
         { amount: 200, status: 'completed' },
       ];
-      
-      // Mock the find method to return a promise that resolves to the array
       mockPaymentModel.find = jest.fn().mockResolvedValue(mockPayments);
 
       const result = await service.getPaymentStatus(validObjectId, 500);
@@ -136,6 +333,32 @@ describe('PaiementService', () => {
         totalPaid: 300,
         remaining: 200,
       });
+    });
+
+    it('should return hasPaid false when no payments', async () => {
+      mockPaymentModel.find = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getPaymentStatus(validObjectId, 500);
+      expect(result).toEqual({
+        hasPaid: false,
+        totalPaid: 0,
+        remaining: 500,
+      });
+    });
+
+    it('should return remaining 0 when totalPaid exceeds budget', async () => {
+      const mockPayments = [{ amount: 1000 }];
+      mockPaymentModel.find = jest.fn().mockResolvedValue(mockPayments);
+
+      const result = await service.getPaymentStatus(validObjectId, 500);
+      expect(result.remaining).toBe(0);
+    });
+
+    it('should use default budget of 0', async () => {
+      mockPaymentModel.find = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getPaymentStatus(validObjectId);
+      expect(result.remaining).toBe(0);
     });
   });
 
