@@ -81,7 +81,7 @@ pipeline {
                                 -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/** \
                                 -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                                 -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONAR_LOGIN}
+                                -Dsonar.login=$SONAR_LOGIN
                             """
                         }
                     }
