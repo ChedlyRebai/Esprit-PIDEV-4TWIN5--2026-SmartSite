@@ -805,6 +805,7 @@ describe('UsersService', () => {
     });
   });
 
+  
   describe('addingUser', () => {
     // addingUser requires complex mocking of Mongoose model constructor
     // Tests are covered by integration tests

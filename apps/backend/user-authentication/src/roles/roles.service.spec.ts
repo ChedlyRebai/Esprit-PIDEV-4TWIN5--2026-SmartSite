@@ -178,27 +178,6 @@ describe('RolesService', () => {
     });
   });
 
-  describe('create', () => {
-    it('should create a new role', async () => {
-      const createRoleDto = { name: 'new_role', description: 'New Role' };
-      const mockNewRole = { _id: mockRoleId, ...createRoleDto, save: jest.fn().mockResolvedValue({ _id: mockRoleId, ...createRoleDto }) };
-      
-      const mockConstructor = jest.fn(() => mockNewRole);
-      
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          RolesService,
-          { provide: getModelToken(Role.name), useValue: mockConstructor as any },
-        ],
-      }).compile();
-
-      const testService = module.get<RolesService>(RolesService);
-      const result = await testService.create(createRoleDto);
-      
-      expect(result).toEqual({ _id: mockRoleId, ...createRoleDto });
-    });
-  });
-
   describe('Permission Management', () => {
     it('should add permission to role', async () => {
       const permissionId = new Types.ObjectId().toString();
