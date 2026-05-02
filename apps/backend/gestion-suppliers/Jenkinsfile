@@ -1,0 +1,104 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME    = 'gestion-suppliers'
+        DOCKER_IMAGE    = "smartsite/${SERVICE_NAME}"
+        SONAR_PROJECT   = 'smartsite-gestion-suppliers'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    sh 'npm test -- --coverage --forceExit'
+                }
+            }
+            post {
+                always {
+                    junit(
+                        testResults: 'apps/backend/gestion-suppliers/coverage/*.xml',
+                        allowEmptyResults: true
+                    )
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            sonar-scanner \
+                              -Dsonar.projectKey=${SONAR_PROJECT} \
+                              -Dsonar.sources=src \
+                              -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                              -Dsonar.tests=src \
+                              -Dsonar.test.inclusions=**/*.spec.ts \
+                              -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        failure {
+            echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

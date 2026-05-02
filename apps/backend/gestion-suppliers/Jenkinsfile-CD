@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'gestion-suppliers'
+        DOCKER_IMAGE  = "smartsite/${SERVICE_NAME}"
+        CONTAINER_PORT = '3010'
+        HOST_PORT      = '3010'
+    }
+
+    stages {
+
+        stage('Pull Latest Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker pull ${DOCKER_IMAGE}:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Stop & Remove Old Container') {
+            steps {
+                sh '''
+                    docker stop ${SERVICE_NAME} || true
+                    docker rm   ${SERVICE_NAME} || true
+                '''
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                sh '''
+                    docker run -d \
+                        --name ${SERVICE_NAME} \
+                        --restart unless-stopped \
+                        -p ${HOST_PORT}:${CONTAINER_PORT} \
+                        -e MONGODB_URI=${MONGODB_URI} \
+                        -e PORT=${CONTAINER_PORT} \
+                        ${DOCKER_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    sleep 10
+                    curl -f http://localhost:${HOST_PORT}/suppliers || exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CD Deployment successful — ${SERVICE_NAME} is running on port ${HOST_PORT}"
+        }
+        failure {
+            echo "❌ CD Deployment failed — rolling back"
+            sh '''
+                docker stop ${SERVICE_NAME} || true
+                docker rm   ${SERVICE_NAME} || true
+            '''
+        }
+    }
+}
