@@ -5,7 +5,6 @@ import {
   IsNumber,
   IsDateString,
   Min,
-  Max,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 

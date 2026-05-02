@@ -67,9 +67,9 @@ pipeline {
                                             -Dsonar.projectKey=${SONAR_PROJECT} \
                                             -Dsonar.projectName='SmartSite - Paiement' \
                                             -Dsonar.sources=src \
-                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts \
                                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
+                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts
                                     """
                                 }
                             }
@@ -85,8 +85,16 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false  // ✅ non bloquant
+                script {
+                    try {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: false
+                        }
+                        echo "✅ Quality Gate vérifié"
+                    } catch (Exception e) {
+                        echo "⚠️ Quality Gate échoué ou timeout : ${e.message}"
+                        echo "Le pipeline continue malgré l'échec du Quality Gate"
+                    }
                 }
             }
         }

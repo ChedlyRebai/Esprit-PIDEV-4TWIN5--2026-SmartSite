@@ -21,7 +21,7 @@ describe('PaiementService', () => {
     Object.assign(mockPaymentModel, {
       find: jest.fn().mockReturnThis(),
       findById: jest.fn().mockReturnThis(),
-      findByIdAndUpdate: jest.fn().mockReturnThis(),
+      findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
       aggregate: jest.fn(),
       countDocuments: jest.fn(),
@@ -215,17 +215,13 @@ describe('PaiementService', () => {
     });
 
     it('should throw NotFoundException if payment not found', async () => {
-      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
       await expect(service.update(validObjectId, {})).rejects.toThrow(NotFoundException);
     });
 
     it('should update a payment successfully', async () => {
       const mockPayment = { _id: validObjectId, amount: 200, status: 'completed' };
-      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayment),
-      });
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockResolvedValue(mockPayment);
 
       const result = await service.update(validObjectId, { amount: 200 });
       expect(result).toEqual(mockPayment);
@@ -233,9 +229,7 @@ describe('PaiementService', () => {
 
     it('should convert "paid" status to "completed" on update', async () => {
       const mockPayment = { _id: validObjectId, status: 'completed' };
-      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayment),
-      });
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockResolvedValue(mockPayment);
 
       const result = await service.update(validObjectId, { status: 'paid' });
       expect(result).toEqual(mockPayment);
@@ -263,9 +257,7 @@ describe('PaiementService', () => {
 
     it('should update with valid siteId', async () => {
       const mockPayment = { _id: validObjectId, siteId: validObjectId };
-      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayment),
-      });
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockResolvedValue(mockPayment);
 
       const result = await service.update(validObjectId, { siteId: validObjectId });
       expect(result).toEqual(mockPayment);
@@ -273,9 +265,7 @@ describe('PaiementService', () => {
 
     it('should update with userId', async () => {
       const mockPayment = { _id: validObjectId, amount: 100 };
-      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayment),
-      });
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockResolvedValue(mockPayment);
 
       const result = await service.update(validObjectId, { description: 'Updated' }, validObjectId);
       expect(result).toEqual(mockPayment);
@@ -283,9 +273,7 @@ describe('PaiementService', () => {
 
     it('should update reference and paymentMethod', async () => {
       const mockPayment = { _id: validObjectId, reference: 'NEW-REF', paymentMethod: 'cash' };
-      mockPaymentModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockPayment),
-      });
+      mockPaymentModel.findByIdAndUpdate = jest.fn().mockResolvedValue(mockPayment);
 
       const result = await service.update(validObjectId, {
         reference: 'NEW-REF',
