@@ -1,57 +1,70 @@
-import { Payment } from './payment.entity';
-import { Facture } from './facture.entity';
-import { Types } from 'mongoose';
+import { PaymentSchema } from './payment.entity';
+import { FactureSchema } from './facture.entity';
 
-describe('Entities', () => {
-  describe('Payment Entity', () => {
-    it('should create a payment entity', () => {
-      const payment = new Payment();
-      payment.amount = 1000;
-      payment.siteId = new Types.ObjectId('507f1f77bcf86cd799439011');
-      payment.description = 'Test payment';
-      payment.paymentMethod = 'card';
-      payment.status = 'pending';
-
-      expect(payment).toBeDefined();
-      expect(payment.amount).toBe(1000);
-      expect(payment.siteId).toBeInstanceOf(Types.ObjectId);
-      expect(payment.description).toBe('Test payment');
-      expect(payment.paymentMethod).toBe('card');
-      expect(payment.status).toBe('pending');
+describe('Entities Schemas', () => {
+  describe('PaymentSchema', () => {
+    it('should be defined', () => {
+      expect(PaymentSchema).toBeDefined();
     });
 
-    it('should have default values', () => {
-      const payment = new Payment();
+    it('should have required paths', () => {
+      expect(PaymentSchema.path('siteId')).toBeDefined();
+      expect(PaymentSchema.path('amount')).toBeDefined();
+      expect(PaymentSchema.path('paymentMethod')).toBeDefined();
+      expect(PaymentSchema.path('paymentDate')).toBeDefined();
+      expect(PaymentSchema.path('status')).toBeDefined();
+    });
 
-      expect(payment.status).toBeUndefined();
-      expect(payment.paymentDate).toBeUndefined();
+    it('should have optional paths', () => {
+      expect(PaymentSchema.path('reference')).toBeDefined();
+      expect(PaymentSchema.path('description')).toBeDefined();
+      expect(PaymentSchema.path('siteBudget')).toBeDefined();
+    });
+
+    it('should have status enum values', () => {
+      const statusPath = PaymentSchema.path('status') as any;
+      expect(statusPath.enumValues).toContain('pending');
+      expect(statusPath.enumValues).toContain('completed');
+      expect(statusPath.enumValues).toContain('cancelled');
+      expect(statusPath.enumValues).toContain('refunded');
+      expect(statusPath.enumValues).toContain('paid');
+    });
+
+    it('should have timestamps enabled', () => {
+      expect((PaymentSchema as any).options.timestamps).toBe(true);
+    });
+
+    it('should have correct collection name', () => {
+      expect((PaymentSchema as any).options.collection).toBe('payments');
     });
   });
 
-  describe('Facture Entity', () => {
-    it('should create a facture entity', () => {
-      const facture = new Facture();
-      facture.numeroFacture = 'FAC-2024-001';
-      facture.paymentId = new Types.ObjectId('507f1f77bcf86cd799439011');
-      facture.siteId = new Types.ObjectId('507f1f77bcf86cd799439012');
-      facture.siteNom = 'Site A';
-      facture.amount = 1000;
-      facture.paymentMethod = 'card';
-
-      expect(facture).toBeDefined();
-      expect(facture.numeroFacture).toBe('FAC-2024-001');
-      expect(facture.paymentId).toBeInstanceOf(Types.ObjectId);
-      expect(facture.siteId).toBeInstanceOf(Types.ObjectId);
-      expect(facture.siteNom).toBe('Site A');
-      expect(facture.amount).toBe(1000);
-      expect(facture.paymentMethod).toBe('card');
+  describe('FactureSchema', () => {
+    it('should be defined', () => {
+      expect(FactureSchema).toBeDefined();
     });
 
-    it('should have default values', () => {
-      const facture = new Facture();
+    it('should have required paths', () => {
+      expect(FactureSchema.path('numeroFacture')).toBeDefined();
+      expect(FactureSchema.path('paymentId')).toBeDefined();
+      expect(FactureSchema.path('siteId')).toBeDefined();
+      expect(FactureSchema.path('siteNom')).toBeDefined();
+      expect(FactureSchema.path('amount')).toBeDefined();
+      expect(FactureSchema.path('paymentMethod')).toBeDefined();
+      expect(FactureSchema.path('paymentDate')).toBeDefined();
+    });
 
-      expect(facture.paymentDate).toBeUndefined();
-      expect(facture.numeroFacture).toBeUndefined();
+    it('should have optional paths', () => {
+      expect(FactureSchema.path('description')).toBeDefined();
+      expect(FactureSchema.path('pdfPath')).toBeDefined();
+    });
+
+    it('should have timestamps enabled', () => {
+      expect((FactureSchema as any).options.timestamps).toBe(true);
+    });
+
+    it('should have correct collection name', () => {
+      expect((FactureSchema as any).options.collection).toBe('factures');
     });
   });
 });
