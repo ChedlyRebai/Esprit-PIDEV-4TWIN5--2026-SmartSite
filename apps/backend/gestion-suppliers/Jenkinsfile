@@ -72,25 +72,13 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir('apps/backend/gestion-suppliers') {
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
-                }
+                echo 'Docker build skipped — Docker not available in Jenkins container'
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                        docker push ${DOCKER_IMAGE}:latest
-                    '''
-                }
+                echo 'Docker push skipped — Docker not available in Jenkins container'
             }
         }
     }
