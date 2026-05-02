@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FactureService } from './facture.service';
-import { FactureFilterDto, FacturePaginationDto } from '../dto/create-facture.dto';
+import { FactureFilterDto } from '../dto/create-facture.dto';
 import { PaiementService } from '../paiement.service';
 
 @Controller('api/factures')
