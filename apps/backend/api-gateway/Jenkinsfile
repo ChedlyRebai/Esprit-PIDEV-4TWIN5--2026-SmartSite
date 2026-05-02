@@ -101,6 +101,7 @@ pipeline {
                                     -Dsonar.projectName='SmartSite - API Gateway' \
                                     -Dsonar.projectVersion=${BUILD_NUMBER} \
                                     -Dsonar.sources=src \
+                                    -Dsonar.typescript.tsconfigPath=tsconfig.sonar.json \
                                     -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
                                     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                                     -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
