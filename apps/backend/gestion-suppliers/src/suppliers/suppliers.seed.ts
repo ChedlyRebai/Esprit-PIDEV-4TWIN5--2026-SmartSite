@@ -126,7 +126,7 @@ export class SuppliersSeedService {
     ];
 
     try {
-      await this.supplierModel.insertMany(suppliers);
+      this.supplierModel.insertMany(suppliers);
       this.logger.log(`${suppliers.length} fournisseurs créés avec succès`);
     } catch (error) {
       this.logger.error('Erreur lors de la création des fournisseurs:', error);
