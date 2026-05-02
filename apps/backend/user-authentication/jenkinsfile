@@ -71,19 +71,20 @@ pipeline {
                             def scannerHome = tool 'SonarScanner'
 
                             sh '''
-                                cd apps/backend/user-authentication
+                        cd apps/backend/user-authentication
 
-                                ''' + scannerHome + '''/bin/sonar-scanner \
-                                -Dsonar.projectKey=pidev-users-auth \
-                                -Dsonar.projectName="SmartSite - Gestion users" \
-                                -Dsonar.sources=src \
-                                -Dsonar.tests=src \
-                                
-                                -Dsonar.exclusions=**/node_modules/**,**/dist/** \
-                                
-                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                -Dsonar.host.url=$SONAR_HOST_URL \
-                            '''
+                        ''' + scannerHome + '''/bin/sonar-scanner \
+                        -Dsonar.projectKey=pidev-users-auth \
+                        -Dsonar.projectName="SmartSite - Gestion users" \
+                        -Dsonar.sources=src \
+                        -Dsonar.tests=src \
+                        -Dsonar.test.inclusions=**/*.spec.ts \
+                        -Dsonar.exclusions=**/node_modules/**,**/dist/** \
+                        
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                        -Dsonar.host.url=$SONAR_HOST_URL \
+
+                    '''
                         }
                     }
                 }
@@ -92,7 +93,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 15, unit: 'MINUTES') {
+                timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
