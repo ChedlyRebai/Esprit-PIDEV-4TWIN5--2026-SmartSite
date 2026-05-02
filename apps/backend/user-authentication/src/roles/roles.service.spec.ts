@@ -177,4 +177,67 @@ describe('RolesService', () => {
       expect(mockRoleModel.findByIdAndDelete).toHaveBeenCalledWith(mockRoleId.toString());
     });
   });
+
+  describe('create', () => {
+    it('should create a new role', async () => {
+      const createRoleDto = { name: 'new_role', description: 'New Role' };
+      const mockNewRole = { _id: mockRoleId, ...createRoleDto, save: jest.fn().mockResolvedValue({ _id: mockRoleId, ...createRoleDto }) };
+      
+      const mockConstructor = jest.fn(() => mockNewRole);
+      
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          RolesService,
+          { provide: getModelToken(Role.name), useValue: mockConstructor as any },
+        ],
+      }).compile();
+
+      const testService = module.get<RolesService>(RolesService);
+      const result = await testService.create(createRoleDto);
+      
+      expect(result).toEqual({ _id: mockRoleId, ...createRoleDto });
+    });
+  });
+
+  describe('Permission Management', () => {
+    it('should add permission to role', async () => {
+      const permissionId = new Types.ObjectId().toString();
+      const updatedRole = { _id: mockRoleId, name: 'admin', permissions: [permissionId] };
+      
+      mockRoleModel.findByIdAndUpdate.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(updatedRole),
+        }),
+      });
+      
+      const result = await service.addPermissionToRole(mockRoleId.toString(), permissionId);
+      
+      expect(result).toEqual(updatedRole);
+      expect(mockRoleModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockRoleId.toString(),
+        { $addToSet: { permissions: permissionId } },
+        { new: true },
+      );
+    });
+
+    it('should remove permission from role', async () => {
+      const permissionId = new Types.ObjectId().toString();
+      const updatedRole = { _id: mockRoleId, name: 'admin', permissions: [] };
+      
+      mockRoleModel.findByIdAndUpdate.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(updatedRole),
+        }),
+      });
+      
+      const result = await service.removePermissionFromRole(mockRoleId.toString(), permissionId);
+      
+      expect(result).toEqual(updatedRole);
+      expect(mockRoleModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockRoleId.toString(),
+        { $pull: { permissions: permissionId } },
+        { new: true },
+      );
+    });
+  });
 });

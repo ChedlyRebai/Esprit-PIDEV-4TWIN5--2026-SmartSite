@@ -11,7 +11,6 @@ describe('PermissionsService', () => {
   const mockPermissionId = new Types.ObjectId();
 
   beforeEach(async () => {
-    // Create a mock that's callable as a constructor
     mockPermissionModel = jest.fn((data: any) => {
       return {
         ...data,
@@ -20,7 +19,6 @@ describe('PermissionsService', () => {
       };
     }) as any;
 
-    // Add static methods to the mock
     mockPermissionModel.find = jest.fn().mockReturnValue({
       sort: jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue([]),
@@ -71,7 +69,7 @@ describe('PermissionsService', () => {
 
       expect(result).toBeDefined();
       expect(result.name).toBe('create_user');
-      expect(mockPermissionModel.findOne).toHaveBeenCalled();
+      expect(result.module).toBe('Users');
     });
 
     it('should throw error if permission already exists', async () => {
@@ -89,11 +87,10 @@ describe('PermissionsService', () => {
       await expect(service.create(createPermissionDto)).rejects.toThrow();
     });
 
-    it('should normalize module name', async () => {
+    it('should normalize module with underscores to title case', async () => {
       const createPermissionDto = {
         name: 'read_dashboard',
         module: 'dash_board',
-        href: '/dashboard',
       };
 
       mockPermissionModel.findOne.mockReturnValue({
@@ -103,7 +100,92 @@ describe('PermissionsService', () => {
       const result = await service.create(createPermissionDto);
 
       expect(result).toBeDefined();
-      expect(result.module).toBe('Dash Board'); // Normalized from dash_board
+      expect(result.module).toBe('Dash Board');
+    });
+
+    it('should extract module from href when module not provided', async () => {
+      const createPermissionDto = {
+        name: 'read_product',
+        href: '/product/list',
+        module: undefined,
+      };
+
+      mockPermissionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.create(createPermissionDto);
+
+      expect(result).toBeDefined();
+      expect(result.module).toBe('Product');
+    });
+
+    it('should return General when both module and href are empty', async () => {
+      const createPermissionDto = {
+        name: 'general_perm',
+        href: '',
+        module: '',
+      };
+
+      mockPermissionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.create(createPermissionDto);
+
+      expect(result).toBeDefined();
+      expect(result.module).toBe('General');
+    });
+
+    it('should handle complex href paths', async () => {
+      const createPermissionDto = {
+        name: 'admin_panel',
+        href: '///admin/panel/config',
+        module: undefined,
+      };
+
+      mockPermissionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.create(createPermissionDto);
+
+      expect(result).toBeDefined();
+      expect(result.module).toBe('Admin');
+    });
+
+    it('should handle multi-word module names', async () => {
+      const createPermissionDto = {
+        name: 'complex_perm',
+        module: 'user_management_system',
+      };
+
+      mockPermissionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.create(createPermissionDto);
+
+      expect(result).toBeDefined();
+      expect(result.module).toBe('User Management System');
+    });
+
+    it('should handle duplicate key error', async () => {
+      const createPermissionDto = {
+        name: 'duplicate',
+        module: 'users',
+      };
+
+      mockPermissionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const mockSave = jest.fn().mockRejectedValue({ code: 11000 });
+      mockPermissionModel.mockImplementation(() => ({
+        save: mockSave,
+      }));
+
+      await expect(service.create(createPermissionDto)).rejects.toThrow();
     });
   });
 
@@ -124,6 +206,18 @@ describe('PermissionsService', () => {
 
       expect(result).toEqual(mockPermissions);
       expect(mockPermissionModel.find).toHaveBeenCalled();
+    });
+
+    it('should return empty array when no permissions exist', async () => {
+      mockPermissionModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue([]),
+        }),
+      });
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([]);
     });
   });
 
@@ -165,6 +259,16 @@ describe('PermissionsService', () => {
       expect(result).toEqual(mockPermission);
       expect(mockPermissionModel.findOne).toHaveBeenCalledWith({ name: 'read' });
     });
+
+    it('should return null when name not found', async () => {
+      mockPermissionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.findByName('nonexistent');
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('update', () => {
@@ -185,6 +289,16 @@ describe('PermissionsService', () => {
       expect(result).toEqual(updatedPermission);
       expect(mockPermissionModel.findByIdAndUpdate).toHaveBeenCalled();
     });
+
+    it('should return null when permission to update not found', async () => {
+      mockPermissionModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.update('nonexistent', { name: 'new' });
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('remove', () => {
@@ -200,74 +314,15 @@ describe('PermissionsService', () => {
       expect(result).toEqual(mockPermission);
       expect(mockPermissionModel.findByIdAndDelete).toHaveBeenCalledWith(mockPermissionId.toString());
     });
+
+    it('should return null when permission to delete not found', async () => {
+      mockPermissionModel.findByIdAndDelete.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.remove('nonexistent');
+
+      expect(result).toBeNull();
+    });
   });
 });
-
-  describe('normalizeModule (indirectly tested through create)', () => {
-    it('should use href when module is not provided', async () => {
-      const createPermissionDto = {
-        name: 'read_product',
-        href: '/product/list',
-        module: undefined,
-      };
-
-      mockPermissionModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      const result = await service.create(createPermissionDto);
-
-      expect(result).toBeDefined();
-      expect(result.module).toBe('Product'); // Extracted from href
-    });
-
-    it('should use General when both module and href are empty', async () => {
-      const createPermissionDto = {
-        name: 'general_perm',
-        href: '',
-        module: '',
-      };
-
-      mockPermissionModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      const result = await service.create(createPermissionDto);
-
-      expect(result).toBeDefined();
-      expect(result.module).toBe('General');
-    });
-
-    it('should handle permissions with slashes in href', async () => {
-      const createPermissionDto = {
-        name: 'admin_panel',
-        href: '///admin/panel///config',
-        module: undefined,
-      };
-
-      mockPermissionModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      const result = await service.create(createPermissionDto);
-
-      expect(result).toBeDefined();
-      expect(result.module).toBe('Admin'); // First segment after normalization
-    });
-
-    it('should format multi-word module names correctly', async () => {
-      const createPermissionDto = {
-        name: 'complex_perm',
-        module: 'user_management_system',
-      };
-
-      mockPermissionModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      const result = await service.create(createPermissionDto);
-
-      expect(result).toBeDefined();
-      expect(result.module).toBe('User Management System');
-    });
-  });
