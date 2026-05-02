@@ -71,17 +71,17 @@ pipeline {
                             def scannerHome = tool 'SonarScanner'
 
                             sh '''
-                        cd apps/backend/user-authentication
+                                cd apps/backend/user-authentication
 
-                        ''' + scannerHome + '''/bin/sonar-scanner \
-                        -Dsonar.projectKey=pidev-users-auth \
-                        -Dsonar.projectName="SmartSite - Gestion users" \
-                        -Dsonar.sources=src \
+                                ''' + scannerHome + '''/bin/sonar-scanner \
+                                    -Dsonar.projectKey=pidev-users-auth \
+                                    -Dsonar.projectName="SmartSite - Gestion users" \
+                                    -Dsonar.sources=src \
                                     -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
                                     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                                     -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
 
-                    '''
+                            '''
                         }
                     }
                 }
@@ -90,7 +90,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 35, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
