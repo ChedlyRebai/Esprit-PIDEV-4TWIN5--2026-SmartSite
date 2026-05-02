@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Facture } from '../entities/facture.entity';
 import { Payment } from '../entities/payment.entity';
-import { CreateFactureDto, FactureFilterDto, FacturePaginationDto } from '../dto/create-facture.dto';
+import { FactureFilterDto } from '../dto/create-facture.dto';
 import { stringify } from 'csv-stringify';
 
 @Injectable()
@@ -135,9 +135,16 @@ export class FactureService {
       return labels[method] || method;
     };
 
-    const hasRemaining = siteInfo && siteInfo.remaining > 0;
+    const hasRemaining = siteInfo !== undefined && siteInfo.remaining > 0;
+    const remainingBgColor = hasRemaining ? '#fef3c7' : '#dcfce7';
+    const remainingBorderColor = hasRemaining ? '#f59e0b' : '#22c55e';
+    const remainingAmountColor = hasRemaining ? '#f59e0b' : '#22c55e';
+    const remainingStatusHtml = hasRemaining
+      ? `<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #92400e; font-weight: 500;">⚠️ Payment incomplete - Balance remaining</div>`
+      : `<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #166534; font-weight: 500;">✓ Fully Paid</div>`;
+
     const remainingHtml = siteInfo ? `
-      <div class="remaining-section" style="background: ${hasRemaining ? '#fef3c7' : '#dcfce7'}; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid ${hasRemaining ? '#f59e0b' : '#22c55e'};">
+      <div class="remaining-section" style="background: ${remainingBgColor}; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid ${remainingBorderColor};">
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center;">
           <div>
             <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Budget</div>
@@ -149,10 +156,10 @@ export class FactureService {
           </div>
           <div>
             <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Remaining</div>
-            <div style="font-size: 18px; font-weight: 700; color: ${hasRemaining ? '#f59e0b' : '#22c55e'}; margin-top: 4px;">${formatCurrency(siteInfo.remaining)}</div>
+            <div style="font-size: 18px; font-weight: 700; color: ${remainingAmountColor}; margin-top: 4px;">${formatCurrency(siteInfo.remaining)}</div>
           </div>
         </div>
-        ${hasRemaining ? `<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #92400e; font-weight: 500;">⚠️ Payment incomplete - Balance remaining</div>` : `<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #166534; font-weight: 500;">✓ Fully Paid</div>`}
+        ${remainingStatusHtml}
       </div>
     ` : '';
 
