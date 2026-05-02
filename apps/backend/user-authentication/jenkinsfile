@@ -77,7 +77,7 @@ pipeline {
                                 -Dsonar.projectKey=pidev-users-auth \
                                 -Dsonar.projectName="SmartSite - Gestion users" \
                                 
-                                -Dsonar.tests=src \
+                               
                                 -Dsonar.test.inclusions=**/*.spec.ts \
                                 -Dsonar.exclusions=**/node_modules/**,**/dist/** \
                                 -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts \
