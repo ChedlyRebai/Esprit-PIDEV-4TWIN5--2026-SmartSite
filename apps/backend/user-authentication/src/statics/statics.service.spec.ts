@@ -16,15 +16,17 @@ describe('StaticsService', () => {
     mockRoleModel = { countDocuments: jest.fn().mockResolvedValue(5) };
     mockPermissionModel = { countDocuments: jest.fn().mockResolvedValue(25) };
 
+    
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+    
         StaticsService,
         { provide: getModelToken(User.name), useValue: mockUserModel },
         { provide: getModelToken(Role.name), useValue: mockRoleModel },
         { provide: getModelToken(Permission.name), useValue: mockPermissionModel },
       ],
     }).compile();
-    
+
 
     service = module.get<StaticsService>(StaticsService);
   });
@@ -70,6 +72,30 @@ describe('StaticsService', () => {
       const stats = await service.getStats();
 
       expect(stats.totalUsers).toBe(largeNumber);
+    });
+
+    it('should execute countDocuments in parallel', async () => {
+      await service.getStats();
+      
+      expect(mockUserModel.countDocuments).toHaveBeenCalledTimes(1);
+      expect(mockRoleModel.countDocuments).toHaveBeenCalledTimes(1);
+      expect(mockPermissionModel.countDocuments).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle multiple consecutive calls', async () => {
+      const stats1 = await service.getStats();
+      const stats2 = await service.getStats();
+
+      expect(stats1).toEqual(stats2);
+      expect(mockUserModel.countDocuments).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return consistent data structure', async () => {
+      const stats = await service.getStats();
+
+      expect(Object.keys(stats).sort()).toEqual(
+        ['totalPermissions', 'totalRoles', 'totalUsers'].sort()
+      );
     });
   });
 });

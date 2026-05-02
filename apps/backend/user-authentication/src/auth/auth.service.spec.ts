@@ -22,6 +22,7 @@ describe('AuthService', () => {
     create: jest.fn(),
     findById: jest.fn(),
     updatePassword: jest.fn(),
+    update: jest.fn(),
     findByEmail: jest.fn(),
   };
 
@@ -48,6 +49,7 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        
         {
           provide: UsersService,
           useValue: mockUsersService,
@@ -230,6 +232,137 @@ describe('AuthService', () => {
       expect(result.access_token).toBe('token123');
       expect(result.role).toBeNull();
       expect(result.firstLogin).toBe(true);
+    });
+  });
+
+  describe('registration and verification flows', () => {
+    it('should register a new user and send OTP', async () => {
+      mockUsersService.findByCin.mockResolvedValue(null);
+      const createdUser = {
+        _id: mockUserId,
+        cin: '99999999',
+        email: 'test@example.com',
+        firstName: 'New',
+        lastName: 'User',
+      } as any;
+      mockUsersService.create.mockResolvedValue(createdUser);
+
+      const result = await service.register(
+        '99999999',
+        'pass',
+        'New',
+        'User',
+        'test@example.com',
+      );
+
+      expect(result).toEqual(createdUser);
+      expect(mockUsersService.create).toHaveBeenCalled();
+      expect(mockEmailService.sendOTPEmail).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when verifyOTP user not found', async () => {
+      mockUsersService.findByCin.mockResolvedValue(null);
+
+      await expect(service.verifyOTP('nope', '123456')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('should verify OTP successfully', async () => {
+      const user = {
+        _id: mockUserId,
+        cin: '11111111',
+        emailVerificationOtp: '123456',
+        otpExpiresAt: new Date(Date.now() + 10000),
+        emailVerified: false,
+        firstName: 'A',
+        lastName: 'B',
+        email: 'ok@example.com',
+      } as any;
+      mockUsersService.findByCin.mockResolvedValue(user);
+      const updated = { ...user, emailVerified: true };
+      mockUsersService.update.mockResolvedValue(updated);
+
+      const res = await service.verifyOTP('11111111', '123456');
+      expect(res).toHaveProperty('success', true);
+      expect(mockUsersService.update).toHaveBeenCalled();
+    });
+
+    it('should resend OTP and handle missing email', async () => {
+      const userNoEmail = { _id: mockUserId, cin: '222', emailVerified: false } as any;
+      mockUsersService.findByCin.mockResolvedValue(userNoEmail);
+
+      await expect(service.resendOTP('222')).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('approval and rejection flows', () => {
+    it('approveUser should throw if user not found', async () => {
+      mockUsersService.findById.mockResolvedValue(null);
+      await expect(service.approveUser('nope', 'pwd', 'adminId')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('approveUser should approve and send email when provided password', async () => {
+      const pending = { _id: mockUserId, status: 'pending', email: 'x@y.com', firstName: 'F', lastName: 'L', cin: '333' } as any;
+      mockUsersService.findById.mockResolvedValue(pending);
+      const updated = { ...pending, status: 'approved' };
+      mockUsersService.update.mockResolvedValue(updated);
+
+      const res = await service.approveUser(mockUserId.toString(), 'newpass', 'adminId');
+      expect(res).toEqual(updated);
+      expect(mockEmailService.sendApprovalEmail).toHaveBeenCalled();
+    });
+
+    it('rejectUser should reject and send email', async () => {
+      const pending = { _id: mockUserId, status: 'pending', email: 'r@y.com', firstName: 'F', lastName: 'L', cin: '444' } as any;
+      mockUsersService.findById.mockResolvedValue(pending);
+      const updated = { ...pending, status: 'rejected' };
+      mockUsersService.update.mockResolvedValue(updated);
+
+      const res = await service.rejectUser(mockUserId.toString(), 'bad');
+      expect(res).toEqual(updated);
+      expect(mockEmailService.sendRejectionEmail).toHaveBeenCalled();
+    });
+  });
+
+  describe('password reset flows', () => {
+    it('forgotPassword should throw NotFoundException when email missing', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(null);
+      await expect(service.forgotPassword('nope@example.com')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('forgotPassword should send reset code', async () => {
+      const u = { _id: mockUserId, email: 'p@y.com', firstName: 'F' } as any;
+      mockUsersService.findByEmail.mockResolvedValue(u);
+      mockUsersService.update.mockResolvedValue({});
+
+      const res = await service.forgotPassword('p@y.com');
+      expect(res).toHaveProperty('success', true);
+      expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalled();
+    });
+
+    it('resetPassword should reset when code matches', async () => {
+      const u = {
+        _id: mockUserId,
+        cin: '555',
+        passwordResetCode: '999999',
+        passwordResetCodeExpiresAt: new Date(Date.now() + 10000),
+      } as any;
+      mockUsersService.findByEmail.mockResolvedValue(u);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$newhash');
+      mockUsersService.update.mockResolvedValue({});
+
+      const res = await service.resetPassword('any', '999999', 'newpass');
+      expect(res).toHaveProperty('success', true);
+      expect(mockUsersService.update).toHaveBeenCalled();
+    });
+
+    it('resendResetCode should resend when user exists', async () => {
+      const u = { _id: mockUserId, email: 'r@y.com', firstName: 'F' } as any;
+      mockUsersService.findByEmail.mockResolvedValue(u);
+      mockUsersService.update.mockResolvedValue({});
+
+      const res = await service.resendResetCode('r@y.com');
+      expect(res).toHaveProperty('success', true);
+      expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalled();
     });
   });
 });

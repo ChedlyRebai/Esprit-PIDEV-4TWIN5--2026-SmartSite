@@ -17,6 +17,7 @@ describe('ChatbotService', () => {
   let mockConfigService: any;
 
 
+  
   beforeEach(async () => {
     mockChatbotModel = {
       findOne: jest.fn(),
@@ -28,7 +29,7 @@ describe('ChatbotService', () => {
       countDocuments: jest.fn(),
     };
 
-    
+
     mockUsersService = {
       findById: jest.fn(),
       findByEmail: jest.fn(),

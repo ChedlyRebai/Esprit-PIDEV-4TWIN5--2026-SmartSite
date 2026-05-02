@@ -8,6 +8,7 @@ describe('AuditLogsService', () => {
   let service: AuditLogsService;
   let mockAuditLogModel: any;
 
+  
   beforeEach(async () => {
     mockAuditLogModel = {
       create: jest.fn(),
@@ -27,7 +28,7 @@ describe('AuditLogsService', () => {
       ],
     }).compile();
 
-    
+
     service = module.get<AuditLogsService>(AuditLogsService);
   });
 

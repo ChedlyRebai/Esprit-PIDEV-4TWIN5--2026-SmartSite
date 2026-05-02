@@ -19,9 +19,10 @@ describe('LocalStrategy', () => {
       ],
     }).compile();
 
+    
     strategy = module.get<LocalStrategy>(LocalStrategy);
   });
-  
+
 
 
   it('should be defined', () => {

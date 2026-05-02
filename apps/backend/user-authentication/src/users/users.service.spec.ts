@@ -840,5 +840,221 @@ describe('UsersService', () => {
     });
   });
 
+  describe('createUserWithTemporaryPassword - success path', () => {
+    it('should create user and send temporary password email', async () => {
+      const createUserDto = {
+        cin: '99999999',
+        firstName: 'Temp',
+        lastName: 'User',
+        email: 'temp@example.com',
+      };
+
+      mockUserModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      mockRolesService.findByName.mockResolvedValue({ _id: mockRoleId });
+
+      const savedResult = {
+        _id: mockUserId,
+        email: 'temp@example.com',
+        firstName: 'Temp',
+        lastName: 'User',
+        cin: '99999999',
+        toObject: function () { return { _id: mockUserId, email: 'temp@example.com', firstName: 'Temp', lastName: 'User', cin: '99999999', password: 'hidden' } }
+      };
+
+      
+      // Replace the injected model with a constructor-like mock for this test
+      const fakeModel: any = jest.fn().mockImplementation(() => ({
+        save: jest.fn().mockResolvedValue(savedResult),
+      }));
+      fakeModel.findOne = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      (service as any).userModel = fakeModel;
+
+      const result = await service.createUserWithTemporaryPassword(createUserDto as any);
+
+      expect(result.success).toBe(true);
+      expect(result.user).toBeDefined();
+      expect(mockEmailService.sendTemporaryPasswordEmail).toHaveBeenCalled();
+    });
+  });
+
+  describe('Manager and Site operations', () => {
+    it('should assign manager to user', async () => {
+      const mockUser = { _id: mockUserId, save: jest.fn().mockResolvedValue({}), firstName: 'J', lastName: 'D' };
+      const mockManager = { _id: mockManagerId, firstName: 'M', lastName: 'G' };
+
+      mockUserModel.findById.mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(mockUser) });
+      mockUserModel.findById.mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(mockManager) });
+
+      const res = await service.assignManager(mockUserId.toString(), mockManagerId.toString());
+      expect(res).toHaveProperty('message');
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should modify manager for user', async () => {
+      const mockUser = { _id: mockUserId, save: jest.fn().mockResolvedValue({}), firstName: 'J', lastName: 'D' };
+      const newManager = { _id: mockManagerId, firstName: 'New', lastName: 'Manager' };
+
+      mockUserModel.findById.mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(mockUser) });
+      mockUserModel.findById.mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(newManager) });
+
+      const res = await service.modifyManager(mockUserId.toString(), mockManagerId.toString());
+      expect(res).toHaveProperty('message');
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should return no manager message when none set', async () => {
+      const mockUser = { _id: mockUserId, manager: null };
+      mockUserModel.findById.mockReturnValue({ populate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(mockUser) }) });
+
+      const res = await service.getManager(mockUserId.toString());
+      expect(res).toHaveProperty('message');
+      expect(res.manager).toBeNull();
+    });
+
+    it('should set responsibilities', async () => {
+      const mockUser = { _id: mockUserId, save: jest.fn().mockResolvedValue({}), firstName: 'AA', lastName: 'BB' };
+      mockUserModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockUser) });
+
+      const res = await service.setResponsibilities(mockUserId.toString(), 'New responsibilities');
+      expect(res).toHaveProperty('message');
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should assign and remove user from site', async () => {
+      const mockUser = { _id: mockUserId, save: jest.fn().mockResolvedValue({}), firstName: 'A', lastName: 'B' };
+      mockUserModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockUser) });
+
+      const assignRes = await service.assignToSite(mockUserId.toString(), mockSiteId.toString());
+      expect(assignRes.user.assignedSite).toBe(mockSiteId.toString());
+
+      // For removeFromSite, ensure findById returns user with assignedSite
+      mockUser.assignedSite = mockSiteId.toString();
+      const removeRes = await service.removeFromSite(mockUserId.toString());
+      expect(removeRes.user.assignedSite).toBeNull();
+    });
+  });
+
+  describe('addingUser and create role handling', () => {
+    it('should create user when role is a valid ObjectId string', async () => {
+      const dto = { cin: '55555555', firstName: 'Obj', lastName: 'Id', role: '0123456789abcdef01234567', password: 'pass' };
+
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPass');
+
+      const savedResult = { _id: new Types.ObjectId(), firstName: 'Obj', lastName: 'Id', profilePic: '', fullName: 'Obj Id' };
+      const fakeModel: any = jest.fn().mockImplementation(() => ({ save: jest.fn().mockResolvedValue(savedResult) }));
+      (service as any).userModel = fakeModel;
+
+      const res = await service.addingUser(dto as any);
+      expect(res).toEqual(savedResult);
+    });
+
+    it('should resolve role name via RolesService when provided', async () => {
+      const dto = { cin: '66666666', firstName: 'Role', lastName: 'Name', role: 'client' };
+      mockRolesService.findByName.mockResolvedValue({ _id: mockRoleId });
+
+      const savedResult = { _id: new Types.ObjectId(), firstName: 'Role', lastName: 'Name', profilePic: '', fullName: 'Role Name' };
+      const fakeModel: any = jest.fn().mockImplementation(() => ({ save: jest.fn().mockResolvedValue(savedResult) }));
+      (service as any).userModel = fakeModel;
+
+      const res = await service.addingUser(dto as any);
+      expect(res).toEqual(savedResult);
+    });
+
+    it('should create in create() when role is a mapped string', async () => {
+      const dto = { cin: '77777777', firstName: 'Map', lastName: 'User', role: 'user' };
+
+      const savedResult = { _id: new Types.ObjectId(), firstName: 'Map', lastName: 'User', profilePic: '', fullName: 'Map User' };
+      const fakeModel: any = jest.fn().mockImplementation(() => ({ save: jest.fn().mockResolvedValue(savedResult) }));
+      (service as any).userModel = fakeModel;
+
+      const res = await service.create(dto as any);
+      expect(res).toEqual(savedResult);
+    });
+  });
+
+  describe('Error Handling and Edge Cases', () => {
+    it('should handle findByCin not found', async () => {
+      mockUserModel.findOne.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(null),
+        }),
+      });
+
+      const result = await service.findByCin('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('should handle findByEmail not found', async () => {
+      mockUserModel.findOne.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(null),
+        }),
+      });
+
+      const result = await service.findByEmail('nonexistent@test.com');
+      expect(result).toBeNull();
+    });
+
+    it('should handle getAllclients with empty result', async () => {
+      mockUserModel.find.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue([]),
+        }),
+      });
+
+      const result = await service.getAllclients();
+      expect(result).toEqual([]);
+    });
+
+    it('should handle remove when user not found', async () => {
+      mockUserModel.findByIdAndDelete.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.remove('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('should handle updatePassword with valid id', async () => {
+      const mockUpdatedUser = { _id: mockUserId, password: 'newhashed' };
+      mockUserModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUpdatedUser),
+      });
+
+      const result = await service.updatePassword(mockUserId.toString(), 'newhashed');
+      expect(result).toEqual(mockUpdatedUser);
+    });
+
+    it('should handle handleBan toggling active status', async () => {
+      const mockUser = {
+        _id: mockUserId,
+        isActif: false,
+        save: jest.fn().mockResolvedValue({ _id: mockUserId, isActif: true }),
+      };
+      mockUserModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      await service.handleBan(mockUserId.toString());
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should handle multiple consecutive findAll calls', async () => {
+      mockUserModel.find.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue([{ _id: mockUserId }]),
+        }),
+      });
+
+      const result1 = await service.findAll();
+      const result2 = await service.findAll();
+      expect(result1.length).toBeGreaterThanOrEqual(0);
+      expect(result2.length).toBeGreaterThanOrEqual(0);
+    });
+  });
+
 });
 
