@@ -84,6 +84,7 @@ export class MLService {
     const risk_percentage = Math.round(risk * 100);
     let risk_level: string;
     let risk_color: string;
+
     if (risk_percentage >= 50) {
       risk_level = 'Élevé';
       risk_color = '#ef4444';
