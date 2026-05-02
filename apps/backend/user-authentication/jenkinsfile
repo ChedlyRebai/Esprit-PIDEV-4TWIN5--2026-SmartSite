@@ -76,7 +76,7 @@ pipeline {
                                 ''' + scannerHome + '''/bin/sonar-scanner \
                                 -Dsonar.projectKey=pidev-users-auth \
                                 -Dsonar.projectName="SmartSite - Gestion users" \
-                               
+                                -Dsonar.sources=src \
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
                                 -Dsonar.exclusions=**/node_modules/**,**/dist/** \
