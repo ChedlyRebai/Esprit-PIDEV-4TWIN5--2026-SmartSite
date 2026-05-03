@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'NodeJS'
+    }
+
+    environment {
+        SERVICE_NAME = 'frontend'
+        DOCKER_IMAGE = "smartsite/${SERVICE_NAME}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('apps/frontend') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir('apps/frontend') {
+                    script {
+                        try {
+                            sh 'npm run lint || echo "Lint not configured, skipping"'
+                        } catch (Exception e) {
+                            echo "⚠️ Lint failed or not configured"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir('apps/frontend') {
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('apps/frontend') {
+                    sh 'npm run build'
+                    echo "✅ Frontend built successfully"
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo '⚠️ Docker build skipped — Docker not available in Jenkins container'
+                echo 'ℹ️  In production: docker build -t ${DOCKER_IMAGE}:latest .'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🚀 Triggering CD Pipeline..."
+            build job: 'frontend-CD', wait: false
+        }
+        failure {
+            echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

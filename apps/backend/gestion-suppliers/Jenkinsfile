@@ -7,8 +7,9 @@ pipeline {
 
     environment {
         SERVICE_NAME    = 'gestion-suppliers'
-        DOCKER_IMAGE    = "smartsite/${SERVICE_NAME}"
+        DOCKER_IMAGE    = "doniamaazoun/${SERVICE_NAME}"
         SONAR_PROJECT   = 'smartsite-gestion-suppliers'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
     }
 
     stages {
@@ -67,18 +68,6 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 echo 'SonarQube analysis sent successfully — Quality Gate check skipped'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                echo 'Docker build skipped — Docker not available in Jenkins container'
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                echo 'Docker push skipped — Docker not available in Jenkins container'
             }
         }
     }
