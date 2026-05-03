@@ -80,10 +80,18 @@ export class MLService {
   }
 
   private getFallbackPrediction(data: PredictDelayInput): PredictDelayOutput {
-    const risk = data.days <= 3 ? 0.15 : data.days <= 7 ? 0.35 : 0.6;
+    let risk: number;
+    if (data.days <= 3) {
+      risk = 0.15;
+    } else if (data.days <= 7) {
+      risk = 0.35;
+    } else {
+      risk = 0.6;
+    }
     const risk_percentage = Math.round(risk * 100);
     let risk_level: string;
     let risk_color: string;
+
     if (risk_percentage >= 50) {
       risk_level = 'Élevé';
       risk_color = '#ef4444';
