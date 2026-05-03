@@ -7,8 +7,9 @@ pipeline {
 
     environment {
         SERVICE_NAME    = 'gestion-suppliers'
-        DOCKER_IMAGE    = "smartsite/${SERVICE_NAME}"
+        DOCKER_IMAGE    = "doniamaazoun/${SERVICE_NAME}"
         SONAR_PROJECT   = 'smartsite-gestion-suppliers'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
     }
 
     stages {
@@ -72,13 +73,30 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo 'Docker build skipped — Docker not available in Jenkins container'
+                dir('apps/backend/gestion-suppliers') {
+                    script {
+                        echo "🐳 Building Docker image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        bat "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
+                    }
+                }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                echo 'Docker push skipped — Docker not available in Jenkins container'
+                script {
+                    echo "🔐 Logging into Docker Hub..."
+                    bat "echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin"
+                    
+                    echo "📤 Pushing Docker image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    bat "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    
+                    echo "📤 Pushing Docker image: ${DOCKER_IMAGE}:latest"
+                    bat "docker push ${DOCKER_IMAGE}:latest"
+                    
+                    echo "🧹 Logging out from Docker Hub..."
+                    bat "docker logout"
+                }
             }
         }
     }
