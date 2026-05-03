@@ -40,7 +40,7 @@ export class Supplier extends Document {
   @Prop({ required: true, minlength: 5, maxlength: 255 })
   address: string;
 
-  @Prop({ required: true, match: /^[0-9]{14}$/ })
+  @Prop({ required: true, match: /^\d{14}$/ })
   siret: string;
 
   @Prop({ required: true })

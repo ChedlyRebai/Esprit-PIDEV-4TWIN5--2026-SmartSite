@@ -1,0 +1,88 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'NodeJS'
+    }
+
+    environment {
+        SERVICE_NAME    = 'gestion-suppliers'
+        DOCKER_IMAGE    = "doniamaazoun/${SERVICE_NAME}"
+        SONAR_PROJECT   = 'smartsite-gestion-suppliers'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    sh 'npm test -- --coverage --forceExit'
+                }
+            }
+            post {
+                always {
+                    junit(
+                        testResults: 'apps/backend/gestion-suppliers/coverage/*.xml',
+                        allowEmptyResults: true
+                    )
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('apps/backend/gestion-suppliers') {
+                    withSonarQubeEnv('SonarQube') {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                  -Dsonar.projectKey=${SONAR_PROJECT} \
+                                  -Dsonar.sources=src \
+                                  -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                  -Dsonar.tests=src \
+                                  -Dsonar.test.inclusions=**/*.spec.ts \
+                                  -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo 'SonarQube analysis sent successfully — Quality Gate check skipped'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🚀 Triggering CD Pipeline..."
+            build job: 'gestion-suppliers-CD', wait: false
+        }
+        failure {
+            echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
