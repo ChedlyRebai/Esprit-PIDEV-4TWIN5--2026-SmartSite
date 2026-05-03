@@ -491,16 +491,50 @@ export default function MaterialForm({ open, onClose, onSuccess, initialData }: 
                   )}
                 </>
               )}
-              {selectedSiteId && (
-                <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                  <MapPin className="h-4 w-4 inline mr-1" />
-                  {sites.find(s => s._id === selectedSiteId)?.adresse}
-                </div>
-              )}
+              {selectedSiteId && (() => {
+                const selectedSite = sites.find(s => s._id === selectedSiteId);
+                return selectedSite ? (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-blue-900">{selectedSite.nom}</p>
+                        <p className="text-sm text-gray-700">{selectedSite.adresse}</p>
+                        {selectedSite.ville && (
+                          <p className="text-sm text-gray-600">
+                            {selectedSite.ville} {selectedSite.codePostal}
+                          </p>
+                        )}
+                        {selectedSite.coordonnees?.latitude && selectedSite.coordonnees?.longitude && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs font-mono text-blue-600 bg-white px-2 py-0.5 rounded">
+                              📍 GPS: {selectedSite.coordonnees.latitude.toFixed(5)}, {selectedSite.coordonnees.longitude.toFixed(5)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
               {initialData && initialData.siteName && !selectedSiteId && (
-                <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                  <MapPin className="h-4 w-4 inline mr-1" />
-                  Current site: {initialData.siteName}
+                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">Current site: {initialData.siteName}</p>
+                      {(initialData as any).siteAddress && (
+                        <p className="text-sm text-gray-600">{(initialData as any).siteAddress}</p>
+                      )}
+                      {initialData.siteCoordinates && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-xs font-mono text-gray-600 bg-white px-2 py-0.5 rounded border">
+                            📍 GPS: {initialData.siteCoordinates.lat.toFixed(5)}, {initialData.siteCoordinates.lng.toFixed(5)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

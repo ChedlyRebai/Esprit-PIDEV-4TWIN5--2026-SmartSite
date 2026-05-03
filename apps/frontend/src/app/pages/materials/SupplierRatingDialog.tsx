@@ -91,7 +91,7 @@ export default function SupplierRatingDialog({
         siteId,
         userId,
         userName,
-        avis: rating,
+        avis: rating === 'POSITIVE' ? 'POSITIF' : 'NEGATIF', // ✅ Conversion correcte
         note: score,
         commentaire: comment.trim() || undefined,
         hasReclamation: hasComplaint,
@@ -99,6 +99,8 @@ export default function SupplierRatingDialog({
         reclamationDescription: hasComplaint ? complaintDescription.trim() : undefined,
         consumptionPercentage,
       };
+
+      console.log('📤 Sending rating data:', ratingData);
 
       await axios.post('/api/supplier-ratings', ratingData);
 
@@ -112,7 +114,8 @@ export default function SupplierRatingDialog({
       onClose();
     } catch (error: any) {
       console.error('Error submitting rating:', error);
-      toast.error(error.response?.data?.message || 'Error submitting feedback');
+      const errorMessage = error.response?.data?.message || error.message || 'Error submitting feedback';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

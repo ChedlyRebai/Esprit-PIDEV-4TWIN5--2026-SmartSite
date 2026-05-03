@@ -93,7 +93,8 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       if (dateTo) params.endDate = dateTo;
       if (typeFilter !== 'all') params.flowType = typeFilter;
 
-      const response = await axios.get('/api/consumption-history/export', {
+      // ✅ FIX: Use materials controller endpoint instead of consumption-history
+      const response = await axios.get('/api/materials/consumption-history/export', {
         params,
         responseType: 'blob'
       });
@@ -110,7 +111,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       toast.success('Export successful!');
     } catch (error: any) {
       console.error('Export error:', error);
-      toast.error('Error during export');
+      toast.error(error.response?.data?.message || 'Error during export');
     }
   };
 

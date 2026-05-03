@@ -96,7 +96,6 @@ export default function Materials() {
     userId: string;
     userName: string;
   } | null>(null);
-  const [hasCheckedRatings, setHasCheckedRatings] = useState(false); // New flag to avoid re-checks
 
   // Supplier Rating Hook
   const currentUserId = "675a123456789012345678ab"; // TODO: Get from auth context
@@ -210,7 +209,6 @@ export default function Materials() {
       setAlerts(alertMaterials);
       
       // Reset ratings check flag only on actual reload
-      setHasCheckedRatings(false);
       
       if (outOfStockItems > 0) {
         toast.error(`${outOfStockItems} material(s) out of stock!`, { duration: 5000 });
@@ -310,37 +308,43 @@ export default function Materials() {
     }, 60 * 1000); // 1 minute
     
     // Check for supplier ratings needed after 30% consumption
-    // Only if not checked yet AND no dialog is open
-    if (!hasCheckedRatings && !showSupplierRatingDialog && materials.length > 0) {
-      checkAllMaterials(materials).then((ratingsNeeded) => {
-        if (ratingsNeeded.length > 0) {
-          // Show the first pending rating
-          const firstRating = ratingsNeeded[0];
-          if (firstRating.material) {
-            setSupplierRatingData({
-              materialId: firstRating.material._id,
-              materialName: firstRating.material.name,
-              supplierId: firstRating.material.supplierId || '',
-              supplierName: firstRating.material.supplierName || 'Supplier',
-              siteId: firstRating.material.siteId || '',
-              consumptionPercentage: firstRating.consumptionPercentage,
-              userId: currentUserId,
-              userName: currentUserName,
-            });
-            setShowSupplierRatingDialog(true);
-            toast.info(`🎯 Supplier rating required for ${firstRating.material.name} (${firstRating.consumptionPercentage}% consumed)`, { duration: 8000 });
+    // Only check ONCE when materials are first loaded
+    if (materials.length > 0 && !showSupplierRatingDialog && pendingRatings.length === 0) {
+      // Check only if we haven't checked yet in this session
+      const sessionKey = `supplierRatingsChecked_${currentUserId}`;
+      const alreadyChecked = sessionStorage.getItem(sessionKey);
+      
+      if (!alreadyChecked) {
+        checkAllMaterials(materials).then((ratingsNeeded) => {
+          if (ratingsNeeded && ratingsNeeded.length > 0) {
+            // Show the first pending rating
+            const firstRating = ratingsNeeded[0];
+            if (firstRating.material) {
+              setSupplierRatingData({
+                materialId: firstRating.material._id,
+                materialName: firstRating.material.name,
+                supplierId: firstRating.material.supplierId || '',
+                supplierName: firstRating.material.supplierName || 'Supplier',
+                siteId: firstRating.material.siteId || '',
+                consumptionPercentage: firstRating.consumptionPercentage,
+                userId: currentUserId,
+                userName: currentUserName,
+              });
+              setShowSupplierRatingDialog(true);
+              toast.info(`🎯 Supplier rating required for ${firstRating.material.name} (${firstRating.consumptionPercentage}% consumed)`, { duration: 8000 });
+            }
           }
-        }
-        // Mark as checked to avoid re-checks
-        setHasCheckedRatings(true);
-      });
+          // Mark as checked for this session
+          sessionStorage.setItem(sessionKey, 'true');
+        });
+      }
     }
     
     return () => {
       clearInterval(predictionInterval);
       clearInterval(displayInterval);
     };
-  }, [materials.length, predictions.size, currentUserId, currentUserName, hasCheckedRatings, showSupplierRatingDialog]);
+  }, [materials.length, predictions.size, currentUserId, currentUserName, showSupplierRatingDialog, pendingRatings.length]);
 
   // Filter materials
   const filteredMaterials = materials.filter(material => {
@@ -1023,11 +1027,20 @@ export default function Materials() {
                               <span className="text-gray-500">Max:</span> 
                               <span className="font-medium ml-1">{material.maximumStock}</span>
                             </div>
-                            <div>
+                            <div className="col-span-2">
                               <span className="text-gray-500">Site:</span> 
                               <span className="font-medium ml-1">{material.siteName || 'Unassigned'}</span>
+                              {material.siteAddress && (
+                                <div className="text-xs text-gray-400 mt-0.5">{material.siteAddress}</div>
+                              )}
+                              {material.siteCoordinates && (
+                                <div className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  GPS: {material.siteCoordinates.lat.toFixed(4)}, {material.siteCoordinates.lng.toFixed(4)}
+                                </div>
+                              )}
                             </div>
-                            <div>
+                            <div className="col-span-2">
                               <span className="text-gray-500">Expected outage:</span>
                               <div className="mt-1">{renderPredictionBadge(material._id)}</div>
                             </div>
@@ -1342,16 +1355,18 @@ export default function Materials() {
         <SupplierRatingDialog
           open={showSupplierRatingDialog}
           onClose={() => {
-            // Close dialog and prevent reopening
-            setShowSupplierRatingDialog(false);
-            setSupplierRatingData(null);
-            // Don't mark as ignored here, just close
-          }}
-          onIgnore={() => {
-            // Mark as ignored when user clicks "Ignore"
+            // Fermer et marquer comme ignoré pour ne plus afficher
             if (supplierRatingData.materialId) {
               markAsIgnored(supplierRatingData.materialId);
-              toast.info(`📝 Rating ignored for ${supplierRatingData.materialName}. You can still rate it later.`);
+            }
+            setShowSupplierRatingDialog(false);
+            setSupplierRatingData(null);
+          }}
+          onIgnore={() => {
+            // Marquer comme ignoré définitivement
+            if (supplierRatingData.materialId) {
+              markAsIgnored(supplierRatingData.materialId);
+              toast.info(`📝 Rating ignored for ${supplierRatingData.materialName}. Won't show again.`);
             }
             setShowSupplierRatingDialog(false);
             setSupplierRatingData(null);

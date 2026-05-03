@@ -56,7 +56,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
         }
       } else if (coordinates) {
         // Load weather via GPS coordinates
-        const { data } = await axios.get('/api/materials/weather', {
+        const { data } = await axios.get('/api/weather', {
           params: {
             lat: coordinates.lat,
             lng: coordinates.lng

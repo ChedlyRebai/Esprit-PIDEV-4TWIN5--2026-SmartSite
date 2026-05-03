@@ -22,14 +22,12 @@ import {
 import { toast } from 'sonner';
 import {
   Package,
-  TrendingUp,
   AlertTriangle,
   Plus,
   RefreshCw,
   Edit,
   Trash2,
   Building2,
-  BarChart3,
   CheckCircle,
   Clock,
   History,
@@ -104,6 +102,12 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
     } catch (error) {
       console.error('Error loading materials:', error);
     }
+  };
+
+  // ✅ Filtrer les matériaux par site sélectionné
+  const getFilteredMaterials = () => {
+    if (!selectedSiteId) return materials;
+    return materials.filter(m => m.siteId === selectedSiteId);
   };
 
   const loadRequirements = async () => {
@@ -303,9 +307,19 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
             onClick={() => {
               if (requirements.length > 0) {
                 const firstReq = requirements[0];
-                const materialId = typeof firstReq.materialId === 'object' 
-                  ? (firstReq.materialId as any)._id 
-                  : firstReq.materialId;
+                // ✅ FIX: Vérifier que materialId existe avant d'accéder à _id
+                let materialId: string;
+                if (typeof firstReq.materialId === 'object' && firstReq.materialId !== null) {
+                  materialId = (firstReq.materialId as any)._id || '';
+                } else {
+                  materialId = firstReq.materialId || '';
+                }
+                
+                if (!materialId) {
+                  toast.error('Material ID not found');
+                  return;
+                }
+                
                 setSelectedMaterialForReport({
                   materialId,
                   materialName: firstReq.materialName
@@ -454,7 +468,7 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
             <DialogTitle>Add Material to Site</DialogTitle>
           </DialogHeader>
           <MaterialRequirementForm
-            materials={materials}
+            materials={getFilteredMaterials()}
             materialId={formData.materialId}
             initialQuantity={formData.initialQuantity}
             notes={formData.notes}

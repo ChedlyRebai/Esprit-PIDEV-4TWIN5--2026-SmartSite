@@ -47,7 +47,7 @@ export default function PredictionsList() {
           if (pred.siteCoordinates?.lat && pred.siteCoordinates?.lng) {
             try {
               const response = await fetch(
-                `http://localhost:3002/api/materials/weather?lat=${pred.siteCoordinates.lat}&lng=${pred.siteCoordinates.lng}`
+                `/api/weather?lat=${pred.siteCoordinates.lat}&lng=${pred.siteCoordinates.lng}`
               );
               const weatherData = await response.json();
               if (weatherData.success && weatherData.weather) {

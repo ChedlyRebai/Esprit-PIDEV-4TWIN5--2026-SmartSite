@@ -189,49 +189,86 @@ export default function ConsumptionAIReport({
           </div>
         ) : report ? (
           <div className="space-y-5">
-            {/* ===== RISK BANNER ===== */}
+            {/* ===== SIMPLIFIED STATUS BANNER ===== */}
             {(() => {
-              const cfg = getRiskConfig(report.riskLevel);
-              return (
-                <div className={`${cfg.bg} border-2 ${cfg.border} rounded-xl p-5`}>
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{cfg.icon}</span>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Risk Level</p>
-                          <p className={`text-2xl font-bold ${cfg.text}`}>{cfg.label}</p>
+              // Déterminer l'état: NORMAL ou RISQUE
+              const isRisk = report.riskLevel === 'HIGH' || report.riskLevel === 'CRITICAL' || 
+                             report.consumptionStatus === 'OVER_CONSUMPTION' ||
+                             Math.abs(report.deviationPercentage) > 30;
+              
+              if (isRisk) {
+                // RISQUE DE VOL OU GASPILLAGE
+                return (
+                  <div className="bg-red-50 border-2 border-red-400 rounded-xl p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                          <AlertTriangle className="h-8 w-8 text-red-600" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Package className="h-4 w-4" />
-                          {report.materialName} ({report.materialCode})
-                        </span>
-                        {report.siteName && (
+                      <div className="flex-1">
+                        <p className="text-xs text-red-500 uppercase tracking-wide font-semibold mb-1">État de Consommation</p>
+                        <p className="text-2xl font-bold text-red-700 mb-2">🚨 RISQUE DE VOL OU GASPILLAGE</p>
+                        <p className="text-sm text-red-600">
+                          Consommation anormalement élevée détectée. Déviation: <strong>{report.deviationPercentage > 0 ? '+' : ''}{report.deviationPercentage.toFixed(1)}%</strong>
+                        </p>
+                        <div className="flex items-center gap-4 mt-3 text-sm text-red-600">
                           <span className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {report.siteName}
+                            <Package className="h-4 w-4" />
+                            {report.materialName}
                           </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {report.period.days} days
-                        </span>
+                          {report.siteName && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {report.siteName}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {report.period.days} jours
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    {(() => {
-                      const sc = getStatusConfig(report.consumptionStatus);
-                      return (
-                        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${sc.bg} ${sc.text} font-semibold`}>
-                          {sc.icon}
-                          {sc.label}
-                        </div>
-                      );
-                    })()}
                   </div>
-                </div>
-              );
+                );
+              } else {
+                // ÉTAT NORMAL
+                return (
+                  <div className="bg-green-50 border-2 border-green-400 rounded-xl p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                          <CheckCircle className="h-8 w-8 text-green-600" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-green-500 uppercase tracking-wide font-semibold mb-1">État de Consommation</p>
+                        <p className="text-2xl font-bold text-green-700 mb-2">✅ ÉTAT NORMAL DE CONSOMMATION</p>
+                        <p className="text-sm text-green-600">
+                          La consommation est dans les limites normales. Déviation: <strong>{report.deviationPercentage > 0 ? '+' : ''}{report.deviationPercentage.toFixed(1)}%</strong>
+                        </p>
+                        <div className="flex items-center gap-4 mt-3 text-sm text-green-600">
+                          <span className="flex items-center gap-1">
+                            <Package className="h-4 w-4" />
+                            {report.materialName}
+                          </span>
+                          {report.siteName && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {report.siteName}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {report.period.days} jours
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
             })()}
 
             {/* ===== KEY METRICS ===== */}
@@ -240,53 +277,53 @@ export default function ConsumptionAIReport({
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <Activity className="h-4 w-4 text-blue-500" />
-                    <p className="text-xs text-gray-500 uppercase">Total Consumed</p>
+                    <p className="text-xs text-gray-500 uppercase">Total Consommé</p>
                   </div>
                   <p className="text-3xl font-bold text-blue-600">{report.totalConsumption.toFixed(1)}</p>
-                  <p className="text-xs text-gray-400">over {report.period.days} days</p>
+                  <p className="text-xs text-gray-400">sur {report.period.days} jours</p>
                 </CardContent>
               </Card>
               <Card className="border-2">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <BarChart3 className="h-4 w-4 text-purple-500" />
-                    <p className="text-xs text-gray-500 uppercase">Daily Average</p>
+                    <p className="text-xs text-gray-500 uppercase">Moyenne Journalière</p>
                   </div>
                   <p className="text-3xl font-bold text-purple-600">{report.averageDailyConsumption.toFixed(1)}</p>
-                  <p className="text-xs text-gray-400">units/day</p>
+                  <p className="text-xs text-gray-400">unités/jour</p>
                 </CardContent>
               </Card>
               <Card className="border-2">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingUp className="h-4 w-4 text-gray-500" />
-                    <p className="text-xs text-gray-500 uppercase">Expected</p>
+                    <p className="text-xs text-gray-500 uppercase">Attendu</p>
                   </div>
                   <p className="text-3xl font-bold text-gray-600">{report.expectedConsumption.toFixed(1)}</p>
                   <p className="text-xs text-gray-400">baseline</p>
                 </CardContent>
               </Card>
-              <Card className={`border-2 ${Math.abs(report.deviationPercentage) > 20 ? 'border-red-300' : 'border-green-300'}`}>
+              <Card className={`border-2 ${Math.abs(report.deviationPercentage) > 30 ? 'border-red-300' : 'border-green-300'}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <AlertCircle className={`h-4 w-4 ${Math.abs(report.deviationPercentage) > 20 ? 'text-red-500' : 'text-green-500'}`} />
-                    <p className="text-xs text-gray-500 uppercase">Deviation</p>
+                    <AlertCircle className={`h-4 w-4 ${Math.abs(report.deviationPercentage) > 30 ? 'text-red-500' : 'text-green-500'}`} />
+                    <p className="text-xs text-gray-500 uppercase">Déviation</p>
                   </div>
                   <p className={`text-3xl font-bold ${report.deviationPercentage > 0 ? 'text-red-600' : 'text-green-600'}`}>
                     {report.deviationPercentage > 0 ? '+' : ''}{report.deviationPercentage.toFixed(1)}%
                   </p>
-                  <p className="text-xs text-gray-400">vs expected</p>
+                  <p className="text-xs text-gray-400">vs attendu</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* ===== POSSIBLE ISSUES ===== */}
+            {/* ===== POSSIBLE ISSUES (only if risk) ===== */}
             {report.possibleIssues.length > 0 && (
               <Card className="border-2 border-red-200">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base text-red-700">
                     <Shield className="h-5 w-5" />
-                    Detected Issues ({report.possibleIssues.length})
+                    Problèmes Détectés ({report.possibleIssues.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -302,20 +339,20 @@ export default function ConsumptionAIReport({
               </Card>
             )}
 
-            {/* ===== ALERTS ===== */}
-            {report.alerts.filter(a => a.severity !== 'INFO').length > 0 && (
+            {/* ===== ALERTS (only critical/danger) ===== */}
+            {report.alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'DANGER').length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertCircle className="h-5 w-5 text-orange-600" />
-                    Consumption Alerts ({report.alerts.filter(a => a.severity !== 'INFO').length})
+                    Alertes Critiques ({report.alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'DANGER').length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 max-h-56 overflow-y-auto">
                     {report.alerts
-                      .filter(a => a.severity !== 'INFO')
-                      .slice(0, 15)
+                      .filter(a => a.severity === 'CRITICAL' || a.severity === 'DANGER')
+                      .slice(0, 10)
                       .map((alert, i) => {
                         const cfg = getSeverityConfig(alert.severity);
                         return (
@@ -324,9 +361,9 @@ export default function ConsumptionAIReport({
                             <div className="flex-1 min-w-0">
                               <p className={`text-sm font-medium ${cfg.text}`}>{alert.message}</p>
                               <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
-                                <span>{new Date(alert.date).toLocaleDateString('en-US')}</span>
-                                <span>Actual: <strong>{alert.quantity}</strong></span>
-                                <span>Expected: <strong>{alert.expectedQuantity.toFixed(1)}</strong></span>
+                                <span>{new Date(alert.date).toLocaleDateString('fr-FR')}</span>
+                                <span>Réel: <strong>{alert.quantity}</strong></span>
+                                <span>Attendu: <strong>{alert.expectedQuantity.toFixed(1)}</strong></span>
                                 {alert.deviation > 0 && (
                                   <span className="text-red-600 font-bold">+{alert.deviation.toFixed(1)}%</span>
                                 )}
@@ -340,47 +377,25 @@ export default function ConsumptionAIReport({
               </Card>
             )}
 
-            {/* ===== RECOMMENDATIONS ===== */}
-            {report.recommendations.length > 0 && (
-              <Card className="border-2 border-green-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base text-green-700">
-                    <CheckCircle className="h-5 w-5" />
-                    AI Recommendations ({report.recommendations.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {report.recommendations.map((rec, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-green-800">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* ===== PERIOD INFO ===== */}
             <div className="p-3 bg-gray-50 rounded-lg text-xs text-gray-500 flex items-center gap-4 flex-wrap">
-              <span>📅 Period: {new Date(report.period.startDate).toLocaleDateString()} → {new Date(report.period.endDate).toLocaleDateString()}</span>
-              <span>📊 {report.period.days} days analyzed</span>
-              <span>🤖 AI-powered analysis</span>
+              <span>📅 Période: {new Date(report.period.startDate).toLocaleDateString('fr-FR')} → {new Date(report.period.endDate).toLocaleDateString('fr-FR')}</span>
+              <span>📊 {report.period.days} jours analysés</span>
+              <span>🤖 Analyse IA</span>
             </div>
 
             {/* Actions */}
             <div className="flex justify-between items-center pt-2 border-t">
               <Button variant="outline" size="sm" onClick={handleSyncData} disabled={syncing}>
                 {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                Sync Data
+                Synchroniser
               </Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={generateReport} disabled={loading}>
                   <RefreshCw className="h-4 w-4 mr-1" />
-                  Regenerate
+                  Régénérer
                 </Button>
-                <Button onClick={onClose}>Close</Button>
+                <Button onClick={onClose}>Fermer</Button>
               </div>
             </div>
           </div>

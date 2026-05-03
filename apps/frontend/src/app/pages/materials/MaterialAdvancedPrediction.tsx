@@ -116,8 +116,7 @@ export default function MaterialAdvancedPrediction({
       });
       
       // 5. Automatically fetch weather via site coordinates
-      // IMPORTANT: Use fetch() with complete URL as in MaterialDetails (which works)
-      const weatherUrl = `http://localhost:3002/api/materials/weather?lat=${siteData.coordinates.lat}&lng=${siteData.coordinates.lng}`;
+      const weatherUrl = `/api/weather?lat=${siteData.coordinates.lat}&lng=${siteData.coordinates.lng}`;
       console.log('🌍 Fetching weather from:', weatherUrl);
       
       const weatherResponse = await fetch(weatherUrl);

@@ -128,9 +128,14 @@ class AnomalyDetectionService {
   ): Promise<AnomalyDetectionResult> {
     let anomalyResult: AnomalyDetectionResult;
 
-    if (useRealAPI) {
-      // Utiliser l'API réelle
-      anomalyResult = await this.detectConsumptionAnomaly(materialId, consumption);
+    if (useRealAPI && materialId && materialId !== 'new-material') {
+      try {
+        // Utiliser l'API réelle
+        anomalyResult = await this.detectConsumptionAnomaly(materialId, consumption);
+      } catch (error) {
+        console.warn('Real API failed, using simulation:', error);
+        anomalyResult = this.simulateAnomalyDetection(consumption, materialName);
+      }
     } else {
       // Utiliser la simulation
       anomalyResult = this.simulateAnomalyDetection(consumption, materialName);

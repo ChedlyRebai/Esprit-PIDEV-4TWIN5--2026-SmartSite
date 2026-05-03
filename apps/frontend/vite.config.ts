@@ -50,6 +50,22 @@ export default defineConfig({
         target: 'http://localhost:3009',
         changeOrigin: true,
       },
+      '/api/weather': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/ml-training': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/orders-tracking': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/supplier-rating': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
       '/fournisseurs': {
         target: 'http://localhost:3009',
         changeOrigin: true,

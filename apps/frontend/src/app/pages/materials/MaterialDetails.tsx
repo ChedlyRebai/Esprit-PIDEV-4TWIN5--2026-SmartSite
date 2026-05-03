@@ -10,7 +10,7 @@ import { Badge } from '../../../components/ui/badge';
 import {
   Package, Calendar, MapPin, Factory, Barcode, TrendingUp,
   Truck, AlertTriangle, ArrowDownCircle, ArrowUpCircle,
-  Activity, Navigation, RefreshCw
+  Activity, Navigation, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import materialService, { Material } from '../../../services/materialService';
@@ -73,10 +73,67 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
 
   const loadAggregateStats = async () => {
     try {
+      console.log('📊 Loading aggregate stats for material:', material._id);
+      
+      // D'abord, récupérer les données fraîches du matériau depuis l'API
+      let freshMaterial = material;
+      try {
+        const response = await materialService.getMaterialById(material._id);
+        freshMaterial = response;
+        console.log('✅ Fresh material data:', {
+          name: freshMaterial.name,
+          stockEntree: (freshMaterial as any).stockEntree,
+          stockSortie: (freshMaterial as any).stockSortie,
+        });
+      } catch (e) {
+        console.warn('⚠️ Could not fetch fresh material data, using props');
+      }
+      
+      // Essayer de récupérer depuis les flow logs
       const stats = await materialFlowService.getAggregateStats(material._id, material.siteId);
-      setAggregateStats(stats);
+      
+      console.log('📊 Flow log stats:', stats);
+      
+      // Si pas de flow logs, utiliser les données du matériau directement
+      if (stats.totalEntries === 0 && stats.totalExits === 0) {
+        const materialData = freshMaterial as any;
+        const entree = materialData.stockEntree || 0;
+        const sortie = materialData.stockSortie || 0;
+        const netFlow = entree - sortie;
+        
+        // Détecter les anomalies: si sortie > entrée × 1.5
+        const hasAnomaly = sortie > entree * 1.5 && entree > 0;
+        
+        console.log('📊 Using material data:', {
+          entree,
+          sortie,
+          netFlow,
+          hasAnomaly,
+        });
+        
+        setAggregateStats({
+          totalEntries: entree,
+          totalExits: sortie,
+          netFlow: netFlow,
+          totalAnomalies: hasAnomaly ? 1 : 0,
+        });
+      } else {
+        setAggregateStats(stats);
+      }
     } catch (error) {
-      console.error('Error loading aggregate stats:', error);
+      console.error('❌ Error loading aggregate stats:', error);
+      // Fallback: utiliser les données du matériau
+      const materialData = material as any;
+      const entree = materialData.stockEntree || 0;
+      const sortie = materialData.stockSortie || 0;
+      const hasAnomaly = sortie > entree * 1.5 && entree > 0;
+      
+      setAggregateStats({
+        totalEntries: entree,
+        totalExits: sortie,
+        netFlow: entree - sortie,
+        totalAnomalies: hasAnomaly ? 1 : 0,
+      });
     }
   };
 
@@ -187,16 +244,31 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
                   <MapPin className="h-3 w-3" />Assigned Site
                 </div>
                 <p className="font-bold">{material.siteName || 'Not assigned'}</p>
+                {/* ✅ Afficher l'adresse complète */}
+                {(material as any).siteAddress && (
+                  <p className="text-xs text-gray-600 mt-1 flex items-start gap-1">
+                    <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0 text-gray-400" />
+                    <span>{(material as any).siteAddress}</span>
+                  </p>
+                )}
+                {/* ✅ Afficher les coordonnées GPS */}
                 {material.siteCoordinates && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Navigation className="h-3 w-3 text-blue-500" />
-                    <p className="text-xs text-blue-600 font-mono">
-                      {material.siteCoordinates.lat.toFixed(5)}, {material.siteCoordinates.lng.toFixed(5)}
-                    </p>
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs text-blue-700 font-semibold">GPS Coordinates:</p>
+                      <p className="text-xs text-blue-900 font-mono mt-0.5">
+                        📍 {material.siteCoordinates.lat.toFixed(6)}, {material.siteCoordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
                   </div>
                 )}
-                {(material as any).siteAddress && (
-                  <p className="text-xs text-gray-400 mt-0.5">{(material as any).siteAddress}</p>
+                {/* ⚠️ Avertissement si pas de GPS */}
+                {material.siteName && !material.siteCoordinates && (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded flex items-center gap-2">
+                    <AlertCircle className="h-3 w-3 text-yellow-600 flex-shrink-0" />
+                    <p className="text-xs text-yellow-700">GPS coordinates not available for this site</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -321,8 +393,12 @@ export default function MaterialDetails({ material, onClose, onUpdate, onOrder }
               ) : flowLogs.length === 0 ? (
                 <div className="text-center py-4 text-gray-400">
                   <Activity className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No movements recorded yet</p>
-                  <p className="text-xs mt-1">Use Add/Update material to record stock movements</p>
+                  <p className="text-sm">No detailed movement history available</p>
+                  {aggregateStats && (aggregateStats.totalEntries > 0 || aggregateStats.totalExits > 0) && (
+                    <p className="text-xs mt-1 text-blue-600">
+                      ✓ Summary data available above (Total In: {aggregateStats.totalEntries}, Total Out: {aggregateStats.totalExits})
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 max-h-48 overflow-y-auto">

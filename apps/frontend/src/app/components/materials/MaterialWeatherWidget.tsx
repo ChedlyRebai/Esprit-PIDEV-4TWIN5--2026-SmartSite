@@ -51,7 +51,7 @@ export default function MaterialWeatherWidget({
         // Utiliser les coordonnées GPS
         console.log('🌍 Loading weather by coordinates:', siteCoordinates);
         const response = await fetch(
-          `/api/materials/weather?lat=${siteCoordinates.lat}&lng=${siteCoordinates.lng}`
+          `/api/weather?lat=${siteCoordinates.lat}&lng=${siteCoordinates.lng}`
         );
         
         if (response.ok) {
@@ -68,7 +68,7 @@ export default function MaterialWeatherWidget({
         const cityName = siteAddress || siteName || 'Paris';
         console.log('🏙️ Loading weather by city:', cityName);
         const response = await fetch(
-          `/api/materials/weather/city?city=${encodeURIComponent(cityName)}`
+          `/api/weather/city?city=${encodeURIComponent(cityName)}`
         );
         
         if (response.ok) {

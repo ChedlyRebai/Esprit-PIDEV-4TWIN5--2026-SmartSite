@@ -22,7 +22,7 @@ export interface WeatherImpact {
 }
 
 class WeatherService {
-  private readonly BACKEND_URL = '/api/materials';
+  private readonly BACKEND_URL = '/api/weather';
 
   /**
    * 🌤️ Récupérer les données météo par coordonnées GPS
@@ -31,7 +31,7 @@ class WeatherService {
     try {
       console.log(`🌍 Fetching weather from backend for coordinates: ${lat}, ${lng}`);
       
-      const response = await axios.get(`${this.BACKEND_URL}/weather`, {
+      const response = await axios.get(`${this.BACKEND_URL}`, {
         params: { lat, lng }
       });
 
@@ -54,7 +54,7 @@ class WeatherService {
     try {
       console.log(`🏙️ Fetching weather from backend for city: ${cityName}`);
       
-      const response = await axios.get(`${this.BACKEND_URL}/weather/city`, {
+      const response = await axios.get(`${this.BACKEND_URL}/city`, {
         params: { city: cityName }
       });
 
