@@ -1,29 +1,33 @@
+# ---- Stage 1 : Build ----
+FROM node:20-alpine AS builder
 
-FROM node:20-bullseye-slim AS builder
 WORKDIR /app
 
-RUN groupadd -r app && useradd -r -g app -u 1001 app
+# Copier uniquement les fichiers de dépendances pour optimiser le cache Docker
+COPY package.json package-lock.json ./
+RUN npm i
 
-COPY package*.json ./
-RUN npm ci --silent
-
+# Copier le reste du code source
 COPY . .
-RUN npm run build --silent
 
-RUN npm prune --production
+# Compiler le projet NestJS
+RUN npm run build
 
-RUN chown -R 1001:1001 /app
+# ---- Stage 2 : Production ----
+FROM node:20-alpine AS production
 
-FROM gcr.io/distroless/nodejs:20
 WORKDIR /app
 
-COPY --from=builder /app /app
+# Copier uniquement les fichiers de dépendances de production
+COPY package.json package-lock.json ./
+RUN npm i --only=production
 
-ENV NODE_ENV=production
-
-USER 1001
+# Copier les artefacts compilés depuis le stage builder
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["dist/main.js"]
+ENV NODE_ENV=production
+ENV PORT=3000
 
+CMD ["node", "dist/src/main"]

@@ -12,7 +12,7 @@ pipeline {
         REGISTRY = 'docker.io'
         REGISTRY_CREDENTIALS = 'docker-hub'
         DOCKER_USERNAME = 'chedlyrebai'
-        PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/user-authentication-api"
+        USER_AUTH_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/user-authentication-api"
 
         SONAR_HOST_URL = 'http://localhost:9000'
         SONAR_PROJECT_KEY = 'pidev-users-auth'
@@ -92,6 +92,30 @@ pipeline {
             steps {
                 timeout(time: 35, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('BUILD DOCKER IMAGE') {
+            steps {
+                script {
+                    def imageTag = "${USER_AUTH_IMAGE}:${env.GIT_COMMIT_SHORT}"
+                    sh "docker build -t ${DOCKER_USERNAME}/${imageTag} ."
+                    echo " Docker image built: ${imageTag}"
+                }
+            }
+        }
+
+        stage('Push docker image') {
+            steps {
+                script {
+                    withDockerRegistry([
+                      credentialsId: 'chedlyrebai-dockerhub',
+                      url: 'https://index.docker.io/v1/'
+                  ]) {
+                        sh 'echo docker login successful'
+                        sh " docker push ${DOCKER_USERNAME}/${USER_AUTH_IMAGE}:latest"
+                  }
                 }
             }
         }

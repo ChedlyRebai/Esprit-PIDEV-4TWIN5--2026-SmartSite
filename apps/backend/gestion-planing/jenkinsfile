@@ -58,7 +58,7 @@ pipeline {
                 dir('apps/backend/gestion-planing') {
                     sh 'npm install'
                     sh 'npm run test:cov'
-                    echo "✅ Tests and coverage generated"
+                    echo '✅ Tests and coverage generated'
                 }
             }
         }
@@ -85,6 +85,30 @@ pipeline {
                             """
                         }
                     }
+                }
+            }
+        }
+
+        stage('BUILD DOCKER IMAGE') {
+            steps {
+                script {
+                    def imageTag = "${PLANNING_IMAGE}:${env.GIT_COMMIT_SHORT}"
+                    sh "docker build -t ${DOCKER_USERNAME}/${imageTag} ."
+                    echo " Docker image built: ${imageTag}"
+                }
+            }
+        }
+
+        stage('Push docker image') {
+            steps {
+                script {
+                    withDockerRegistry([
+                      credentialsId: 'chedlyrebai-dockerhub',
+                      url: 'https://index.docker.io/v1/'
+                  ]) {
+                        sh 'echo docker login successful'
+                        sh " docker push ${DOCKER_USERNAME}/${PLANNING_IMAGE}:latest"
+                  }
                 }
             }
         }

@@ -12,7 +12,7 @@ pipeline {
         REGISTRY = 'docker.io'
         REGISTRY_CREDENTIALS = 'docker-hub'
         DOCKER_USERNAME = 'chedlyrebai'
-        PLANNING_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/planning-api"
+        NOTIFICATION_IMAGE = "${REGISTRY}/${DOCKER_USERNAME}/notification-api"
 
         SONAR_HOST_URL = 'http://localhost:9000'
         SONAR_PROJECT_KEY = 'pidev-key-notification'
@@ -85,6 +85,31 @@ pipeline {
                             """
                         }
                     }
+                }
+            }
+        }
+
+
+        stage('BUILD DOCKER IMAGE') {
+            steps {
+                script {
+                    def imageTag = "${NOTIFICATION_IMAGE}:${env.GIT_COMMIT_SHORT}"
+                    sh "docker build -t ${DOCKER_USERNAME}/${imageTag} ."
+                    echo " Docker image built: ${imageTag}"
+                }
+            }
+        }
+
+        stage('Push docker image') {
+            steps {
+                script {
+                    withDockerRegistry([
+                      credentialsId: 'chedlyrebai-dockerhub',
+                      url: 'https://index.docker.io/v1/'
+                  ]) {
+                        sh 'echo docker login successful'
+                        sh " docker push ${DOCKER_USERNAME}/${NOTIFICATION_IMAGE}:latest"
+                  }
                 }
             }
         }

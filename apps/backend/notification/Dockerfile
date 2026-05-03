@@ -14,7 +14,7 @@ RUN npm prune --production
 
 RUN chown -R 1001:1001 /app
 
-FROM gcr.io/distroless/nodejs:20
+FROM gcr.io/distroless/nodejs20-debian11
 WORKDIR /app
 
 COPY --from=builder /app /app
@@ -23,7 +23,7 @@ ENV NODE_ENV=production
 
 USER 1001
 
-EXPOSE 3000
+EXPOSE 3004
 
 CMD ["dist/main.js"]
 
