@@ -49,6 +49,10 @@ export function FlowLogPage() {
   return <MaterialFlowLog />;
 }
 
+export function FlowAnomalyAnalysisPage() {
+  return <MaterialFlowLog />;
+}
+
 export function MLTrainingPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");

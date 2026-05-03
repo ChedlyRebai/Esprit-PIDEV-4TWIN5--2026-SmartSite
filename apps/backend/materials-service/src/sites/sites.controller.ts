@@ -50,8 +50,8 @@ export class SitesController {
           sites: sites.slice(0, 3).map((s) => ({
             _id: s._id,
             nom: s.nom,
-            ville: s.ville,
-            coordonnees: s.coordonnees,
+            ville: s.localisation,
+            coordonnees: s.coordinates,
           })),
         },
       };

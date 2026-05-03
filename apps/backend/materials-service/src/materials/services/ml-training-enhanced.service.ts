@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Material } from '../entities/material.entity';
 import { MaterialFlowLog } from '../entities/material-flow-log.entity';
 import { AnomalyEmailService } from '../../common/email/anomaly-email.service';
+import { MLPredictionClientService } from './ml-prediction-client.service';
 
 export interface StockPredictionResult {
   materialId: string;
@@ -39,6 +40,7 @@ export class MLTrainingEnhancedService {
     @InjectModel(MaterialFlowLog.name)
     private flowLogModel: Model<MaterialFlowLog>,
     private anomalyEmailService: AnomalyEmailService,
+    private mlPredictionClient: MLPredictionClientService,
   ) {}
 
   /**
@@ -101,6 +103,7 @@ export class MLTrainingEnhancedService {
 
   /**
    * 🚨 DÉTECTION D'ANOMALIES - Consommation
+   * ✅ UTILISE LE MODÈLE ML ENTRAÎNÉ AVEC LE DATASET
    */
   async detectConsumptionAnomaly(
     materialId: string,
@@ -111,26 +114,85 @@ export class MLTrainingEnhancedService {
     );
 
     try {
-      // 1. Récupérer l'historique récent
+      // 1. Récupérer le matériau
+      const material = await this.materialModel.findById(materialId);
+      if (!material) {
+        throw new Error(`Material ${materialId} not found`);
+      }
+
+      // 2. Récupérer l'historique récent (30 derniers jours)
       const recentFlows = await this.flowLogModel
         .find({
           materialId,
           type: 'OUT',
-          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // 30 derniers jours
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
         })
         .sort({ createdAt: -1 })
         .exec();
 
-      // 2. Calculer les statistiques normales
+      // 3. Calculer les statistiques normales
       const normalStats = this.calculateNormalConsumptionStats(recentFlows);
 
-      // 3. Détecter l'anomalie
-      const anomalyResult = this.analyzeAnomalyPattern(
-        newConsumption,
-        normalStats,
-      );
+      this.logger.log(`📊 Normal consumption stats:`);
+      this.logger.log(`   Average: ${normalStats.average.toFixed(2)}`);
+      this.logger.log(`   Std Dev: ${normalStats.standardDeviation.toFixed(2)}`);
+      this.logger.log(`   New Consumption: ${newConsumption}`);
 
-      // 4. Envoyer alerte si nécessaire
+      // 4. ✅ UTILISER LE MODÈLE ML POUR DÉTECTER L'ANOMALIE
+      let anomalyResult: AnomalyDetectionResult;
+
+      try {
+        // Vérifier si le service ML est disponible
+        const isMLAvailable = await this.mlPredictionClient.isServiceAvailable();
+
+        if (isMLAvailable && normalStats.average > 0) {
+          this.logger.log(`🤖 Using ML model for anomaly detection...`);
+
+          // Appeler le service ML Python avec le modèle entraîné
+          const mlResponse = await this.mlPredictionClient.detectConsumptionAnomaly({
+            material_id: materialId,
+            material_name: material.name,
+            current_consumption: newConsumption,
+            average_consumption: normalStats.average,
+            std_consumption: normalStats.standardDeviation,
+            site_id: (material as any).siteId?.toString(),
+          });
+
+          this.logger.log(`✅ ML Model Response:`);
+          this.logger.log(`   Status: ${mlResponse.consumption_status}`);
+          this.logger.log(`   Severity: ${mlResponse.severity}`);
+          this.logger.log(`   Anomaly Score: ${mlResponse.anomaly_score}`);
+          this.logger.log(`   Deviation: ${mlResponse.deviation_percentage}%`);
+
+          // Mapper la réponse ML vers notre format
+          anomalyResult = {
+            isAnomaly: mlResponse.is_anomaly,
+            anomalyType: mlResponse.consumption_status === 'overconsumption' 
+              ? 'EXCESSIVE_OUT' 
+              : mlResponse.consumption_status === 'underconsumption'
+              ? 'SUSPICIOUS_PATTERN'
+              : 'NORMAL',
+            riskLevel: mlResponse.severity.toUpperCase() as 'LOW' | 'MEDIUM' | 'HIGH',
+            message: mlResponse.message,
+            deviationPercentage: mlResponse.deviation_percentage,
+            recommendedAction: mlResponse.recommended_action,
+            shouldSendAlert: mlResponse.severity === 'high' || mlResponse.severity === 'critical',
+          };
+
+          this.logger.log(`✅ ML-based anomaly detection: ${anomalyResult.anomalyType} (${anomalyResult.riskLevel})`);
+        } else {
+          // Fallback: Utiliser la méthode statistique simple
+          this.logger.warn(`⚠️ ML service not available, using statistical fallback`);
+          anomalyResult = this.analyzeAnomalyPattern(newConsumption, normalStats);
+        }
+      } catch (mlError) {
+        // Si le ML échoue, utiliser la méthode statistique
+        this.logger.error(`❌ ML anomaly detection failed: ${mlError.message}`);
+        this.logger.log(`🔄 Falling back to statistical method`);
+        anomalyResult = this.analyzeAnomalyPattern(newConsumption, normalStats);
+      }
+
+      // 5. Envoyer alerte si nécessaire
       if (anomalyResult.shouldSendAlert) {
         await this.sendAnomalyAlert(materialId, anomalyResult);
       }

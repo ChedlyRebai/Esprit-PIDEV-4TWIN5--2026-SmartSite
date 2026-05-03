@@ -417,8 +417,8 @@ export class MaterialsController {
           sites: sites.slice(0, 3).map((s) => ({
             _id: s._id,
             nom: s.nom,
-            ville: s.ville,
-            coordonnees: s.coordonnees,
+            ville: s.localisation,
+            coordonnees: s.coordinates,
           })),
         },
       };
@@ -602,10 +602,10 @@ export class MaterialsController {
       if (siteId && !siteLatitude && !siteLongitude) {
         try {
           const site = await this.sitesService.findOne(siteId);
-          if (site?.coordonnees?.latitude && site?.coordonnees?.longitude) {
+          if (site?.coordinates?.lat && site?.coordinates?.lng) {
             siteCoordinates = {
-              latitude: site.coordonnees.latitude,
-              longitude: site.coordonnees.longitude,
+              latitude: site.coordinates.lat,
+              longitude: site.coordinates.lng,
             };
             this.logger.log(
               `📍 Coordonnées du site ${siteId}: ${siteCoordinates.latitude}, ${siteCoordinates.longitude}`,
@@ -1044,6 +1044,44 @@ export class MaterialsController {
       throw new BadRequestException(
         error.message || 'Erreur lors de la prédiction',
       );
+    }
+  }
+
+  @Get('ml/model-info/:id')
+  async getModelInfo(@Param('id') materialId: string): Promise<any> {
+    try {
+      this.logger.log(`🔍 Getting model info for material ${materialId}`);
+      
+      const material = await this.materialsService.findOne(materialId);
+      if (!material) {
+        throw new BadRequestException('Material not found');
+      }
+
+      // ✅ FIX: Use hasModel() instead of isModelTrained()
+      const modelTrained = this.autoMLService.hasModel(materialId);
+      
+      // For now, assume historical data exists if material exists
+      const hasHistoricalData = true;
+      
+      return {
+        success: true,
+        materialId,
+        materialName: material.name,
+        modelTrained,
+        hasHistoricalData,
+        message: modelTrained 
+          ? 'Model is trained and ready' 
+          : 'Model not trained yet. Upload historical data to train.',
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error getting model info: ${error.message}`);
+      return {
+        success: false,
+        materialId,
+        modelTrained: false,
+        hasHistoricalData: false,
+        error: error.message,
+      };
     }
   }
 

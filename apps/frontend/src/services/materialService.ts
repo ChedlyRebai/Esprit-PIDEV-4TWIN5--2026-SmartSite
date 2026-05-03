@@ -202,7 +202,7 @@ const materialService = {
 
   async updateStock(id: string, data: UpdateStockData): Promise<Material> {
     try {
-      const response = await apiClient.put(`/materials/${id}/stock`, data);
+      const response = await apiClient.put(`/${id}/stock`, data);
       return response.data;
     } catch (error) {
       console.error('Erreur updateStock:', error);
@@ -252,7 +252,7 @@ const materialService = {
 
   async reorderMaterial(id: string): Promise<any> {
     try {
-      const response = await apiClient.post(`/materials/${id}/reorder`);
+      const response = await apiClient.post(`/${id}/reorder`);
       return response.data;
     } catch (error) {
       console.error('Erreur reorderMaterial:', error);

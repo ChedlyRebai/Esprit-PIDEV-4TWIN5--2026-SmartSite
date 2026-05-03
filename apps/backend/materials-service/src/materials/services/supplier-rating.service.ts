@@ -211,13 +211,19 @@ export class SupplierRatingService {
       return { needed: false, consumptionPercentage: 0, alreadyRated: false };
     }
 
-    // Calculer le % de consommation
-    const totalInitial =
-      (material.stockExistant || 0) + (material.stockEntree || 0);
+    // Calculer le % de consommation basé sur le stock actuel vs stock maximum
+    // Si le stock actuel est inférieur au stock initial, c'est qu'il y a eu consommation
+    const initialStock = material.maximumStock || material.quantity * 2; // Estimation du stock initial
+    const currentStock = material.quantity;
+    const consumed = Math.max(0, initialStock - currentStock);
     const consumptionPercentage =
-      totalInitial > 0
-        ? Math.round(((material.stockSortie || 0) / totalInitial) * 100)
+      initialStock > 0
+        ? Math.round((consumed / initialStock) * 100)
         : 0;
+
+    this.logger.log(
+      `📊 Consommation calculée: ${consumptionPercentage}% (initial: ${initialStock}, actuel: ${currentStock}, consommé: ${consumed})`,
+    );
 
     // Vérifier si déjà noté par cet utilisateur
     const existingRating = await this.ratingModel.findOne({
@@ -259,13 +265,18 @@ export class SupplierRatingService {
       };
     }
 
-    // Calculer le % de consommation
-    const totalInitial =
-      (material.stockExistant || 0) + (material.stockEntree || 0);
+    // Calculer le % de consommation basé sur le stock actuel vs stock maximum
+    const initialStock = material.maximumStock || material.quantity * 2;
+    const currentStock = material.quantity;
+    const consumed = Math.max(0, initialStock - currentStock);
     const consumptionPercentage =
-      totalInitial > 0
-        ? Math.round(((material.stockSortie || 0) / totalInitial) * 100)
+      initialStock > 0
+        ? Math.round((consumed / initialStock) * 100)
         : 0;
+
+    this.logger.log(
+      `📊 shouldShowDialog: consommation=${consumptionPercentage}%, initial=${initialStock}, actuel=${currentStock}`,
+    );
 
     // Vérifier si consommation > 30%
     if (consumptionPercentage <= 30) {
@@ -280,6 +291,7 @@ export class SupplierRatingService {
     const existingRating = await this.ratingModel.findOne({
       materialId: new Types.ObjectId(materialId),
       userId: new Types.ObjectId(userId),
+      note: { $gt: 0 }, // Seulement les vrais ratings (pas les marqueurs de dialog)
     });
 
     if (existingRating) {

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { 
   Calendar, Download, RefreshCw, Search, Filter, 
   TrendingUp, TrendingDown, AlertTriangle, Package,
-  Clock, User, MapPin, FileText, Loader2
+  Clock, MapPin, FileText, Loader2, Upload
 } from "lucide-react";
 import axios from "axios";
 
@@ -31,6 +31,8 @@ interface ConsumptionEntry {
   createdAt: string;
   stockBefore?: number;
   stockAfter?: number;
+  anomalyType?: string;
+  anomalySeverity?: string;
 }
 
 interface ConsumptionHistoryProps {
@@ -46,6 +48,8 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const loadHistory = async () => {
     setLoading(true);
@@ -57,11 +61,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       if (dateTo) params.endDate = dateTo;
       if (typeFilter !== 'all') params.flowType = typeFilter;
 
-      console.log('📤 Parameters sent:', params);
-
       const { data } = await axios.get('/api/consumption-history', { params });
-      
-      console.log('📊 History response:', data);
       
       // The service returns { data: [...], pagination: {...} }
       if (data && data.data) {
@@ -83,6 +83,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
     loadHistory();
   }, [materialId, siteId]);
 
+  // Export history as Excel
   const handleExport = async () => {
     try {
       const params: any = {};
@@ -104,10 +105,67 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
       
       toast.success('Export successful!');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Export error:', error);
       toast.error('Error during export');
+    }
+  };
+
+  // Upload CSV history file
+  const handleUploadHistory = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Upload to materials import endpoint
+        const response = await axios.post('/api/materials/import/excel', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        if (response.data?.success || response.data?.imported > 0) {
+          toast.success(`✅ Import successful! ${response.data.imported || 0} records imported`);
+          // Sync after import
+          await handleSync();
+        } else {
+          toast.error(response.data?.message || 'Import failed');
+        }
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        toast.error(error.response?.data?.message || 'Error uploading file');
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
+  };
+
+  // Sync history data
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data } = await axios.post('/api/consumption-history/sync');
+      if (data.success !== false) {
+        toast.success(`✅ Sync complete: ${data.synced || 0} entries synchronized`);
+        loadHistory();
+      } else {
+        toast.error('Sync failed');
+      }
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast.error(error.response?.data?.message || 'Error during sync');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -129,6 +187,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       case 'RETURN': return <TrendingUp className="h-4 w-4 text-cyan-500" />;
       case 'WASTE': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
       case 'DAMAGE': return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case 'DAILY_CONSUMPTION': return <TrendingDown className="h-4 w-4 text-orange-400" />;
       default: return <Package className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -142,14 +201,15 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
       RETURN: 'bg-cyan-100 text-cyan-700',
       WASTE: 'bg-orange-100 text-orange-700',
       DAMAGE: 'bg-red-100 text-red-700',
+      DAILY_CONSUMPTION: 'bg-orange-100 text-orange-600',
     };
     
     const labels: Record<string, string> = {
-      IN: 'In',
-      OUT: 'Out',
+      IN: '↑ In',
+      OUT: '↓ Out',
       ADJUSTMENT: 'Adjustment',
       TRANSFER: 'Transfer',
-      RETURN: 'Return',
+      RETURN: '↑ Return',
       WASTE: 'Waste',
       DAMAGE: 'Damage',
       RESERVE: 'Reserve',
@@ -163,7 +223,27 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
     );
   };
 
+  const getAnomalyBadge = (anomalyType?: string, anomalySeverity?: string) => {
+    if (!anomalyType || anomalyType === 'NONE') return null;
+    const severityColors: Record<string, string> = {
+      CRITICAL: 'bg-red-100 text-red-700 border border-red-300',
+      WARNING: 'bg-yellow-100 text-yellow-700 border border-yellow-300',
+      LOW: 'bg-orange-100 text-orange-700 border border-orange-300',
+    };
+    const typeLabels: Record<string, string> = {
+      VOL: '🚨 Theft Risk',
+      PROBLEME: '⚠️ Problem',
+      NORMAL: '✅ Normal',
+    };
+    return (
+      <Badge className={severityColors[anomalySeverity || 'LOW'] || 'bg-gray-100 text-gray-700'}>
+        {typeLabels[anomalyType] || anomalyType}
+      </Badge>
+    );
+  };
+
   const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
       day: '2-digit',
@@ -174,24 +254,87 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
     });
   };
 
+  // Summary stats
+  const totalIn = filteredEntries.filter(e => e.flowType === 'IN' || e.flowType === 'RETURN').reduce((s, e) => s + (e.quantity || 0), 0);
+  const totalOut = filteredEntries.filter(e => e.flowType === 'OUT' || e.flowType === 'DAMAGE' || e.flowType === 'DAILY_CONSUMPTION').reduce((s, e) => s + (e.quantity || 0), 0);
+  const anomalyCount = filteredEntries.filter(e => e.anomalyType && e.anomalyType !== 'NONE').length;
+
   return (
     <div className="space-y-4">
+      {/* Summary Stats */}
+      {filteredEntries.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold text-green-600">+{totalIn}</p>
+              <p className="text-xs text-green-700">Total Inputs</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold text-red-600">-{totalOut}</p>
+              <p className="text-xs text-red-700">Total Outputs</p>
+            </CardContent>
+          </Card>
+          <Card className={`border ${anomalyCount > 0 ? 'bg-orange-50 border-orange-200' : 'bg-gray-50'}`}>
+            <CardContent className="p-3 text-center">
+              <p className={`text-2xl font-bold ${anomalyCount > 0 ? 'text-orange-600' : 'text-gray-500'}`}>{anomalyCount}</p>
+              <p className="text-xs text-gray-600">Anomalies</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Filters and Actions */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Consumption History</CardTitle>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Consumption History
+              {filteredEntries.length > 0 && (
+                <Badge variant="secondary">{filteredEntries.length} entries</Badge>
+              )}
+            </CardTitle>
+            <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter className="h-4 w-4 mr-1" />
                 Filters
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleUploadHistory}
+                disabled={uploading}
+                title="Upload CSV/Excel history file"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-1" />
+                )}
+                Upload
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSync}
+                disabled={syncing}
+                title="Sync history from flow logs"
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                )}
+                Sync
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredEntries.length === 0}>
+                <Download className="h-4 w-4 mr-1" />
+                Export Excel
               </Button>
               <Button variant="outline" size="sm" onClick={loadHistory} disabled={loading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -204,7 +347,7 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
                 <div className="relative mt-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Material, site, user..."
+                    placeholder="Material, site..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -220,12 +363,13 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
                   onChange={(e) => setTypeFilter(e.target.value)}
                 >
                   <option value="all">All</option>
-                  <option value="IN">In</option>
-                  <option value="OUT">Out</option>
+                  <option value="IN">↑ In</option>
+                  <option value="OUT">↓ Out</option>
                   <option value="ADJUSTMENT">Adjustment</option>
-                  <option value="TRANSFER">Transfer</option>
                   <option value="RETURN">Return</option>
                   <option value="WASTE">Waste</option>
+                  <option value="DAMAGE">Damage</option>
+                  <option value="DAILY_CONSUMPTION">Consumption</option>
                 </select>
               </div>
               
@@ -250,6 +394,19 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
               </div>
             </div>
           )}
+
+          {showFilters && (dateFrom || dateTo || typeFilter !== 'all' || searchTerm) && (
+            <div className="mt-2 flex justify-end">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { loadHistory(); }}
+                className="text-blue-600"
+              >
+                Apply Filters
+              </Button>
+            </div>
+          )}
         </CardHeader>
         
         <CardContent>
@@ -260,59 +417,80 @@ export default function ConsumptionHistory({ materialId, siteId }: ConsumptionHi
           ) : filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>No movements found</p>
+              <p className="font-medium">No movements found</p>
+              <p className="text-sm mt-1">Record stock movements (IN/OUT) to see history here</p>
+              <div className="flex gap-2 justify-center mt-4">
+                <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
+                  {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                  Sync from flow logs
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleUploadHistory} disabled={uploading}>
+                  {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                  Upload history file
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {filteredEntries.map((entry) => (
                 <div 
                   key={entry._id} 
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors ${
+                    entry.anomalyType && entry.anomalyType !== 'NONE' ? 'border-orange-200 bg-orange-50' : ''
+                  }`}
                 >
-                  <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="flex-shrink-0">
                       {getTypeIcon(entry.flowType)}
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-900">{entry.materialName}</span>
-                        <span className="text-sm text-gray-500">({entry.materialCode})</span>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-semibold text-gray-900 truncate">{entry.materialName}</span>
+                        {entry.materialCode && (
+                          <span className="text-xs text-gray-500">({entry.materialCode})</span>
+                        )}
                         {getTypeBadge(entry.flowType)}
+                        {getAnomalyBadge(entry.anomalyType, entry.anomalySeverity)}
                       </div>
                       
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {entry.siteName}
-                        </span>
-                        
+                      <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                        {entry.siteName && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {entry.siteName}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatDate(entry.date || entry.createdAt)}
                         </span>
+                        {entry.materialUnit && (
+                          <span className="text-gray-400">Unit: {entry.materialUnit}</span>
+                        )}
                       </div>
                       
-                      {entry.notes && (
-                        <p className="text-sm text-gray-500 mt-1 italic">{entry.notes}</p>
-                      )}
-                      
                       {entry.reason && (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           <span className="font-medium">Reason:</span> {entry.reason}
                         </p>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex-shrink-0 text-right">
-                    <div className={`text-2xl font-bold ${
+                  <div className="flex-shrink-0 text-right ml-3">
+                    <div className={`text-xl font-bold ${
                       entry.flowType === 'IN' || entry.flowType === 'RETURN' 
                         ? 'text-green-600' 
                         : 'text-red-600'
                     }`}>
                       {entry.flowType === 'IN' || entry.flowType === 'RETURN' ? '+' : '-'}{entry.quantity}
                     </div>
+                    {(entry.stockBefore !== undefined && entry.stockAfter !== undefined) && (
+                      <div className="text-xs text-gray-400">
+                        {entry.stockBefore} → {entry.stockAfter}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

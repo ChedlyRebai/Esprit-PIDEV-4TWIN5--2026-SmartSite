@@ -42,6 +42,10 @@ export default defineConfig({
         target: 'http://localhost:3009',
         changeOrigin: true,
       },
+      '/api/consumption-history': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
       '/api/site-consumption': {
         target: 'http://localhost:3009',
         changeOrigin: true,

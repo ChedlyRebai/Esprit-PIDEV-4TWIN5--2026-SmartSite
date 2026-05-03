@@ -1,209 +1,146 @@
-# ⚡ DÉMARRAGE RAPIDE - 3 ÉTAPES
+# 🚀 Quick Start - Démarrage rapide
 
-## 🎯 Objectif
+## 📋 Étapes rapides
 
-Démarrer le système de prédictions IA en 3 étapes simples.
-
-## ✅ Pré-requis
-
-- ✅ MongoDB démarré
-- ✅ Node.js installé
-- ✅ Dépendances installées (`npm install` dans chaque service)
-
-## 🚀 3 Étapes
-
-### 1️⃣ Démarrer Materials Service
-
-**Ouvrir un terminal** et exécuter:
+### 1. Compiler le backend
 
 ```bash
 cd apps/backend/materials-service
-npm start
-```
-
-**✅ Attendre de voir**:
-```
-[Nest] INFO Materials Service listening on port 3009
-```
-
-**❌ Si erreur de compilation**:
-```bash
 npm run build
-npm start
 ```
 
----
+**Résultat attendu:**
+```
+> materials-service@0.0.1 build
+> nest build
 
-### 2️⃣ Démarrer Frontend
+Exit Code: 0
+```
 
-**Ouvrir un NOUVEAU terminal** et exécuter:
+### 2. Compiler le frontend
 
+```bash
+cd apps/frontend
+npm run build
+```
+
+**Résultat attendu:**
+```
+✓ built in 51.99s
+Exit Code: 0
+```
+
+### 3. Démarrer les services
+
+**Terminal 1: Service des sites**
+```bash
+cd apps/backend/gestion-site
+npm run start:dev
+```
+
+**Terminal 2: Service materials**
+```bash
+cd apps/backend/materials-service
+npm run start:dev
+```
+
+**Terminal 3: Frontend**
 ```bash
 cd apps/frontend
 npm run dev
 ```
 
-**✅ Attendre de voir**:
-```
-VITE v5.x.x  ready in XXX ms
-➜  Local:   http://localhost:5173/
-```
+## 🧪 Tests rapides
 
----
-
-### 3️⃣ Tester dans le Navigateur
-
-1. Ouvrir: `http://localhost:5173`
-2. Aller sur: **Materials**
-3. Vérifier:
-   - ✅ Les matériaux s'affichent
-   - ✅ Les prédictions IA s'affichent
-   - ✅ Format correct: `🚨 Aujourd'hui 14:30` ou `✅ Mercredi 16:00`
-
----
-
-## 🔍 Vérification Rapide
-
-### Test Backend
+### Test 1: Diagnostic des sites
 
 ```bash
-curl http://localhost:3009/api/materials
+curl -X GET http://localhost:3000/api/materials/diagnostic/sites \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-**✅ Devrait retourner**: JSON avec liste des matériaux
-
-### Test Prédictions
+### Test 2: Récupérer les détails du site
 
 ```bash
-curl http://localhost:3009/api/materials/predictions/all
+# Remplacer MATERIAL_ID par un ID réel
+curl -X GET http://localhost:3000/api/materials/MATERIAL_ID/site-details \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-**✅ Devrait retourner**: JSON avec prédictions
-
----
-
-## 🚨 Dépannage Express
-
-### Problème: "Port already in use"
-
-**Solution**:
-```bash
-# Windows
-netstat -ano | findstr :3009
-taskkill /PID <PID> /F
-
-# Linux/Mac
-lsof -ti:3009 | xargs kill -9
-```
-
-### Problème: "Cannot find module"
-
-**Solution**:
-```bash
-cd apps/backend/materials-service
-rm -rf node_modules
-npm install
-npm start
-```
-
-### Problème: "ECONNREFUSED"
-
-**Solution**:
-1. Vérifier que materials-service tourne sur port 3009
-2. Redémarrer le frontend:
-   ```bash
-   cd apps/frontend
-   # Ctrl+C pour arrêter
-   npm run dev
-   ```
-
-### Problème: "Invalid Date" ou "NaN"
-
-**Cause**: Pas de données dans MaterialFlowLog
-
-**Solution**: Le système utilise un taux par défaut. Pour ajouter des données:
-1. Aller sur page "Material Flow Log"
-2. Ajouter des entrées/sorties manuellement
-
----
-
-## 📊 Vérification Automatique
-
-### Windows (PowerShell)
-
-```powershell
-.\check-system.ps1
-```
-
-### Linux/Mac (Bash)
+### Test 3: Récupérer les statistiques
 
 ```bash
-bash check-system.sh
+# Remplacer MATERIAL_ID par un ID réel
+curl -X GET http://localhost:3000/api/materials/MATERIAL_ID/aggregate-stats \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
----
+## 🖥️ Test dans l'interface
 
-## 🎯 Résultat Attendu
+1. Ouvrir http://localhost:5173
+2. Naviguer vers Materials
+3. Cliquer sur un matériau
+4. Vérifier que les coordonnées GPS s'affichent
+5. Vérifier que les statistiques des mouvements s'affichent
 
-### Dans le Tableau Materials
+## 📊 Résultats attendus
 
-| Matériau | Stock | Prédiction IA |
-|----------|-------|---------------|
-| Ciment | 150 | 🚨 Aujourd'hui 14:30<br>Dans 8h |
-| Sable | 500 | ⚠️ Demain 09:15<br>Dans 1j 5h |
-| Gravier | 1000 | ✅ Mercredi 16:00<br>Dans 3j 12h |
-
-### Au Survol (Tooltip)
-
+### Coordonnées GPS
 ```
-Ciment Portland
-─────────────────────────
-Stock actuel: 150 unités
-Consommation: 2.5 unités/h
-Stock prédit (24h): 90 unités
-─────────────────────────
-Rupture prévue: Mercredi 29 avril 14:30
-Temps restant: 0j 8h
-─────────────────────────
-📦 Commander: 300 unités
+Chantier Assigné
+Chantier Nord
+123 Rue de la Paix
+📍 48.856600°, 2.352200°
 ```
 
----
+### Statistiques des mouvements
+```
+Synthèse des Mouvements
+Total Entrées: 150
+Total Sorties: 50
+Solde Net: 100
+```
 
-## ✅ Checklist Rapide
+## 🔍 Dépannage rapide
 
-- [ ] Materials Service démarré (port 3009)
-- [ ] Frontend démarré (port 5173)
-- [ ] Page Materials accessible
-- [ ] Matériaux affichés
-- [ ] Prédictions affichées
-- [ ] Format correct (pas de "Invalid Date")
-- [ ] Tooltip fonctionne au survol
-- [ ] Bouton "Commander" ouvre le dialog
+### Erreur 404 du site
 
----
+```bash
+# Vérifier le diagnostic
+curl -X GET http://localhost:3000/api/materials/diagnostic/sites
 
-## 📚 Documentation Complète
+# Vérifier que le service des sites est en cours d'exécution
+curl -X GET http://localhost:3001/api/gestion-sites
+```
 
-Pour plus de détails:
+### Pas de coordonnées GPS
 
-- **RESTART_GUIDE.md** - Guide détaillé de redémarrage
-- **FINAL_SUMMARY.md** - Résumé complet des corrections
-- **PROXY_FIX_COMPLETE.md** - Détails de la correction du proxy
+```bash
+# Vérifier que le site a des coordonnées
+curl -X GET http://localhost:3001/api/gestion-sites/SITE_ID
+```
 
----
+### Statistiques affichent 0
 
-## 🆘 Besoin d'Aide ?
+```bash
+# Vérifier que les mouvements sont enregistrés
+curl -X GET http://localhost:3000/api/materials/MATERIAL_ID/aggregate-stats
+```
 
-Si un problème persiste:
+## 📚 Documentation complète
 
-1. Vérifier les logs du materials-service
-2. Vérifier la console du navigateur (F12)
-3. Exécuter le script de vérification (`check-system.ps1` ou `check-system.sh`)
-4. Consulter `RESTART_GUIDE.md` pour le dépannage détaillé
+- **CORRECTIONS_APPLIQUEES.md** - Détails des corrections
+- **TESTING_GUIDE.md** - Guide complet de test
+- **TROUBLESHOOTING.md** - Guide de dépannage
+- **README_GPS_IMPLEMENTATION.md** - Vue d'ensemble
 
----
+## ✅ Checklist
 
-**Date**: 29 avril 2026  
-**Status**: ✅ PRÊT À DÉMARRER  
-**Temps estimé**: 2-3 minutes
+- [ ] Backend compile
+- [ ] Frontend compile
+- [ ] Service des sites démarre
+- [ ] Service materials démarre
+- [ ] Frontend démarre
+- [ ] Diagnostic retourne des résultats
+- [ ] Coordonnées GPS s'affichent
+- [ ] Statistiques s'affichent
