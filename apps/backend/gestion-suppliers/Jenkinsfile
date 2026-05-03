@@ -86,6 +86,8 @@ pipeline {
     post {
         success {
             echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🚀 Triggering CD Pipeline..."
+            build job: 'gestion-suppliers-CD', wait: false
         }
         failure {
             echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
