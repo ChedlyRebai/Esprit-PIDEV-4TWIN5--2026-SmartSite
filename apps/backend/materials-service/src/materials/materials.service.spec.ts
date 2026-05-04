@@ -419,7 +419,7 @@ describe('MaterialsService', () => {
   describe('reorderMaterial', () => {
     it('should trigger reorder successfully', async () => {
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
-      await expect(service.reorderMaterial('nonexistent', null)).rejects.toThrow(NotFoundException);
+      await expect(service.reorderMaterial('507f1f77bcf86cd799439011', null)).rejects.toThrow(NotFoundException);
     });
   });
 
