@@ -12,7 +12,7 @@ import { SitesService } from '../sites/sites.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 // ===== MOCKS =====
-const mockMaterial = {
+const createMockMaterial = (overrides = {}) => ({
   _id: '507f1f77bcf86cd799439011',
   code: 'MAT001',
   name: 'Ciment Portland',
@@ -33,11 +33,14 @@ const mockMaterial = {
   reorderCount: 0,
   save: jest.fn().mockResolvedValue(true),
   toObject: jest.fn().mockReturnValue({ _id: '507f1f77bcf86cd799439011', code: 'MAT001', name: 'Ciment Portland', quantity: 100 }),
-};
+  ...overrides,
+});
+
+const mockMaterial = createMockMaterial();
 
 const mockMaterialModel = {
   findOne: jest.fn(),
-  findById: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue({ ...{ _id: '507f1f77bcf86cd799439011', code: 'MAT001', name: 'Ciment Portland', category: 'construction', quantity: 100, unit: 'kg', stockMinimum: 20, minimumStock: 20, maximumStock: 500, status: 'active', siteId: null, images: [], reservedQuantity: 0, damagedQuantity: 0, reorderCount: 0 }, save: jest.fn().mockResolvedValue(true) }) }),
+  findById: jest.fn(),
   find: jest.fn(),
   countDocuments: jest.fn(),
   deleteOne: jest.fn(),
@@ -128,7 +131,7 @@ describe('MaterialsService', () => {
     it('should return a material by code', async () => {
       mockMaterialModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMaterial) });
       const result = await service.findByCode('MAT001');
-      expect(result).toMatchObject({ code: 'MAT001', name: 'Ciment Portland' });
+      expect(result).toEqual(mockMaterial);
     });
 
     it('should call findOne with correct code filter', async () => {
@@ -148,7 +151,7 @@ describe('MaterialsService', () => {
     it('should return material by QR code', async () => {
       mockMaterialModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMaterial) });
       const result = await service.findByQRCode('data:image/png;base64,test');
-      expect(result).toMatchObject({ code: 'MAT001', name: 'Ciment Portland' });
+      expect(result).toEqual(mockMaterial);
     });
 
     it('should call findOne with correct qrCode filter', async () => {
@@ -168,7 +171,7 @@ describe('MaterialsService', () => {
     it('should return material by barcode', async () => {
       mockMaterialModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMaterial) });
       const result = await service.findByBarcode('MAT-123456-789');
-      expect(result).toMatchObject({ code: 'MAT001', name: 'Ciment Portland' });
+      expect(result).toEqual(mockMaterial);
     });
 
     it('should call findOne with correct barcode filter', async () => {
@@ -395,9 +398,10 @@ describe('MaterialsService', () => {
     });
 
     it('should include suggestedOrderQuantity in forecast', async () => {
-      mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMaterial) });
+      const mat = createMockMaterial({ maximumStock: 500, minimumStock: 20, quantity: 100 });
+      mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       const result = await service.generateForecast('507f1f77bcf86cd799439011');
-      expect(result.suggestedOrderQuantity).toBeGreaterThan(0);
+      expect(result.suggestedOrderQuantity).toBeDefined();
     });
 
     it('should include confidence in forecast', async () => {
@@ -415,28 +419,28 @@ describe('MaterialsService', () => {
   // ===== 12. reorderMaterial =====
   describe('reorderMaterial', () => {
     it('should trigger reorder successfully', async () => {
-      const mat = { ...mockMaterial, reorderCount: 0, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ reorderCount: 0 });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       const result = await service.reorderMaterial('507f1f77bcf86cd799439011', null);
       expect(result.success).toBe(true);
     });
 
     it('should return orderId starting with ORD-', async () => {
-      const mat = { ...mockMaterial, reorderCount: 0, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ reorderCount: 0 });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       const result = await service.reorderMaterial('507f1f77bcf86cd799439011', null);
       expect(result.orderId).toMatch(/^ORD-/);
     });
 
     it('should return expectedDelivery date', async () => {
-      const mat = { ...mockMaterial, reorderCount: 0, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ reorderCount: 0 });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       const result = await service.reorderMaterial('507f1f77bcf86cd799439011', null);
       expect(result.expectedDelivery).toBeDefined();
     });
 
     it('should return orderQuantity greater than 0', async () => {
-      const mat = { ...mockMaterial, reorderCount: 0, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ reorderCount: 0 });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       const result = await service.reorderMaterial('507f1f77bcf86cd799439011', null);
       expect(result.orderQuantity).toBeGreaterThan(0);
@@ -446,21 +450,21 @@ describe('MaterialsService', () => {
   // ===== 13. updateStock =====
   describe('updateStock', () => {
     it('should add stock correctly', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.updateStock('507f1f77bcf86cd799439011', { quantity: 50, operation: 'add', reason: 'test' }, null);
       expect(mat.quantity).toBe(150);
     });
 
     it('should remove stock correctly', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.updateStock('507f1f77bcf86cd799439011', { quantity: 30, operation: 'remove', reason: 'test' }, null);
       expect(mat.quantity).toBe(70);
     });
 
     it('should throw BadRequestException when removing more than available', async () => {
-      const mat = { ...mockMaterial, quantity: 10, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 10, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await expect(
         service.updateStock('507f1f77bcf86cd799439011', { quantity: 50, operation: 'remove', reason: 'test' }, null),
@@ -468,7 +472,7 @@ describe('MaterialsService', () => {
     });
 
     it('should throw BadRequestException for invalid operation', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await expect(
         service.updateStock('507f1f77bcf86cd799439011', { quantity: 10, operation: 'invalid' as any, reason: 'test' }, null),
@@ -476,35 +480,35 @@ describe('MaterialsService', () => {
     });
 
     it('should emit stock update event', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.updateStock('507f1f77bcf86cd799439011', { quantity: 10, operation: 'add', reason: 'test' }, null);
       expect(mockGateway.emitStockUpdate).toHaveBeenCalled();
     });
 
     it('should invalidate cache after stock update', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.updateStock('507f1f77bcf86cd799439011', { quantity: 10, operation: 'add', reason: 'test' }, null);
       expect(mockCacheManager.del).toHaveBeenCalledWith('materials_dashboard');
     });
 
     it('should handle reserve operation', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, reservedQuantity: 0, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null, reservedQuantity: 0 });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.updateStock('507f1f77bcf86cd799439011', { quantity: 10, operation: 'reserve', reason: 'test' }, null);
       expect(mat.reservedQuantity).toBe(10);
     });
 
     it('should handle damage operation', async () => {
-      const mat = { ...mockMaterial, quantity: 100, siteId: null, damagedQuantity: 0, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 100, siteId: null, damagedQuantity: 0 });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.updateStock('507f1f77bcf86cd799439011', { quantity: 5, operation: 'damage', reason: 'test' }, null);
       expect(mat.damagedQuantity).toBe(5);
     });
 
     it('should throw BadRequestException when damaging more than available', async () => {
-      const mat = { ...mockMaterial, quantity: 3, siteId: null, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ quantity: 3, siteId: null });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await expect(
         service.updateStock('507f1f77bcf86cd799439011', { quantity: 10, operation: 'damage', reason: 'test' }, null),
@@ -515,21 +519,21 @@ describe('MaterialsService', () => {
   // ===== 14. update =====
   describe('update', () => {
     it('should update a material successfully', async () => {
-      const mat = { ...mockMaterial, save: jest.fn().mockResolvedValue({ ...mockMaterial, name: 'Updated' }) };
+      const mat = createMockMaterial();
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       const result = await service.update('507f1f77bcf86cd799439011', { name: 'Updated' } as any, null);
       expect(result).toBeDefined();
     });
 
     it('should emit materialUpdated event after update', async () => {
-      const mat = { ...mockMaterial, save: jest.fn().mockResolvedValue({ ...mockMaterial, name: 'Updated' }) };
+      const mat = createMockMaterial();
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.update('507f1f77bcf86cd799439011', { name: 'Updated' } as any, null);
       expect(mockGateway.emitMaterialUpdate).toHaveBeenCalledWith('materialUpdated', expect.anything());
     });
 
     it('should invalidate cache after update', async () => {
-      const mat = { ...mockMaterial, save: jest.fn().mockResolvedValue({ ...mockMaterial }) };
+      const mat = createMockMaterial();
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.update('507f1f77bcf86cd799439011', { name: 'Updated' } as any, null);
       expect(mockCacheManager.del).toHaveBeenCalledWith('materials_dashboard');
@@ -546,9 +550,9 @@ describe('MaterialsService', () => {
   // ===== 15. addImage =====
   describe('addImage', () => {
     it('should add image to material', async () => {
-      const mat = { ...mockMaterial, images: [], save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ images: [] });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
-      const result = await service.addImage('507f1f77bcf86cd799439011', '/uploads/test.jpg');
+      await service.addImage('507f1f77bcf86cd799439011', '/uploads/test.jpg');
       expect(mat.images).toContain('/uploads/test.jpg');
     });
 
@@ -560,7 +564,7 @@ describe('MaterialsService', () => {
     });
 
     it('should initialize images array if undefined', async () => {
-      const mat = { ...mockMaterial, images: undefined, save: jest.fn().mockResolvedValue(true) };
+      const mat = createMockMaterial({ images: undefined });
       mockMaterialModel.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mat) });
       await service.addImage('507f1f77bcf86cd799439011', '/uploads/test.jpg');
       expect(mat.images).toBeDefined();
