@@ -169,15 +169,6 @@ AI was added in SmartSite with a repeatable pattern that combines runtime LLM ca
 
 ## 6) Microservice AI Details
 
-### API Gateway
-- Role: entry point and request routing across the platform.
-- AI usage: no dedicated model logic; it supports AI-enabled services by routing requests and aggregating responses.
-- Value added by AI: easier access to downstream assistants and prediction endpoints through a single entry point.
-
-### User Authentication
-- Role: login, registration, JWT, roles, and permissions.
-- AI usage: assistant/chat support for platform guidance and user-oriented help.
-- Value added by AI: domain-aware assistance for users managing roles, permissions, and access-related questions.
 
 ### Gestion-Site
 - Role: site CRUD, geolocation, and site-level management.
@@ -188,11 +179,6 @@ AI was added in SmartSite with a repeatable pattern that combines runtime LLM ca
 - Role: project planning, budgets, timelines, and tracking.
 - AI usage: chat assistant powered by an OpenAI-compatible client.
 - Value added by AI: generates project-oriented guidance for planning, budget explanations, and next-step suggestions.
-
-### Gestion-Planing
-- Role: planning, schedules, and task coordination.
-- AI usage: assistant support for planning scenarios and schedule interpretation.
-- Value added by AI: helps users reason about task dependencies and planning conflicts.
 
 ### Materials-Service
 - Role: material stock, consumption, alerts, and forecasting.
@@ -214,16 +200,10 @@ AI was added in SmartSite with a repeatable pattern that combines runtime LLM ca
 - Value added by AI: improves incident triage, user guidance, and operational response drafting.
 
 
-
 ### Resource-Optimization
 - Role: resource allocation, optimization, planning support, and recommendation logic.
 - AI usage: assistant + optimization support.
 - Value added by AI: suggests better use of labor, equipment, energy, and budget with adaptive recommendations.
-
-### Paiement
-- Role: payment processing and transaction management.
-- AI usage: assistant support for payment-related guidance and operational explanations.
-- Value added by AI: improves support for payment flows and clarifies transaction states.
 
 
 ### Services Without Direct AI Models
