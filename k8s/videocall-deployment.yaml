@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: videocall
+  namespace: smartsite
+  labels:
+    app: videocall
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: videocall
+  template:
+    metadata:
+      labels:
+        app: videocall
+    spec:
+      containers:
+        - name: videocall
+          image: chedlyrebai/video-call:latest
+          ports:
+            - containerPort: 9000
+          env:
+            - name: PORT
+              value: "9000"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: videocall-secret
+                  key: MONGO_URI
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: videocall
+  namespace: smartsite
+  labels:
+    app: videocall
+spec:
+  type: ClusterIP
+  selector:
+    app: videocall
+  ports:
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP

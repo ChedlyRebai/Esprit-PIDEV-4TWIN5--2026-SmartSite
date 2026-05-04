@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-auth
+  namespace: smartsite
+  labels:
+    app: user-auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-auth
+  template:
+    metadata:
+      labels:
+        app: user-auth
+    spec:
+      containers:
+        - name: user-auth
+          image: chedlyrebai/user-authentication-api:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: user-auth-secret
+                  key: JWT_SECRET
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-auth
+  namespace: smartsite
+  labels:
+    app: user-auth
+spec:
+  type: ClusterIP
+  selector:
+    app: user-auth
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
