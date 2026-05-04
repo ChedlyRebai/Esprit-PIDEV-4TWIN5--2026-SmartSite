@@ -213,10 +213,7 @@ AI was added in SmartSite with a repeatable pattern that combines runtime LLM ca
 - AI usage: chat assistance for incident understanding and response guidance.
 - Value added by AI: improves incident triage, user guidance, and operational response drafting.
 
-### Notification
-- Role: notifications, event delivery, and alert propagation.
-- AI usage: AI-assisted alert text or event enrichment can be applied before sending messages.
-- Value added by AI: helps produce clearer alert content and supports event-driven communication.
+
 
 ### Resource-Optimization
 - Role: resource allocation, optimization, planning support, and recommendation logic.
@@ -228,10 +225,6 @@ AI was added in SmartSite with a repeatable pattern that combines runtime LLM ca
 - AI usage: assistant support for payment-related guidance and operational explanations.
 - Value added by AI: improves support for payment flows and clarifies transaction states.
 
-### Videocall
-- Role: real-time communication and meeting support.
-- AI usage: assistant support for collaboration-related scenarios.
-- Value added by AI: can help users understand call features and related workflows.
 
 ### Services Without Direct AI Models
 - Gestion-Fournisseurs: focused on supplier management without a dedicated model in the core flow.
