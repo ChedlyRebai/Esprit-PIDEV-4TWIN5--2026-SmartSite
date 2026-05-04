@@ -66,6 +66,7 @@ const mockGateway = { emitMaterialUpdate: jest.fn(), emitStockUpdate: jest.fn() 
 const mockFlowService = { recordMovement: jest.fn().mockResolvedValue(undefined) };
 const mockMlService = { detectConsumptionAnomaly: jest.fn().mockResolvedValue({ isAnomaly: false }) };
 const mockImportExportService = { importFromExcel: jest.fn(), exportToExcel: jest.fn(), exportToPDF: jest.fn() };
+const mockSitesService = { findOne: jest.fn().mockResolvedValue(null), findAll: jest.fn().mockResolvedValue([]) };
 
 // ===== TESTS =====
 describe('MaterialsService', () => {
@@ -83,6 +84,7 @@ describe('MaterialsService', () => {
         { provide: MaterialFlowService, useValue: mockFlowService },
         { provide: MLTrainingEnhancedService, useValue: mockMlService },
         { provide: ImportExportService, useValue: mockImportExportService },
+        { provide: SitesService, useValue: mockSitesService },
       ],
     }).compile();
     service = module.get<MaterialsService>(MaterialsService);
