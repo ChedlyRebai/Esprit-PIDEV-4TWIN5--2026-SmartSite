@@ -57,6 +57,7 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                     -Dsonar.projectKey=${SONAR_PROJECT} \
                                     -Dsonar.projectName='SmartSite - Materials Service' \
+                                    -Dsonar.branch.name=fournisseur-managment \
                                     -Dsonar.sources=src \
                                     -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts,**/*.dto.ts,**/*.entity.ts \
                                     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
