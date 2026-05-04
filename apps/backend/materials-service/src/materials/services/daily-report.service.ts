@@ -110,9 +110,16 @@ export class DailyReportService {
     email?: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
+      console.log('🔵 [DAILY REPORT SERVICE] sendManualReport appelé');
+      console.log('🔵 [DAILY REPORT SERVICE] Email:', email);
+      
       const reportEmail =
         email || this.configService.get<string>('DAILY_REPORT_EMAIL');
+      
+      console.log('🔵 [DAILY REPORT SERVICE] Email final:', reportEmail);
+      
       if (!reportEmail) {
+        console.log('🔴 [DAILY REPORT SERVICE] Aucun email spécifié');
         return {
           success: false,
           message: 'Email de destination non spécifié',
@@ -122,14 +129,30 @@ export class DailyReportService {
       this.logger.log(
         `📊 Génération du rapport quotidien manuel pour ${reportEmail}...`,
       );
+      
+      console.log('🔵 [DAILY REPORT SERVICE] Génération des données du rapport...');
       const reportData = await this.generateReportData();
+      console.log('🟢 [DAILY REPORT SERVICE] Données générées avec succès');
+      console.log('🔵 [DAILY REPORT SERVICE] Statistiques:', {
+        totalMaterials: reportData.totalActiveMaterials,
+        lowStock: reportData.lowStockMaterials.length,
+        outOfStock: reportData.outOfStockMaterials.length,
+        expiring: reportData.expiringMaterials.length,
+      });
+      
+      console.log('🔵 [DAILY REPORT SERVICE] Envoi de l\'email...');
       await this.sendReportEmail(reportEmail, reportData);
+      console.log('🟢 [DAILY REPORT SERVICE] Email envoyé avec succès');
 
       return {
         success: true,
         message: `Rapport quotidien envoyé avec succès à ${reportEmail}`,
       };
     } catch (error) {
+      console.log('🔴 [DAILY REPORT SERVICE] Erreur capturée:', error);
+      console.log('🔴 [DAILY REPORT SERVICE] Error message:', error.message);
+      console.log('🔴 [DAILY REPORT SERVICE] Error stack:', error.stack);
+      
       this.logger.error("❌ Erreur lors de l'envoi du rapport manuel:", error);
       return {
         success: false,
@@ -264,31 +287,94 @@ export class DailyReportService {
     subject: string,
     html: string,
   ): Promise<void> {
-    // Créer un transporteur temporaire pour le rapport quotidien
-    const nodemailer = require('nodemailer');
+    try {
+      console.log('🔵 [EMAIL] sendDailyReportEmail appelé');
+      console.log('🔵 [EMAIL] Destinataire:', email);
+      console.log('🔵 [EMAIL] Sujet:', subject);
+      
+      // Import nodemailer dynamiquement pour éviter les problèmes d'ES modules
+      console.log('🔵 [EMAIL] Import de nodemailer...');
+      const nodemailer = require('nodemailer');
+      console.log('🟢 [EMAIL] Nodemailer importé avec succès');
+      
+      // Créer un transporteur pour le rapport quotidien
+      const smtpHost = this.configService.get<string>('SMTP_HOST');
+      const smtpPort = this.configService.get<number>('SMTP_PORT');
+      const smtpUser = this.configService.get<string>('SMTP_USER');
+      const smtpPass = this.configService.get<string>('SMTP_PASS');
 
-    const transporter = nodemailer.createTransporter({
-      host: this.configService.get<string>('SMTP_HOST'),
-      port: this.configService.get<number>('SMTP_PORT'),
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
-      },
-    });
+      console.log('🔵 [EMAIL] Configuration SMTP:');
+      console.log('  - Host:', smtpHost);
+      console.log('  - Port:', smtpPort);
+      console.log('  - User:', smtpUser);
+      console.log('  - Pass:', smtpPass ? '***' + smtpPass.slice(-4) : 'NON DÉFINI');
 
-    const smtpFrom =
-      this.configService.get<string>('SMTP_FROM') ||
-      `"SmartSite Rapport" <${this.configService.get<string>('SMTP_USER')}>`;
+      this.logger.log(`📧 Configuration SMTP: ${smtpHost}:${smtpPort} (user: ${smtpUser})`);
 
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: email,
-      subject,
-      html,
-    });
+      if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+        console.log('🔴 [EMAIL] Configuration SMTP incomplète!');
+        throw new Error('Configuration SMTP incomplète. Vérifiez les variables d\'environnement SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS');
+      }
 
-    this.logger.log(`✅ Rapport quotidien envoyé à ${email}`);
+      console.log('🔵 [EMAIL] Création du transporteur...');
+      const transporter = nodemailer.createTransporter({
+        host: smtpHost,
+        port: smtpPort,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        tls: {
+          rejectUnauthorized: false, // For development with Ethereal
+        },
+      });
+      console.log('🟢 [EMAIL] Transporteur créé avec succès');
+
+      // Vérifier la connexion SMTP
+      console.log('🔵 [EMAIL] Vérification de la connexion SMTP...');
+      await transporter.verify();
+      console.log('🟢 [EMAIL] Connexion SMTP vérifiée avec succès');
+      this.logger.log('✅ Connexion SMTP vérifiée avec succès');
+
+      const smtpFrom =
+        this.configService.get<string>('SMTP_FROM') ||
+        `"SmartSite Rapport" <${smtpUser}>`;
+
+      console.log('🔵 [EMAIL] Envoi de l\'email...');
+      console.log('  - From:', smtpFrom);
+      console.log('  - To:', email);
+      
+      const info = await transporter.sendMail({
+        from: smtpFrom,
+        to: email,
+        subject,
+        html,
+      });
+
+      console.log('🟢 [EMAIL] Email envoyé avec succès!');
+      console.log('🔵 [EMAIL] Message ID:', info.messageId);
+      console.log('🔵 [EMAIL] Response:', info.response);
+
+      this.logger.log(`✅ Rapport quotidien envoyé à ${email}`);
+      this.logger.log(`📬 Message ID: ${info.messageId}`);
+      
+      // Pour Ethereal Email, afficher l'URL de prévisualisation
+      if (smtpHost.includes('ethereal')) {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+          console.log('🔵 [EMAIL] URL Ethereal:', previewUrl);
+          this.logger.log(`🔗 Prévisualisation Ethereal: ${previewUrl}`);
+        }
+      }
+    } catch (error) {
+      console.log('🔴 [EMAIL] Erreur lors de l\'envoi:', error);
+      console.log('🔴 [EMAIL] Error message:', error.message);
+      console.log('🔴 [EMAIL] Error stack:', error.stack);
+      
+      this.logger.error(`❌ Erreur lors de l'envoi de l'email:`, error);
+      throw new Error(`Échec de l'envoi de l'email: ${error.message}`);
+    }
   }
 
   private generateReportHtml(data: DailyReportData): string {

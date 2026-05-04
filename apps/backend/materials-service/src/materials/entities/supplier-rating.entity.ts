@@ -60,6 +60,12 @@ export class SupplierRating extends Document {
     default: 'REVIEWED',
   })
   status: 'PENDING' | 'REVIEWED' | 'RESOLVED';
+
+  @Prop({ default: false })
+  dialogShown: boolean;
+
+  @Prop()
+  dialogShownAt?: Date;
 }
 
 export const SupplierRatingSchema =

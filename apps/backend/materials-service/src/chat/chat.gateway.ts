@@ -480,6 +480,62 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  /**
+   * 🚚 BUG #6 FIX: Événement pour déclencher le dialog de paiement à l'arrivée du camion
+   */
+  @SubscribeMessage('truckArrived')
+  async handleTruckArrived(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      orderId: string;
+      materialName: string;
+      supplierName: string;
+      amount: number;
+      siteId: string;
+    },
+  ) {
+    try {
+      const roomId = `order-${data.orderId}`;
+
+      // Créer un message système pour notifier l'arrivée
+      const systemMessage = {
+        id: uuidv4(),
+        orderId: data.orderId,
+        senderId: 'system',
+        senderName: 'Système',
+        senderRole: 'system',
+        content: `🚚 Le camion de ${data.supplierName} est arrivé avec ${data.materialName}. Paiement requis.`,
+        type: MessageType.SYSTEM,
+        createdAt: new Date().toISOString(),
+        readBy: [],
+      };
+
+      // Sauvegarder dans la base de données
+      await this.chatService.saveMessage(systemMessage);
+
+      // Diffuser le message système à tous
+      this.server.to(roomId).emit('newMessage', systemMessage);
+
+      // Émettre l'événement pour ouvrir le dialog de paiement (uniquement au chantier)
+      this.server.to(roomId).emit('openPaymentDialog', {
+        orderId: data.orderId,
+        materialName: data.materialName,
+        supplierName: data.supplierName,
+        amount: data.amount,
+        siteId: data.siteId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(
+        `🚚 Truck arrived for order ${data.orderId}, payment dialog triggered`,
+      );
+    } catch (error) {
+      this.logger.error(`❌ Truck arrival error: ${error.message}`);
+      client.emit('error', { message: error.message });
+    }
+  }
+
   // Method to emit delivery progress from OrdersService
   emitDeliveryProgress(
     orderId: string,

@@ -15,7 +15,7 @@ export interface WeatherData {
 @Injectable()
 export class WeatherService {
   private readonly logger = new Logger(WeatherService.name);
-  private readonly API_KEY = 'demo_key'; // En production, utiliser une vraie clé API
+  private readonly API_KEY = process.env.OPENWEATHER_API_KEY || 'demo_key';
   private readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
   /**
@@ -28,24 +28,24 @@ export class WeatherService {
     try {
       this.logger.log(`🌍 Fetching weather for coordinates: ${lat}, ${lng}`);
 
-      // En mode démo, simuler les données météo
-      if (this.API_KEY === 'demo_key') {
+      // Vérifier si la clé API est configurée
+      if (!this.API_KEY || this.API_KEY === 'demo_key') {
+        this.logger.warn('⚠️ OpenWeather API key not configured, using simulation');
         return this.simulateWeatherData(lat, lng);
       }
 
-      // Code pour API réelle (à activer avec une vraie clé API)
-      /*
-      const response = await fetch(`${this.BASE_URL}/weather?lat=${lat}&lon=${lng}&appid=${this.API_KEY}&units=metric&lang=fr`);
+      // Appeler l'API OpenWeatherMap
+      const axios = require('axios');
+      const url = `${this.BASE_URL}/weather?lat=${lat}&lon=${lng}&appid=${this.API_KEY}&units=metric&lang=fr`;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await axios.get(url, { timeout: 5000 });
+      
+      if (!response?.data) {
+        this.logger.warn('⚠️ No data from OpenWeather API, using simulation');
+        return this.simulateWeatherData(lat, lng);
       }
-      
-      const data = await response.json();
-      return this.parseWeatherResponse(data);
-      */
 
-      return this.simulateWeatherData(lat, lng);
+      return this.parseWeatherResponse(response.data);
     } catch (error) {
       this.logger.error(`❌ Error fetching weather: ${error.message}`);
       return this.simulateWeatherData(lat, lng);
@@ -59,23 +59,24 @@ export class WeatherService {
     try {
       this.logger.log(`🏙️ Fetching weather for city: ${cityName}`);
 
-      if (this.API_KEY === 'demo_key') {
+      // Vérifier si la clé API est configurée
+      if (!this.API_KEY || this.API_KEY === 'demo_key') {
+        this.logger.warn('⚠️ OpenWeather API key not configured, using simulation');
         return this.simulateWeatherData(0, 0, cityName);
       }
 
-      // Code pour API réelle
-      /*
-      const response = await fetch(`${this.BASE_URL}/weather?q=${cityName}&appid=${this.API_KEY}&units=metric&lang=fr`);
+      // Appeler l'API OpenWeatherMap
+      const axios = require('axios');
+      const url = `${this.BASE_URL}/weather?q=${encodeURIComponent(cityName)}&appid=${this.API_KEY}&units=metric&lang=fr`;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await axios.get(url, { timeout: 5000 });
+      
+      if (!response?.data) {
+        this.logger.warn('⚠️ No data from OpenWeather API, using simulation');
+        return this.simulateWeatherData(0, 0, cityName);
       }
-      
-      const data = await response.json();
-      return this.parseWeatherResponse(data);
-      */
 
-      return this.simulateWeatherData(0, 0, cityName);
+      return this.parseWeatherResponse(response.data);
     } catch (error) {
       this.logger.error(`❌ Error fetching weather for city: ${error.message}`);
       return this.simulateWeatherData(0, 0, cityName);
@@ -176,10 +177,11 @@ export class WeatherService {
   }
 
   /**
-   * 📊 Parser la réponse de l'API météo (pour usage futur avec vraie API)
+   * 📊 Parser la réponse de l'API météo (pour usage avec vraie API)
    */
   private parseWeatherResponse(data: any): WeatherData {
-    const condition = this.mapWeatherCondition(data.weather[0].main);
+    const weatherId = data.weather[0].id;
+    const condition = this.mapWeatherCondition(weatherId);
 
     return {
       temperature: Math.round(data.main.temp),
@@ -198,17 +200,14 @@ export class WeatherService {
    * 🗺️ Mapper les conditions météo de l'API vers nos conditions
    */
   private mapWeatherCondition(
-    apiCondition: string,
+    weatherId: number,
   ): 'sunny' | 'cloudy' | 'rainy' | 'snowy' | 'stormy' | 'windy' {
-    const condition = apiCondition.toLowerCase();
-
-    if (condition.includes('clear')) return 'sunny';
-    if (condition.includes('cloud')) return 'cloudy';
-    if (condition.includes('rain') || condition.includes('drizzle'))
-      return 'rainy';
-    if (condition.includes('snow')) return 'snowy';
-    if (condition.includes('thunder')) return 'stormy';
-    if (condition.includes('wind')) return 'windy';
+    if (weatherId >= 200 && weatherId < 300) return 'stormy';
+    if (weatherId >= 300 && weatherId < 600) return 'rainy';
+    if (weatherId >= 600 && weatherId < 700) return 'snowy';
+    if (weatherId >= 700 && weatherId < 800) return 'windy';
+    if (weatherId === 800) return 'sunny';
+    if (weatherId > 800) return 'cloudy';
 
     return 'cloudy'; // Par défaut
   }

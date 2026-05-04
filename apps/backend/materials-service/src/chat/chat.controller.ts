@@ -163,7 +163,7 @@ export class ChatController {
       if (!file) return { success: false, error: 'No file' };
 
       // 🔥 PROBLÈME 2 FIX: URL complète avec domaine pour accès public
-      const baseUrl = process.env.BASE_URL || 'http://localhost:3002';
+      const baseUrl = process.env.BASE_URL || 'http://localhost:3009';
       const fileUrl = `${baseUrl}/uploads/chat/${file.filename}`;
 
       let fileType = 'document';

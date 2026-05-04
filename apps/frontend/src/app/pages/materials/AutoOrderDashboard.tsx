@@ -27,9 +27,9 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
 
       const criticalCount = data.filter(r => r.urgencyLevel === 'critical').length;
       if (criticalCount > 0) {
-        toast.error(`${criticalCount} materiau(x) necessitent une commande URGENTE!`, { duration: 10000 });
+        toast.error(`${criticalCount} material(s) require URGENT ordering!`, { duration: 10000 });
       } else if (data.length > 0) {
-        toast.warning(`${data.length} materiau(x) necessitent une commande`, { duration: 5000 });
+        toast.warning(`${data.length} material(s) require ordering`, { duration: 5000 });
       }
     } catch (error) {
       console.error('Error loading auto order recommendations:', error);
@@ -51,7 +51,7 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
       <Card>
         <CardContent className="py-8 text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-          <p className="mt-2 text-gray-500">Analyse des stocks en cours...</p>
+          <p className="mt-2 text-gray-500">Analyzing inventory...</p>
         </CardContent>
       </Card>
     );
@@ -62,8 +62,8 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
       <Card>
         <CardContent className="py-8 text-center">
           <Package className="h-12 w-12 mx-auto text-green-400" />
-          <p className="mt-2 text-gray-500">Tous les stocks sont suffisants</p>
-          <p className="text-sm text-gray-400">Aucun materiau ne necessite de commande pour le moment</p>
+          <p className="mt-2 text-gray-500">All stock levels are sufficient</p>
+          <p className="text-sm text-gray-400">No materials require ordering at this time</p>
         </CardContent>
       </Card>
     );
@@ -75,15 +75,15 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <TrendingDown className="h-5 w-5 text-yellow-500" />
-            Commandes recommandees ({recommendations.length})
+            Recommended orders ({recommendations.length})
           </h3>
           <p className="text-sm text-gray-500">
-            Base sur la prediction IA: commande automatique si rupture {'<'} 48h
+            Based on AI prediction: auto-order if stockout {'<'} 48h
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
+          Refresh
         </Button>
       </div>
 
@@ -92,7 +92,7 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
           <CardHeader className="pb-2">
             <CardTitle className="text-red-700 flex items-center gap-2 text-base">
               <AlertTriangle className="h-5 w-5" />
-              Urgent - Rupture imminente ({criticalItems.length})
+              Urgent - Imminent stockout ({criticalItems.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -106,8 +106,8 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
                     </div>
                     <div className="grid grid-cols-3 gap-4 mt-1 text-sm">
                       <div><span className="text-gray-500">Stock:</span><span className="font-medium ml-1">{rec.currentStock}</span></div>
-                      <div><span className="text-gray-500">Consommation:</span><span className="font-medium ml-1">{rec.consumptionRate}/h</span></div>
-                      <div><span className="text-gray-500">Rupture dans:</span><span className="font-medium text-red-600 ml-1">{rec.predictedHoursToOutOfStock}h</span></div>
+                      <div><span className="text-gray-500">Consumption:</span><span className="font-medium ml-1">{rec.consumptionRate}/h</span></div>
+                      <div><span className="text-gray-500">Stockout in:</span><span className="font-medium text-red-600 ml-1">{Math.floor(rec.predictedHoursToOutOfStock)}h</span></div>
                     </div>
                     <p className="text-xs text-red-600 mt-1">{rec.reason}</p>
                   </div>
@@ -129,7 +129,7 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
           <CardHeader className="pb-2">
             <CardTitle className="text-yellow-700 flex items-center gap-2 text-base">
               <Clock className="h-5 w-5" />
-              A surveiller - Stock bas ({warningItems.length})
+              Monitor - Low stock ({warningItems.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -143,8 +143,8 @@ export default function AutoOrderDashboard({ siteId, onRefresh }: AutoOrderDashb
                     </div>
                     <div className="grid grid-cols-3 gap-4 mt-1 text-sm">
                       <div><span className="text-gray-500">Stock:</span><span className="font-medium ml-1">{rec.currentStock}</span></div>
-                      <div><span className="text-gray-500">Seuil:</span><span className="font-medium ml-1">{rec.recommendedQuantity} recommande</span></div>
-                      <div><span className="text-gray-500">Lead time:</span><span className="font-medium ml-1">{rec.leadTimeDays} jours</span></div>
+                      <div><span className="text-gray-500">Threshold:</span><span className="font-medium ml-1">{rec.recommendedQuantity} recommended</span></div>
+                      <div><span className="text-gray-500">Lead time:</span><span className="font-medium ml-1">{rec.leadTimeDays} days</span></div>
                     </div>
                   </div>
                   <AutoOrderButton

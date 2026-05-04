@@ -16,21 +16,21 @@ interface DashboardStatsProps {
 export default function DashboardStats({ stats }: DashboardStatsProps) {
   const statCards = [
     {
-      title: 'Matériaux',
+      title: 'Materials',
       value: stats.totalMaterials,
       icon: Package,
       color: 'text-blue-500',
       bg: 'bg-blue-50',
     },
     {
-      title: 'Quantité totale',
+      title: 'Total quantity',
       value: stats.totalQuantity.toLocaleString(),
       icon: Building2,
       color: 'text-green-500',
       bg: 'bg-green-50',
     },
     {
-      title: 'Stock bas',
+      title: 'Low stock',
       value: stats.lowStock,
       icon: TrendingDown,
       color: 'text-yellow-500',
@@ -38,7 +38,7 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       alert: stats.lowStock > 0,
     },
     {
-      title: 'Rupture',
+      title: 'Out of stock',
       value: stats.outOfStock,
       icon: AlertTriangle,
       color: 'text-red-500',
@@ -46,14 +46,14 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       alert: stats.outOfStock > 0,
     },
     {
-      title: 'Commandes actives',
+      title: 'Active orders',
       value: stats.activeOrders,
       icon: Truck,
       color: 'text-purple-500',
       bg: 'bg-purple-50',
     },
     {
-      title: 'Catégories',
+      title: 'Categories',
       value: stats.categoriesCount,
       icon: Brain,
       color: 'text-indigo-500',

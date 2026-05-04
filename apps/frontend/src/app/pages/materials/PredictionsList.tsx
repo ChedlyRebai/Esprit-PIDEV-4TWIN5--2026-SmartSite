@@ -32,7 +32,7 @@ export default function PredictionsList() {
 
   useEffect(() => {
     loadPredictions();
-    const interval = setInterval(loadPredictions, 60000); // Rafraîchir toutes les minutes
+    const interval = setInterval(loadPredictions, 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
 
@@ -41,13 +41,13 @@ export default function PredictionsList() {
       const data = await materialService.getAllPredictions();
       const validPredictions = data.filter(p => p !== null);
       
-      // Charger la météo pour chaque prédiction avec coordonnées
+      // Load weather for each prediction with coordinates
       const predictionsWithWeather = await Promise.all(
         validPredictions.map(async (pred) => {
           if (pred.siteCoordinates?.lat && pred.siteCoordinates?.lng) {
             try {
               const response = await fetch(
-                `http://localhost:3002/api/materials/weather?lat=${pred.siteCoordinates.lat}&lng=${pred.siteCoordinates.lng}`
+                `/api/weather?lat=${pred.siteCoordinates.lat}&lng=${pred.siteCoordinates.lng}`
               );
               const weatherData = await response.json();
               if (weatherData.success && weatherData.weather) {
@@ -72,11 +72,11 @@ export default function PredictionsList() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'critical':
-        return <Badge variant="destructive">Critique</Badge>;
+        return <Badge variant="destructive">Critical</Badge>;
       case 'warning':
-        return <Badge variant="secondary" className="bg-yellow-500 text-white">Attention</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-500 text-white">Warning</Badge>;
       default:
-        return <Badge variant="default" className="bg-green-500 text-white">Sécurisé</Badge>;
+        return <Badge variant="default" className="bg-green-500 text-white">Safe</Badge>;
     }
   };
 
@@ -94,8 +94,8 @@ export default function PredictionsList() {
   const formatHours = (hours: number) => {
     if (hours < 24) return `${Math.floor(hours)}h`;
     const days = Math.floor(hours / 24);
-    const remainingHours = hours % 24;
-    return remainingHours > 0 ? `${days}j ${remainingHours}h` : `${days}j`;
+    const remainingHours = Math.floor(hours % 24); // Arrondi pour éviter les décimales
+    return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
   };
 
   const filteredPredictions = predictions.filter(p => {
@@ -111,7 +111,7 @@ export default function PredictionsList() {
       <Card>
         <CardContent className="py-8 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
-          <p className="mt-2 text-gray-500">Analyse des stocks en cours...</p>
+          <p className="mt-2 text-gray-500">Analyzing stock levels...</p>
         </CardContent>
       </Card>
     );
@@ -123,10 +123,10 @@ export default function PredictionsList() {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-500" />
-            Prédictions IA
+            AI Predictions
             {criticalCount > 0 && (
               <Badge variant="destructive" className="ml-2">
-                {criticalCount} rupture imminente{criticalCount > 1 ? 's' : ''}
+                {criticalCount} imminent stockout{criticalCount > 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -135,19 +135,19 @@ export default function PredictionsList() {
               onClick={() => setFilter('all')}
               className={`px-2 py-1 text-xs rounded ${filter === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
             >
-              Tous ({predictions.length})
+              All ({predictions.length})
             </button>
             <button
               onClick={() => setFilter('critical')}
               className={`px-2 py-1 text-xs rounded ${filter === 'critical' ? 'bg-red-500 text-white' : 'bg-gray-100'}`}
             >
-              Critique ({criticalCount})
+              Critical ({criticalCount})
             </button>
             <button
               onClick={() => setFilter('warning')}
               className={`px-2 py-1 text-xs rounded ${filter === 'warning' ? 'bg-yellow-500 text-white' : 'bg-gray-100'}`}
             >
-              Attention ({warningCount})
+              Warning ({warningCount})
             </button>
           </div>
         </CardTitle>
@@ -156,7 +156,7 @@ export default function PredictionsList() {
         {filteredPredictions.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Brain className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-            <p>Aucune prédiction à afficher</p>
+            <p>No predictions to display</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -181,39 +181,41 @@ export default function PredictionsList() {
                     
                     <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                       <div>
-                        <span className="text-gray-500">Stock actuel:</span>
+                        <span className="text-gray-500">Current stock:</span>
                         <span className="ml-1 font-medium">{prediction.currentStock}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Consommation:</span>
-                        <span className="ml-1 font-medium">{prediction.consumptionRate}/h</span>
+                        <span className="text-gray-500">Consumption:</span>
+                        <span className="ml-1 font-medium">{Math.round(prediction.consumptionRate * 10) / 10}/day</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Stock prédit (24h):</span>
+                        <span className="text-gray-500">Predicted stock (7d):</span>
                         <span className="ml-1 font-medium">{Math.max(0, Math.floor(prediction.predictedStock))}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Confiance:</span>
-                        <span className="ml-1 font-medium">{Math.round(prediction.confidence * 100)}%</span>
+                        <span className="text-gray-500">Confidence:</span>
+                        <span className="ml-1 font-medium text-blue-600">{Math.round(prediction.confidence * 100)}%</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 mt-2 text-xs">
-                      <span className={`${prediction.hoursToLowStock < 24 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                        ⚠️ Stock bas: {formatHours(prediction.hoursToLowStock)}
+                    <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
+                      <span className={`${prediction.hoursToOutOfStock < 72 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                        🚨 Stockout in: {formatHours(prediction.hoursToOutOfStock)}
                       </span>
-                      <span className={`${prediction.hoursToOutOfStock < 24 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                        🚨 Rupture: {formatHours(prediction.hoursToOutOfStock)}
-                      </span>
+                      {prediction.hoursToOutOfStock < 48 && (
+                        <Badge variant="destructive" className="animate-pulse">
+                          IMMINENT STOCKOUT - {formatHours(prediction.hoursToOutOfStock)}
+                        </Badge>
+                      )}
                       {prediction.recommendedOrderQuantity > 0 && (
-                        <span className="text-blue-600">
-                          📦 Commande recommandée: {Math.ceil(prediction.recommendedOrderQuantity)}
+                        <span className="text-blue-600 font-medium">
+                          📦 Order: {Math.ceil(prediction.recommendedOrderQuantity)} units
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs mt-2 text-gray-500">
-                      {prediction.message}
+                    <p className="text-xs mt-2 text-gray-600 italic bg-white px-2 py-1 rounded border-l-2 border-purple-400">
+                      🤖 FastAPI ML: {prediction.message}
                     </p>
 
                     {prediction.weather && (
@@ -226,10 +228,10 @@ export default function PredictionsList() {
                             </div>
                             <div className="text-blue-600 text-[10px]">
                               {prediction.weather.condition === 'rainy' || prediction.weather.condition === 'stormy' ? 
-                                '⚠️ Conditions difficiles - Consommation peut augmenter' :
+                                '⚠️ Difficult conditions - Consumption may increase' :
                                 prediction.weather.condition === 'sunny' ?
-                                '✅ Conditions optimales' :
-                                '☁️ Conditions normales'}
+                                '✅ Optimal conditions' :
+                                '☁️ Normal conditions'}
                             </div>
                           </div>
                         </div>

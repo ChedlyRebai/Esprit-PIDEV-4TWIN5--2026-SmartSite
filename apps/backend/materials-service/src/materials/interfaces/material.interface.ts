@@ -17,7 +17,7 @@ export interface StockAlert {
   materialName: string;
   currentQuantity: number;
   threshold: number;
-  type: 'low_stock' | 'out_of_stock' | 'expiring' | 'overstock';
+  type: 'low_stock' | 'out_of_stock' | 'expiring' | 'expired' | 'overstock';
   severity: 'low' | 'medium' | 'high';
   message: string;
   date: Date;

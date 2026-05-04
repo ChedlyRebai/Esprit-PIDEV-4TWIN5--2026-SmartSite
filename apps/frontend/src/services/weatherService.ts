@@ -22,32 +22,27 @@ export interface WeatherImpact {
 }
 
 class WeatherService {
-  private readonly API_KEY = 'demo_key'; // En production, utiliser une vraie clé API
-  private readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
+  private readonly BACKEND_URL = '/api/weather';
 
   /**
    * 🌤️ Récupérer les données météo par coordonnées GPS
    */
   async getWeatherByCoordinates(lat: number, lng: number): Promise<WeatherData> {
     try {
-      // En mode démo, simuler les données météo
-      if (this.API_KEY === 'demo_key') {
-        return this.simulateWeatherData(lat, lng);
-      }
-
-      const response = await axios.get(`${this.BASE_URL}/weather`, {
-        params: {
-          lat,
-          lon: lng,
-          appid: this.API_KEY,
-          units: 'metric',
-          lang: 'fr'
-        }
+      console.log(`🌍 Fetching weather from backend for coordinates: ${lat}, ${lng}`);
+      
+      const response = await axios.get(`${this.BACKEND_URL}`, {
+        params: { lat, lng }
       });
 
-      return this.parseWeatherResponse(response.data);
+      if (response.data.success && response.data.weather) {
+        return this.parseBackendWeatherResponse(response.data.weather);
+      }
+
+      console.warn('⚠️ Backend weather API returned no data, using fallback');
+      return this.simulateWeatherData(lat, lng);
     } catch (error) {
-      console.error('Error fetching weather data:', error);
+      console.error('❌ Error fetching weather data from backend:', error);
       return this.simulateWeatherData(lat, lng);
     }
   }
@@ -57,22 +52,20 @@ class WeatherService {
    */
   async getWeatherByCity(cityName: string): Promise<WeatherData> {
     try {
-      if (this.API_KEY === 'demo_key') {
-        return this.simulateWeatherData(0, 0, cityName);
-      }
-
-      const response = await axios.get(`${this.BASE_URL}/weather`, {
-        params: {
-          q: cityName,
-          appid: this.API_KEY,
-          units: 'metric',
-          lang: 'fr'
-        }
+      console.log(`🏙️ Fetching weather from backend for city: ${cityName}`);
+      
+      const response = await axios.get(`${this.BACKEND_URL}/city`, {
+        params: { city: cityName }
       });
 
-      return this.parseWeatherResponse(response.data);
+      if (response.data.success && response.data.weather) {
+        return this.parseBackendWeatherResponse(response.data.weather);
+      }
+
+      console.warn('⚠️ Backend weather API returned no data, using fallback');
+      return this.simulateWeatherData(0, 0, cityName);
     } catch (error) {
-      console.error('Error fetching weather data:', error);
+      console.error('❌ Error fetching weather data from backend:', error);
       return this.simulateWeatherData(0, 0, cityName);
     }
   }
@@ -171,6 +164,25 @@ class WeatherService {
       icon: randomCondition.icon,
       location: location || `Site (${lat.toFixed(2)}, ${lng.toFixed(2)})`,
       coordinates: { lat, lng }
+    };
+  }
+
+  /**
+   * 📊 Parser la réponse de l'API météo backend
+   */
+  private parseBackendWeatherResponse(data: any): WeatherData {
+    return {
+      temperature: data.temperature,
+      humidity: data.humidity,
+      windSpeed: data.windSpeed,
+      condition: data.condition,
+      description: data.description,
+      icon: data.icon,
+      location: data.cityName,
+      coordinates: {
+        lat: 0, // Non fourni par le backend
+        lng: 0
+      }
     };
   }
 

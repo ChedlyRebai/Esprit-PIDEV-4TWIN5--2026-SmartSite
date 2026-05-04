@@ -28,6 +28,7 @@ import PaymentDialog from './PaymentDialog';
 import SupplierRatingDialog from './SupplierRatingDialog';
 import MLTrainingButton from '../../components/materials/MLTrainingButton';
 import AnomalyAlert from '../../components/materials/AnomalyAlert';
+import DailyReportButton from '../../components/materials/DailyReportButton';
 import OrdersTrackingSidebar from '../../../components/orders/OrdersTrackingSidebar';
 import ExpiringMaterials from '../../../components/ExpiringMaterials';
 
@@ -95,11 +96,10 @@ export default function Materials() {
     userId: string;
     userName: string;
   } | null>(null);
-  const [hasCheckedRatings, setHasCheckedRatings] = useState(false); // Nouveau flag pour éviter les re-checks
 
   // Supplier Rating Hook
   const currentUserId = "675a123456789012345678ab"; // TODO: Get from auth context
-  const currentUserName = "Gestionnaire"; // TODO: Get from auth context
+  const currentUserName = "Manager"; // TODO: Get from auth context
   const { pendingRatings, checkAllMaterials, markAsRated, markAsIgnored } = useSupplierRating(currentUserId);
 
   // Close QR menu when clicking outside
@@ -125,7 +125,7 @@ export default function Materials() {
     };
     loadExpiringCount();
 
-    // 🚨 Écouter les alertes d'anomalie via WebSocket (simulation)
+    // 🚨 Listen for anomaly alerts via WebSocket (simulation)
     const handleAnomalyAlert = (data: any) => {
       const newAlert = {
         id: Date.now().toString(),
@@ -145,7 +145,7 @@ export default function Materials() {
       }
     };
 
-    // Simuler la réception d'alertes (en production, ceci serait via WebSocket)
+    // Simulate receiving alerts (in production, this would be via WebSocket)
     window.addEventListener('anomalyDetected', handleAnomalyAlert as any);
     
     return () => {
@@ -188,7 +188,10 @@ export default function Materials() {
       setCategories(uniqueCategories);
       
       const totalQty = safeMaterials.reduce((sum: number, m: Material) => sum + (m.quantity || 0), 0);
-      const lowStockItems = safeMaterials.filter((m: Material) => m.quantity > 0 && m.quantity <= (m.reorderPoint || 0)).length;
+      const lowStockItems = safeMaterials.filter((m: Material) => {
+        const threshold = (m as any).stockMinimum || m.reorderPoint || m.minimumStock || 0;
+        return m.quantity > 0 && m.quantity <= threshold;
+      }).length;
       const outOfStockItems = safeMaterials.filter((m: Material) => !m.quantity || m.quantity === 0).length;
       
       setDashboardStats({
@@ -199,22 +202,22 @@ export default function Materials() {
         categoriesCount: uniqueCategories.length
       });
       
-      const alertMaterials = safeMaterials.filter((m: Material) => 
-        !m.quantity || m.quantity === 0 || m.quantity <= (m.reorderPoint || 0)
-      );
+      const alertMaterials = safeMaterials.filter((m: Material) => {
+        const threshold = (m as any).stockMinimum || m.reorderPoint || m.minimumStock || 0;
+        return !m.quantity || m.quantity === 0 || m.quantity <= threshold;
+      });
       setAlerts(alertMaterials);
       
-      // Réinitialiser le flag de vérification des ratings seulement lors d'un vrai reload
-      setHasCheckedRatings(false);
+      // Reset ratings check flag only on actual reload
       
       if (outOfStockItems > 0) {
-        toast.error(`${outOfStockItems} matériau(x) en rupture de stock!`, { duration: 5000 });
+        toast.error(`${outOfStockItems} material(s) out of stock!`, { duration: 5000 });
       } else if (lowStockItems > 0) {
-        toast.warning(`${lowStockItems} matériau(x) en stock bas`, { duration: 5000 });
+        toast.warning(`${lowStockItems} material(s) low stock`, { duration: 5000 });
       }
     } catch (error: any) {
       console.error('Error loading materials:', error);
-      toast.error(error.message || 'Erreur chargement matériaux');
+      toast.error(error.message || 'Error loading materials');
     } finally {
       setLoading(false);
     }
@@ -230,57 +233,90 @@ export default function Materials() {
     setLoadingPredictions(true);
     const newPredictions = new Map<string, StockPrediction>();
     try {
-      // Charger toutes les prédictions depuis le nouvel endpoint
+      // Load all predictions from the new endpoint
       const predictionsData = await materialService.getAllPredictions();
       
       if (Array.isArray(predictionsData)) {
         predictionsData.forEach((pred: any) => {
-          // Convertir le format du backend vers le format attendu par le frontend
+          // Convert backend format to frontend expected format
           const prediction: StockPrediction = {
             materialId: pred.materialId,
             materialName: pred.materialName,
             currentStock: pred.currentStock,
-            consumptionRate: pred.hourlyConsumption,
-            hoursToLowStock: pred.hoursRemaining * 0.7, // 70% du temps avant rupture
-            hoursToOutOfStock: pred.hoursRemaining,
+            consumptionRate: pred.consumptionRate || pred.hourlyConsumption || 0,
+            hoursToLowStock: pred.hoursToLowStock || (pred.hoursRemaining ? pred.hoursRemaining * 0.7 : 999),
+            hoursToOutOfStock: pred.hoursToOutOfStock || pred.hoursRemaining || 999,
             status: pred.status === 'critical' ? 'critical' : pred.status === 'warning' ? 'warning' : 'safe',
-            recommendedOrderQuantity: pred.currentStock * 2, // Estimation simple
-            predictionModelUsed: pred.confidence > 0.7,
-            confidence: pred.confidence,
-            message: `Rupture prévue dans ${pred.hoursRemaining}h (${pred.daysRemaining}j)`
+            recommendedOrderQuantity: pred.recommendedOrderQuantity || pred.currentStock * 2,
+            predictionModelUsed: pred.predictionModelUsed || pred.confidence > 0.7,
+            confidence: pred.confidence || 0.5,
+            message: pred.message || `Out of stock in ${pred.hoursToOutOfStock || pred.hoursRemaining || 999}h`
           };
           
           newPredictions.set(pred.materialId, prediction);
           
-          // Afficher les alertes critiques
-          if (prediction.status === 'critical') {
-            toast.error(`🚨 ${prediction.materialName}: Rupture dans ${Math.round(prediction.hoursToOutOfStock)}h!`, { duration: 5000 });
-          } else if (prediction.status === 'warning') {
-            toast.warning(`⚠️ ${prediction.materialName}: Stock bas dans ${Math.round(prediction.hoursToOutOfStock)}h`, { duration: 3000 });
+          // Show critical alerts only on first load
+          if (predictions.size === 0) {
+            if (prediction.status === 'critical') {
+              toast.error(`🚨 ${prediction.materialName}: Out of stock in ${Math.round(prediction.hoursToOutOfStock)}h!`, { duration: 5000 });
+            } else if (prediction.status === 'warning') {
+              toast.warning(`⚠️ ${prediction.materialName}: Low stock in ${Math.round(prediction.hoursToOutOfStock)}h`, { duration: 3000 });
+            }
           }
         });
       }
       
       setPredictions(newPredictions);
-      console.log(`✅ ${newPredictions.size} prédictions chargées`);
+      console.log(`✅ ${newPredictions.size} predictions loaded from FastAPI ML service`);
     } catch (err: any) {
       console.error('Error loading predictions:', err);
-      // Ne pas afficher d'erreur à l'utilisateur si les prédictions échouent
-      // toast.error('Impossible de charger les prédictions IA');
+      // Don't show error to user if predictions fail
+      // toast.error('Unable to load AI predictions');
     } finally {
       setLoadingPredictions(false);
     }
-  }, [materials]);
+  }, [materials, predictions.size]);
 
   useEffect(() => { 
-    if (materials.length > 0) {
-      loadPredictions(); // ✅ RÉACTIVÉ
+    if (materials.length > 0 && predictions.size === 0) {
+      // Only load predictions once when materials are first loaded
+      loadPredictions();
+    }
+    
+    // Reload predictions every 5 minutes
+    const predictionInterval = setInterval(() => {
+      if (materials.length > 0) {
+        loadPredictions();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    // Force re-render every minute to update hour display
+    const displayInterval = setInterval(() => {
+      // Decrement hours for all predictions
+      setPredictions(prev => {
+        const newPredictions = new Map(prev);
+        for (const [id, pred] of newPredictions.entries()) {
+          // Reduce by approximately 1/60 hour per minute (approximation)
+          newPredictions.set(id, {
+            ...pred,
+            hoursToOutOfStock: Math.max(0, pred.hoursToOutOfStock - (1/60)),
+            hoursToLowStock: Math.max(0, pred.hoursToLowStock - (1/60)),
+          });
+        }
+        return newPredictions;
+      });
+    }, 60 * 1000); // 1 minute
+    
+    // Check for supplier ratings needed after 30% consumption
+    // Only check ONCE when materials are first loaded
+    if (materials.length > 0 && !showSupplierRatingDialog && pendingRatings.length === 0) {
+      // Check only if we haven't checked yet in this session
+      const sessionKey = `supplierRatingsChecked_${currentUserId}`;
+      const alreadyChecked = sessionStorage.getItem(sessionKey);
       
-      // Check for supplier ratings needed after 30% consumption
-      // Seulement si on n'a pas encore vérifié ET qu'aucun dialog n'est ouvert
-      if (!hasCheckedRatings && !showSupplierRatingDialog) {
+      if (!alreadyChecked) {
         checkAllMaterials(materials).then((ratingsNeeded) => {
-          if (ratingsNeeded.length > 0) {
+          if (ratingsNeeded && ratingsNeeded.length > 0) {
             // Show the first pending rating
             const firstRating = ratingsNeeded[0];
             if (firstRating.material) {
@@ -288,22 +324,27 @@ export default function Materials() {
                 materialId: firstRating.material._id,
                 materialName: firstRating.material.name,
                 supplierId: firstRating.material.supplierId || '',
-                supplierName: firstRating.material.supplierName || 'Fournisseur',
+                supplierName: firstRating.material.supplierName || 'Supplier',
                 siteId: firstRating.material.siteId || '',
                 consumptionPercentage: firstRating.consumptionPercentage,
                 userId: currentUserId,
                 userName: currentUserName,
               });
               setShowSupplierRatingDialog(true);
-              toast.info(`🎯 Évaluation fournisseur requise pour ${firstRating.material.name} (${firstRating.consumptionPercentage}% consommé)`, { duration: 8000 });
+              toast.info(`🎯 Supplier rating required for ${firstRating.material.name} (${firstRating.consumptionPercentage}% consumed)`, { duration: 8000 });
             }
           }
-          // Marquer comme vérifié pour éviter les re-checks
-          setHasCheckedRatings(true);
+          // Mark as checked for this session
+          sessionStorage.setItem(sessionKey, 'true');
         });
       }
     }
-  }, [materials.length, loadPredictions, checkAllMaterials, currentUserId, currentUserName, hasCheckedRatings, showSupplierRatingDialog]);
+    
+    return () => {
+      clearInterval(predictionInterval);
+      clearInterval(displayInterval);
+    };
+  }, [materials.length, predictions.size, currentUserId, currentUserName, showSupplierRatingDialog, pendingRatings.length]);
 
   // Filter materials
   const filteredMaterials = materials.filter(material => {
@@ -318,7 +359,8 @@ export default function Materials() {
     if (stockFilter === 'out') {
       matchesStock = !material.quantity || material.quantity === 0;
     } else if (stockFilter === 'low') {
-      matchesStock = material.quantity > 0 && material.quantity <= (material.reorderPoint || 0);
+      const threshold = (material as any).stockMinimum || material.reorderPoint || material.minimumStock || 0;
+      matchesStock = material.quantity > 0 && material.quantity <= threshold;
     }
     
     return matchesSearch && matchesCategory && matchesStock;
@@ -344,11 +386,11 @@ export default function Materials() {
   const handleDelete = async (id: string) => {
     try {
       await materialService.deleteMaterial(id);
-      toast.success('Matériau supprimé');
+      toast.success('Material deleted');
       setShowDeleteConfirm(null);
       loadData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Échec suppression');
+      toast.error(error.response?.data?.message || 'Deletion failed');
     }
   };
 
@@ -361,6 +403,16 @@ export default function Materials() {
     materialSiteName?: string,
     materialSiteCoordinates?: { lat: number; lng: number }
   ) => {
+    console.log('🛒 handleReorder called:', {
+      materialId,
+      materialName,
+      materialCode,
+      materialCategory,
+      materialSiteId,
+      materialSiteName,
+      materialSiteCoordinates
+    });
+    
     setMaterialToOrder({ 
       id: materialId, 
       name: materialName, 
@@ -371,18 +423,20 @@ export default function Materials() {
       siteCoordinates: materialSiteCoordinates
     });
     setShowOrderDialog(true);
+    
+    console.log('✅ Dialog should open now');
   };
 
   const handleGenerateQR = async (material: Material) => {
     try {
       const result = await materialService.generateQRCode(material._id);
-      toast.success('QR généré');
+      toast.success('QR generated');
       const link = document.createElement('a');
       link.href = result.qrCode;
       link.download = `qr-${material.code}.png`;
       link.click();
     } catch (error) {
-      toast.error('Erreur génération QR');
+      toast.error('QR generation error');
     }
   };
 
@@ -398,13 +452,13 @@ export default function Materials() {
       try {
         const result = await materialService.importFromExcel(file);
         if (result?.success || result?.imported > 0) {
-          toast.success(`Import réussi! ${result.imported || 0} matériaux importés`);
+          toast.success(`Import successful! ${result.imported || 0} materials imported`);
           loadData();
         } else {
-          toast.error(result?.message || 'Échec de l\'import');
+          toast.error(result?.message || 'Import failed');
         }
       } catch (error: any) {
-        toast.error(error.response?.data?.message || error.message || 'Erreur lors de l\'import');
+        toast.error(error.response?.data?.message || error.message || 'Import error');
       } finally {
         setScanLoading(false);
       }
@@ -415,20 +469,20 @@ export default function Materials() {
   const handleExportExcel = async () => {
     try {
       const blob = await materialService.exportToExcel();
-      await materialService.downloadFile(blob, `materiaux_${Date.now()}.xlsx`);
-      toast.success('Export Excel réussi!');
+      await materialService.downloadFile(blob, `materials_${Date.now()}.xlsx`);
+      toast.success('Excel export successful!');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur export Excel');
+      toast.error(error.response?.data?.message || 'Excel export error');
     }
   };
 
   const handleExportPDF = async () => {
     try {
       const blob = await materialService.exportToPDF();
-      await materialService.downloadFile(blob, `materiaux_${Date.now()}.pdf`);
-      toast.success('Export PDF réussi!');
+      await materialService.downloadFile(blob, `materials_${Date.now()}.pdf`);
+      toast.success('PDF export successful!');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur export PDF');
+      toast.error(error.response?.data?.message || 'PDF export error');
     }
   };
 
@@ -448,15 +502,15 @@ export default function Materials() {
         if (result?.success && result.material) {
           setQrResult({ material: result.material, type: 'material' });
           setSelectedMaterial(result.material);
-          toast.success(`Matériau trouvé: ${result.material.name}`);
+          toast.success(`Material found: ${result.material.name}`);
         } else if (result?.qrData) {
           setQrResult({ text: result.qrData, type: 'text' });
-          toast.info(`QR scanné: "${result.qrData.substring(0, 30)}..."`);
+          toast.info(`QR scanned: "${result.qrData.substring(0, 30)}..."`);
         } else {
-          toast.error('QR code non reconnu');
+          toast.error('QR code not recognized');
         }
       } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Erreur lors de l\'analyse du QR code');
+        toast.error(error.response?.data?.message || 'QR code analysis error');
       } finally {
         setScanLoading(false);
       }
@@ -466,7 +520,7 @@ export default function Materials() {
 
   const handleScanQRText = async () => {
     setShowQRMenu(false);
-    const qrText = prompt('Entrez le texte du QR code:');
+    const qrText = prompt('Enter QR code text:');
     if (!qrText) return;
     setScanLoading(true);
     setQrResult(null);
@@ -475,20 +529,20 @@ export default function Materials() {
       if (result?.success && result.material) {
         setQrResult({ material: result.material, type: 'material' });
         setSelectedMaterial(result.material);
-        toast.success(`Matériau trouvé: ${result.material.name}`);
+        toast.success(`Material found: ${result.material.name}`);
       } else {
         setQrResult({ text: qrText, type: 'text' });
-        toast.info(`QR: "${qrText}" - Aucun matériau associé`);
+        toast.info(`QR: "${qrText}" - No associated material`);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur analyse QR');
+      toast.error(error.response?.data?.message || 'QR analysis error');
     } finally {
       setScanLoading(false);
     }
   };
 
   const handleScanBarcode = async () => {
-    const barcode = prompt('Entrez le code-barres:');
+    const barcode = prompt('Enter barcode:');
     if (!barcode) return;
     setScanLoading(true);
     setQrResult(null);
@@ -496,24 +550,24 @@ export default function Materials() {
       const material = await materialService.findByBarcode(barcode);
       setQrResult({ material, type: 'material' });
       setSelectedMaterial(material);
-      toast.success(`Matériau trouvé: ${material.name}`);
+      toast.success(`Material found: ${material.name}`);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la recherche');
+      toast.error(error.response?.data?.message || 'Search error');
     } finally {
       setScanLoading(false);
     }
   };
 
   const getStatusBadge = (material: Material) => {
-    const threshold = material.stockMinimum || material.reorderPoint || material.minimumStock || 0;
+    const threshold = (material as any).stockMinimum || material.reorderPoint || material.minimumStock || 0;
     
     if (material.quantity === 0) {
-      return <Badge variant="destructive">Rupture</Badge>;
+      return <Badge variant="destructive">Out of Stock</Badge>;
     }
     if (material.quantity <= threshold) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Stock bas</Badge>;
+      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Low Stock</Badge>;
     }
-    return <Badge variant="default" className="bg-green-100 text-green-800">En stock</Badge>;
+    return <Badge variant="default" className="bg-green-100 text-green-800">In Stock</Badge>;
   };
 
   const renderPredictionBadge = (materialId: string) => {
@@ -523,18 +577,60 @@ export default function Materials() {
       return (
         <span className="text-xs text-gray-400 flex items-center gap-1">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Analyse...
+          Analyzing...
         </span>
       );
     }
     
     if (!prediction) {
-      return <span className="text-xs text-gray-400">-</span>;
+      return <span className="text-xs text-gray-400">No prediction</span>;
     }
+
+    // Check that hoursToOutOfStock is valid
+    const hoursToOutOfStock = prediction.hoursToOutOfStock ?? 0;
+    const consumptionRate = prediction.consumptionRate ?? 0;
+    
+    // If values are invalid, show error message
+    if (!isFinite(hoursToOutOfStock) || hoursToOutOfStock < 0) {
+      return (
+        <span className="text-xs text-orange-600">
+          ⚠️ Insufficient data
+        </span>
+      );
+    }
+    
+    // Calculate outage date/time
+    const now = new Date();
+    const outageDate = new Date(now.getTime() + hoursToOutOfStock * 60 * 60 * 1000);
+    
+    const formatOutageDate = () => {
+      const days = Math.floor(hoursToOutOfStock / 24);
+      const hours = Math.floor(hoursToOutOfStock % 24);
+      
+      if (hoursToOutOfStock < 24) {
+        // Less than 24h: show exact time
+        return `Today ${outageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+      } else if (hoursToOutOfStock < 48) {
+        // Between 24h and 48h: show "Tomorrow"
+        return `Tomorrow ${outageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+      } else if (days < 7) {
+        // Less than a week: show day name
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return `${dayNames[outageDate.getDay()]} ${outageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+        // More than a week: show full date
+        return outageDate.toLocaleDateString('en-US', { 
+          day: '2-digit', 
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+    };
     
     const getBadgeStyle = () => {
       switch (prediction.status) {
-        case 'critical': return 'bg-red-100 text-red-700 border-red-300';
+        case 'critical': return 'bg-red-100 text-red-700 border-red-300 animate-pulse';
         case 'warning': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
         default: return 'bg-green-100 text-green-700 border-green-300';
       }
@@ -542,9 +638,9 @@ export default function Materials() {
     
     const getIcon = () => {
       switch (prediction.status) {
-        case 'critical': return <AlertTriangle className="h-3 w-3" />;
-        case 'warning': return <Clock className="h-3 w-3" />;
-        default: return <Brain className="h-3 w-3" />;
+        case 'critical': return '🚨';
+        case 'warning': return '⚠️';
+        default: return '✅';
       }
     };
     
@@ -552,29 +648,64 @@ export default function Materials() {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border cursor-help ${getBadgeStyle()}`}>
-              {getIcon()}
-              {prediction.status === 'safe' 
-                ? `OK ${prediction.hoursToOutOfStock}h`
-                : prediction.status === 'warning'
-                  ? `Bas ${prediction.hoursToOutOfStock}h`
-                  : `Rupture ${prediction.hoursToOutOfStock}h`
-              }
-            </span>
-          </TooltipTrigger>
-          <TooltipContent className="w-64">
-            <div className="space-y-2">
-              <div className="font-semibold">{prediction.materialName}</div>
-              <div className="text-sm">
-                <p>🔋 Stock actuel: {prediction.currentStock}</p>
-                <p>📉 Consommation: {prediction.consumptionRate}/h</p>
-                <p>⏰ Stock bas dans: {prediction.hoursToLowStock}h</p>
-                <p>🚨 Rupture dans: {prediction.hoursToOutOfStock}h</p>
-                <p>📦 Qté recommandée: {prediction.recommendedOrderQuantity}</p>
-                {prediction.predictionModelUsed && (
-                  <p className="text-blue-600">🤖 ML (confiance: {Math.round(prediction.confidence * 100)}%)</p>
-                )}
+            <div className={`inline-flex flex-col gap-0.5 px-2 py-1 rounded text-xs border cursor-help ${getBadgeStyle()}`}>
+              <div className="flex items-center gap-1 font-medium">
+                <span>{getIcon()}</span>
+                <span>{formatOutageDate()}</span>
               </div>
+              <div className="text-[10px] opacity-75">
+                {hoursToOutOfStock < 24 
+                  ? `In ${Math.floor(hoursToOutOfStock)}h`
+                  : `In ${Math.floor(hoursToOutOfStock / 24)}d ${Math.floor(hoursToOutOfStock % 24)}h`
+                }
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="w-72">
+            <div className="space-y-2">
+              <div className="font-semibold text-base">{prediction.materialName}</div>
+              <div className="border-t pt-2 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Current stock:</span>
+                  <span className="font-medium">{prediction.currentStock ?? 0} units</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Consumption:</span>
+                  <span className="font-medium">{consumptionRate.toFixed(2)} units/h</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Predicted stock (24h):</span>
+                  <span className="font-medium">{Math.max(0, Math.floor((prediction.currentStock ?? 0) - consumptionRate * 24))} units</span>
+                </div>
+              </div>
+              <div className="border-t pt-2 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Expected outage:</span>
+                  <span className="font-medium text-red-600">
+                    {outageDate.toLocaleDateString('en-US', { 
+                      weekday: 'long',
+                      day: '2-digit', 
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Time remaining:</span>
+                  <span className="font-medium">
+                    {Math.floor(hoursToOutOfStock / 24)}d {Math.floor(hoursToOutOfStock % 24)}h
+                  </span>
+                </div>
+              </div>
+              {(prediction.recommendedOrderQuantity ?? 0) > 0 && (
+                <div className="border-t pt-2 bg-blue-50 -mx-2 -mb-2 px-2 py-2 rounded-b">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-blue-700 font-medium">📦 Order:</span>
+                    <span className="text-blue-900 font-bold">{Math.ceil(prediction.recommendedOrderQuantity ?? 0)} units</span>
+                  </div>
+                </div>
+              )}
             </div>
           </TooltipContent>
         </Tooltip>
@@ -595,7 +726,7 @@ export default function Materials() {
           anomalyData={alert}
           onClose={() => handleCloseAnomalyAlert(alert.id)}
           onViewDetails={() => {
-            // Ouvrir les détails du matériau
+            // Open material details
             const material = materials.find(m => m._id === alert.materialId);
             if (material) {
               setSelectedMaterial(material);
@@ -607,20 +738,21 @@ export default function Materials() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestion des Matériaux</h1>
-          <p className="text-gray-500 mt-1">Suivi, gestion et prédiction IA en temps réel</p>
+          <h1 className="text-3xl font-bold text-gray-900">Materials Management</h1>
+          <p className="text-gray-500 mt-1">Real-time tracking, management and AI prediction</p>
         </div>
         <div className="flex gap-2">
           <OrdersTrackingSidebar className="mr-2" />
-          <Button variant="outline" onClick={handleImportExcel} disabled={scanLoading} title="Importer Excel">
+          <DailyReportButton />
+          <Button variant="outline" onClick={handleImportExcel} disabled={scanLoading} title="Import Excel">
             {scanLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             Import
           </Button>
-          <Button variant="outline" onClick={handleExportExcel} title="Exporter Excel">
+          <Button variant="outline" onClick={handleExportExcel} title="Export Excel">
             <Download className="h-4 w-4 mr-2" />
             Excel
           </Button>
-          <Button variant="outline" onClick={handleExportPDF} title="Exporter PDF">
+          <Button variant="outline" onClick={handleExportPDF} title="Export PDF">
             <FileText className="h-4 w-4 mr-2" />
             PDF
           </Button>
@@ -629,10 +761,10 @@ export default function Materials() {
               variant="outline" 
               onClick={() => setShowQRMenu(!showQRMenu)} 
               disabled={scanLoading} 
-              title="Scanner QR/Barcode"
+              title="Scan QR/Barcode"
             >
               {scanLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ScanLine className="h-4 w-4 mr-2" />}
-              Scanner
+              Scan
             </Button>
             {showQRMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border">
@@ -640,30 +772,30 @@ export default function Materials() {
                   onClick={handleScanQR} 
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  Scanner QR (image)
+                  Scan QR (image)
                 </button>
                 <button 
                   onClick={handleScanQRText} 
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  Scanner QR (texte)
+                  Scan QR (text)
                 </button>
                 <button 
                   onClick={handleScanBarcode} 
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  Scanner Code-barres
+                  Scan Barcode
                 </button>
               </div>
             )}
           </div>
           <Button variant="outline" onClick={loadData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
+            Refresh
           </Button>
           <Button onClick={() => { setMaterialToEdit(null); setShowForm(true); }}>
             <Plus className="h-4 w-4 mr-2" />
-            Ajouter
+            Add
           </Button>
         </div>
       </div>
@@ -674,7 +806,7 @@ export default function Materials() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Matériaux</p>
+                <p className="text-sm text-gray-500">Total Materials</p>
                 <p className="text-2xl font-bold">{dashboardStats.totalMaterials}</p>
               </div>
               <Boxes className="h-8 w-8 text-blue-500" />
@@ -685,7 +817,7 @@ export default function Materials() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Quantité Totale</p>
+                <p className="text-sm text-gray-500">Total Quantity</p>
                 <p className="text-2xl font-bold">{dashboardStats.totalQuantity.toLocaleString()}</p>
               </div>
               <Package className="h-8 w-8 text-green-500" />
@@ -696,7 +828,7 @@ export default function Materials() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Stock Bas</p>
+                <p className="text-sm text-gray-500">Low Stock</p>
                 <p className="text-2xl font-bold text-yellow-600">{dashboardStats.lowStock}</p>
               </div>
               <TrendingDown className="h-8 w-8 text-yellow-500" />
@@ -707,7 +839,7 @@ export default function Materials() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Rupture Stock</p>
+                <p className="text-sm text-gray-500">Out of Stock</p>
                 <p className="text-2xl font-bold text-red-600">{dashboardStats.outOfStock}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -718,7 +850,7 @@ export default function Materials() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Catégories</p>
+                <p className="text-sm text-gray-500">Categories</p>
                 <p className="text-2xl font-bold">{dashboardStats.categoriesCount}</p>
               </div>
               <Filter className="h-8 w-8 text-purple-500" />
@@ -732,11 +864,11 @@ export default function Materials() {
         <TabsList className="grid w-full grid-cols-7 mb-4">
           <TabsTrigger value="list" className="flex items-center gap-2">
             <span>📦</span>
-            Matériaux
+            Materials
           </TabsTrigger>
           <TabsTrigger value="alerts" className="flex items-center gap-2">
             <span>🔔</span>
-            Alertes
+            Alerts
             {alerts.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                 {alerts.length > 99 ? '99+' : alerts.length}
@@ -745,7 +877,7 @@ export default function Materials() {
           </TabsTrigger>
           <TabsTrigger value="expiring" className="flex items-center gap-2">
             <span>⏰</span>
-            Expirants
+            Expiring
             {expiringCount > 0 && (
               <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-orange-500 rounded-full">
                 {expiringCount > 99 ? '99+' : expiringCount}
@@ -754,11 +886,11 @@ export default function Materials() {
           </TabsTrigger>
           <TabsTrigger value="auto-order" className="flex items-center gap-2">
             <span>🚚</span>
-            Commandes Auto
+            Auto Orders
           </TabsTrigger>
           <TabsTrigger  value="consumption" className="flex items-center gap-2">
             <span>📊</span>
-            Consommation
+            Consumption
           </TabsTrigger>
           <TabsTrigger value="anomalies" className="flex items-center gap-2">
             <span>⚠️</span>
@@ -766,21 +898,21 @@ export default function Materials() {
           </TabsTrigger>
           <TabsTrigger value="forecast" className="flex items-center gap-2">
             <span>📈</span>
-            Prévisions
+            Forecast
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Liste des matériaux */}
+        {/* Tab 1: Materials List */}
         <TabsContent value="list">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Liste des Matériaux</CardTitle>
+                <CardTitle>Materials List</CardTitle>
                 <div className="flex gap-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Rechercher..."
+                      placeholder="Search..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 w-64"
@@ -788,7 +920,7 @@ export default function Materials() {
                   </div>
                   <Button variant="outline" onClick={() => setFilterOpen(!filterOpen)}>
                     <Filter className="h-4 w-4 mr-2" />
-                    Filtres
+                    Filters
                   </Button>
                 </div>
               </div>
@@ -796,20 +928,20 @@ export default function Materials() {
               {filterOpen && (
                 <div className="mt-4 grid grid-cols-3 gap-4">
                   <div>
-                    <label className="text-sm text-gray-600">Catégorie</label>
+                    <label className="text-sm text-gray-600">Category</label>
                     <select 
                       className="w-full px-3 py-2 border rounded-md mt-1" 
                       value={selectedCategory} 
                       onChange={(e) => setSelectedCategory(e.target.value)}
                     >
-                      <option value="all">Toutes</option>
+                      <option value="all">All</option>
                       {categories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600">Par page</label>
+                    <label className="text-sm text-gray-600">Per page</label>
                     <select 
                       className="w-full px-3 py-2 border rounded-md mt-1" 
                       value={pagination.limit} 
@@ -823,7 +955,7 @@ export default function Materials() {
                   <div className="flex items-end">
                     <Button variant="outline" onClick={loadData}>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Actualiser
+                      Refresh
                     </Button>
                   </div>
                   {alerts.length > 0 && (
@@ -833,7 +965,7 @@ export default function Materials() {
                         size="sm" 
                         onClick={() => setStockFilter('all')}
                       >
-                        Tous ({materials.length})
+                        All ({materials.length})
                       </Button>
                       <Button 
                         variant={stockFilter === 'low' ? 'default' : 'outline'} 
@@ -841,7 +973,7 @@ export default function Materials() {
                         className={stockFilter === 'low' ? 'bg-yellow-500 hover:bg-yellow-600' : ''} 
                         onClick={() => setStockFilter('low')}
                       >
-                        Stock Bas ({dashboardStats.lowStock})
+                        Low Stock ({dashboardStats.lowStock})
                       </Button>
                       <Button 
                         variant={stockFilter === 'out' ? 'default' : 'outline'} 
@@ -849,7 +981,7 @@ export default function Materials() {
                         className={stockFilter === 'out' ? 'bg-red-500 hover:bg-red-600' : ''} 
                         onClick={() => setStockFilter('out')}
                       >
-                        Rupture ({dashboardStats.outOfStock})
+                        Out of Stock ({dashboardStats.outOfStock})
                       </Button>
                     </div>
                   )}
@@ -860,15 +992,15 @@ export default function Materials() {
               {loading ? (
                 <div className="text-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                  <p className="mt-2 text-gray-500">Chargement...</p>
+                  <p className="mt-2 text-gray-500">Loading...</p>
                 </div>
               ) : paginatedMaterials.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p>Aucun matériau trouvé</p>
+                  <p>No materials found</p>
                   <Button variant="outline" className="mt-4" onClick={() => { setMaterialToEdit(null); setShowForm(true); }}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un matériau
+                    Add a material
                   </Button>
                 </div>
               ) : (
@@ -884,7 +1016,7 @@ export default function Materials() {
                           </div>
                           <div className="grid grid-cols-7 gap-4 mt-2 text-sm">
                             <div>
-                              <span className="text-gray-500">Qté:</span> 
+                              <span className="text-gray-500">Qty:</span> 
                               <span className="font-medium ml-1">{material.quantity} {material.unit}</span>
                             </div>
                             <div>
@@ -895,39 +1027,39 @@ export default function Materials() {
                               <span className="text-gray-500">Max:</span> 
                               <span className="font-medium ml-1">{material.maximumStock}</span>
                             </div>
-                            <div>
+                            <div className="col-span-2">
                               <span className="text-gray-500">Site:</span> 
-                              <span className="font-medium ml-1">{material.siteName || 'Non assigné'}</span>
+                              <span className="font-medium ml-1">{material.siteName || 'Unassigned'}</span>
+                              {material.siteAddress && (
+                                <div className="text-xs text-gray-400 mt-0.5">{material.siteAddress}</div>
+                              )}
+                              {material.siteCoordinates && (
+                                <div className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  GPS: {material.siteCoordinates.lat.toFixed(4)}, {material.siteCoordinates.lng.toFixed(4)}
+                                </div>
+                              )}
                             </div>
-                            <div>
-                              <span className="text-gray-500">Prédiction IA:</span>
+                            <div className="col-span-2">
+                              <span className="text-gray-500">Expected outage:</span>
                               <div className="mt-1">{renderPredictionBadge(material._id)}</div>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setSelectedMaterial(material)} title="Détails">
+                          <Button size="sm" variant="outline" onClick={() => setSelectedMaterial(material)} title="Details">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setSelectedMaterialForPrediction(material)} title="Prédiction IA">
-                            <Brain className="h-4 w-4 text-purple-600" />
-                          </Button>
-                          {/* 🤖 Bouton ML Training Direct */}
-                          <MLTrainingButton 
-                            materialId={material._id} 
-                            materialName={material.name}
-                            className="h-8 px-2 text-xs"
-                          />
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(material)} title="Modifier">
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(material)} title="Edit">
                             <Edit className="h-4 w-4" />
                           </Button>
                           {showDeleteConfirm === material._id ? (
                             <div className="flex gap-1">
                               <Button size="sm" variant="destructive" onClick={() => handleDelete(material._id)} className="h-8 px-2">
-                                Oui
+                                Yes
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => setShowDeleteConfirm(null)} className="h-8 px-2">
-                                Non
+                                No
                               </Button>
                             </div>
                           ) : (
@@ -936,13 +1068,15 @@ export default function Materials() {
                               variant="outline" 
                               className="h-8 w-8 p-0 text-red-600" 
                               onClick={() => setShowDeleteConfirm(material._id)} 
-                              title="Supprimer"
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
-                          {/* Bouton Commander - Rouge si rupture, Jaune si stock bas */}
-                          {(material.quantity === 0 || material.quantity <= (material.stockMinimum || material.reorderPoint || material.minimumStock || 0)) && (
+                          {/* Order Button - Red if out of stock, Yellow if low stock */}
+                          {(() => {
+                            const threshold = (material as any).stockMinimum || material.reorderPoint || material.minimumStock || 0;
+                            return (material.quantity === 0 || material.quantity <= threshold) && (
                             <Button 
                               size="sm" 
                               variant="secondary" 
@@ -960,7 +1094,7 @@ export default function Materials() {
                                 material.siteName, 
                                 material.siteCoordinates
                               )}
-                              title={material.quantity === 0 ? 'Rupture de stock - Commander urgent' : 'Stock bas - Commander'}
+                              title={material.quantity === 0 ? 'Out of stock - Order urgently' : 'Low stock - Order'}
                             >
                               {material.quantity === 0 ? (
                                 <>
@@ -970,12 +1104,13 @@ export default function Materials() {
                               ) : (
                                 <>
                                   <Truck className="h-3 w-3" />
-                                  Commander
+                                  Order
                                 </>
                               )}
                             </Button>
-                          )}
-                          <Button size="sm" variant="outline" onClick={() => handleGenerateQR(material)} title="Générer QR">
+                            );
+                          })()}
+                          <Button size="sm" variant="outline" onClick={() => handleGenerateQR(material)} title="Generate QR">
                             <QrCode className="h-4 w-4" />
                           </Button>
                         </div>
@@ -1034,16 +1169,16 @@ export default function Materials() {
           </Card>
         </TabsContent>
 
-        {/* Tab 2: Alertes — inclut le banner stock + MaterialAlerts */}
+        {/* Tab 2: Alerts — includes stock banner + MaterialAlerts */}
         <TabsContent value="alerts">
           <div className="space-y-4">
-            {/* Stock Alerts Banner — déplacé ici depuis le haut */}
+            {/* Stock Alerts Banner — moved here from top */}
             {alerts.length > 0 && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">🚨</span>
                   <span className="font-semibold text-red-700 text-base">
-                    Alertes de Stock ({alerts.length})
+                    Stock Alerts ({alerts.length})
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
@@ -1079,7 +1214,7 @@ export default function Materials() {
                             alert.siteCoordinates
                           )}
                         >
-                          🛒 Commander
+                          🛒 Order
                         </Button>
                       </div>
                     </div>
@@ -1087,10 +1222,10 @@ export default function Materials() {
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-red-200 text-xs text-red-600">
                   <span>
-                    ❌ <strong>{dashboardStats.outOfStock}</strong> en rupture
+                    ❌ <strong>{dashboardStats.outOfStock}</strong> out of stock
                   </span>
                   <span>
-                    ⚡ <strong>{dashboardStats.lowStock}</strong> en stock bas
+                    ⚡ <strong>{dashboardStats.lowStock}</strong> low stock
                   </span>
                   <Button
                     size="sm"
@@ -1099,7 +1234,7 @@ export default function Materials() {
                     onClick={loadData}
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    Actualiser
+                    Refresh
                   </Button>
                 </div>
               </div>
@@ -1109,8 +1244,8 @@ export default function Materials() {
               <div className="p-6 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
                 <span className="text-2xl">✅</span>
                 <div>
-                  <p className="font-semibold text-green-700">Tous les stocks sont en ordre</p>
-                  <p className="text-sm text-green-600">Aucun matériau en rupture ou en stock bas.</p>
+                  <p className="font-semibold text-green-700">All stocks are in order</p>
+                  <p className="text-sm text-green-600">No materials out of stock or low stock.</p>
                 </div>
               </div>
             )}
@@ -1120,29 +1255,29 @@ export default function Materials() {
           </div>
         </TabsContent>
 
-        {/* Tab 2.5: Matériaux Expirants */}
+        {/* Tab 2.5: Expiring Materials */}
         <TabsContent value="expiring">
           <ExpiringMaterials />
         </TabsContent>
 
-        {/* Tab 3: Commandes Auto */}
+        {/* Tab 3: Auto Orders */}
         <TabsContent value="auto-order">
           <AutoOrderDashboard onRefresh={loadData} />
         </TabsContent>
 
-        {/* Tab 4: Suivi Consommation */}
+        {/* Tab 4: Consumption Tracking */}
         <TabsContent value="consumption">
           <SiteConsumptionTracker onClose={() => setActiveTab('list')} />
         </TabsContent>
 
-        {/* Tab 5: Anomalies de consommation */}
+        {/* Tab 5: Consumption Anomalies */}
         <TabsContent value="anomalies">
           <ConsumptionAnomalyAlert onAnomalyDetected={(anomaly) => {
             toast.error(`🚨 ${anomaly.message}`, { duration: 10000 });
           }} />
         </TabsContent>
 
-        {/* Tab 6: Prévisions */}
+        {/* Tab 6: Forecast */}
         <TabsContent value="forecast">
           <MaterialForecast materials={materials} />
         </TabsContent>
@@ -1157,7 +1292,7 @@ export default function Materials() {
             setShowForm(false); 
             setMaterialToEdit(null); 
             loadData(); 
-            toast.success(materialToEdit ? 'Matériau modifié!' : 'Matériau ajouté!'); 
+            toast.success(materialToEdit ? 'Material modified!' : 'Material added!'); 
           }}
           initialData={materialToEdit}
         />
@@ -1176,7 +1311,7 @@ export default function Materials() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex justify-between items-center bg-purple-50">
-              <h2 className="font-bold text-lg text-purple-700">Prédiction IA - {selectedMaterialForPrediction.name}</h2>
+              <h2 className="font-bold text-lg text-purple-700">AI Prediction - {selectedMaterialForPrediction.name}</h2>
               <Button variant="ghost" size="sm" onClick={() => setSelectedMaterialForPrediction(null)}>
                 ✕
               </Button>
@@ -1210,7 +1345,7 @@ export default function Materials() {
           materialSiteCoordinates={materialToOrder.siteCoordinates}
           onOrderCreated={() => {
             loadData();
-            toast.success('Commande créée! Cliquez sur "Démarrer livraison" pour suivre le truck');
+            toast.success('Order created! Click "Start delivery" to track the truck');
           }}
         />
       )}
@@ -1220,16 +1355,18 @@ export default function Materials() {
         <SupplierRatingDialog
           open={showSupplierRatingDialog}
           onClose={() => {
-            // Fermer le dialog et empêcher la réouverture
-            setShowSupplierRatingDialog(false);
-            setSupplierRatingData(null);
-            // Ne pas marquer comme ignoré ici, seulement fermer
-          }}
-          onIgnore={() => {
-            // Marquer comme ignoré quand l'utilisateur clique sur "Ignorer"
+            // Fermer et marquer comme ignoré pour ne plus afficher
             if (supplierRatingData.materialId) {
               markAsIgnored(supplierRatingData.materialId);
-              toast.info(`📝 Rating ignoré pour ${supplierRatingData.materialName}. Vous pouvez toujours l'évaluer plus tard.`);
+            }
+            setShowSupplierRatingDialog(false);
+            setSupplierRatingData(null);
+          }}
+          onIgnore={() => {
+            // Marquer comme ignoré définitivement
+            if (supplierRatingData.materialId) {
+              markAsIgnored(supplierRatingData.materialId);
+              toast.info(`📝 Rating ignored for ${supplierRatingData.materialName}. Won't show again.`);
             }
             setShowSupplierRatingDialog(false);
             setSupplierRatingData(null);

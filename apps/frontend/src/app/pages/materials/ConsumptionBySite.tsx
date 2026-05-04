@@ -36,15 +36,15 @@ export default function ConsumptionBySite() {
 
   const loadData = async () => {
     try {
-      // Récupérer les matériaux avec leurs sites
+      // Get materials with their sites
       const materials = await materialService.getMaterialsWithSites();
       
-      // Grouper par site
+      // Group by site
       const siteMap = new Map<string, SiteConsumption>();
       
       materials.forEach((material: any) => {
         const siteId = material.siteId || 'unknown';
-        const siteName = material.siteName || 'Non assigné';
+        const siteName = material.siteName || 'Unassigned';
         const consumption = material.consumptionRate || 1;
         
         if (!siteMap.has(siteId)) {
@@ -61,7 +61,7 @@ export default function ConsumptionBySite() {
         site.consumption += consumption;
         site.materialCount++;
         
-        // Trouver le matériau avec la plus haute consommation
+        // Find the material with the highest consumption
         if (!site.topMaterial || consumption > 0) {
           site.topMaterial = material.name;
         }
@@ -80,7 +80,7 @@ export default function ConsumptionBySite() {
       <Card>
         <CardContent className="py-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-gray-500">Chargement...</p>
+          <p className="mt-2 text-gray-500">Loading...</p>
         </CardContent>
       </Card>
     );
@@ -91,20 +91,20 @@ export default function ConsumptionBySite() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Building2 className="h-5 w-5" />
-          Consommation par site
+          Consumption by site
         </CardTitle>
         <div className="flex gap-2">
           <button
             onClick={() => setView('chart')}
             className={`px-3 py-1 text-sm rounded ${view === 'chart' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
           >
-            Graphique
+            Chart
           </button>
           <button
             onClick={() => setView('list')}
             className={`px-3 py-1 text-sm rounded ${view === 'list' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
           >
-            Liste
+            List
           </button>
         </div>
       </CardHeader>
@@ -137,12 +137,12 @@ export default function ConsumptionBySite() {
                 <div>
                   <p className="font-medium">{site.siteName}</p>
                   <p className="text-sm text-gray-500">
-                    {site.materialCount} matériaux | Top: {site.topMaterial}
+                    {site.materialCount} materials | Top: {site.topMaterial}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-blue-600">{site.consumption.toFixed(1)}</p>
-                  <p className="text-xs text-gray-500">unités/h</p>
+                  <p className="text-xs text-gray-500">units/h</p>
                 </div>
               </div>
             ))}

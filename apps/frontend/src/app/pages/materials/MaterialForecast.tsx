@@ -36,7 +36,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
       setForecast(data);
     } catch (error) {
       console.error('Error loading forecast:', error);
-      toast.error('Erreur lors du chargement des prévisions');
+      toast.error('Error loading forecast');
     } finally {
       setLoading(false);
     }
@@ -48,17 +48,17 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
     try {
       const result = await materialService.reorderMaterial(selectedMaterial);
       if (result.success) {
-        toast.success(`Commande créée! Livraison prévue: ${new Date(result.expectedDelivery).toLocaleDateString()}`);
+        toast.success(`Order created! Expected delivery: ${new Date(result.expectedDelivery).toLocaleDateString()}`);
         loadForecast(selectedMaterial);
       }
     } catch (error) {
-      toast.error('Échec de la commande');
+      toast.error('Order failed');
     }
   };
 
   const chartData = forecast?.trends?.map((trend: any) => ({
     date: new Date(trend.date).toLocaleDateString(),
-    consommation: trend.consumption,
+    consumption: trend.consumption,
   })) || [];
 
   return (
@@ -67,7 +67,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Prévisions de consommation
+            Consumption Forecast
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -77,7 +77,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
               value={selectedMaterial}
               onChange={(e) => setSelectedMaterial(e.target.value)}
             >
-              <option value="">Sélectionner un matériau...</option>
+              <option value="">Select a material...</option>
               {materials.map(m => (
                 <option key={m._id} value={m._id}>
                   {m.name} ({m.code})
@@ -86,7 +86,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
             </select>
           </div>
 
-          {loading && <div className="text-center py-8">Chargement des prévisions...</div>}
+          {loading && <div className="text-center py-8">Loading forecast...</div>}
 
           {forecast && !loading && (
             <div className="space-y-4">
@@ -94,25 +94,25 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">{forecast.currentStock}</div>
-                    <p className="text-sm text-gray-500">Stock actuel</p>
+                    <p className="text-sm text-gray-500">Current Stock</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">{forecast.dailyConsumption?.toFixed(2) || 0}</div>
-                    <p className="text-sm text-gray-500">Consommation journalière</p>
+                    <p className="text-sm text-gray-500">Daily Consumption</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">{forecast.daysRemaining?.toFixed(1) || 0}</div>
-                    <p className="text-sm text-gray-500">Jours restants</p>
+                    <p className="text-sm text-gray-500">Days Remaining</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">{forecast.suggestedOrderQuantity || 0}</div>
-                    <p className="text-sm text-gray-500">Quantité recommandée</p>
+                    <p className="text-sm text-gray-500">Recommended Quantity</p>
                   </CardContent>
                 </Card>
               </div>
@@ -122,7 +122,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-blue-500" />
-                      <span className="font-medium">Date de commande recommandée:</span>
+                      <span className="font-medium">Recommended Order Date:</span>
                     </div>
                     <span className="text-lg font-bold text-blue-600">
                       {forecast.reorderDate ? new Date(forecast.reorderDate).toLocaleDateString() : 'N/A'}
@@ -134,7 +134,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
               {chartData.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Tendance des 7 derniers jours</CardTitle>
+                    <CardTitle>Last 7 Days Trend</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="h-64">
@@ -146,7 +146,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
                           <Tooltip />
                           <Line 
                             type="monotone" 
-                            dataKey="consommation" 
+                            dataKey="consumption" 
                             stroke="#3b82f6" 
                             strokeWidth={2}
                           />
@@ -163,7 +163,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
                   onClick={handleReorder}
                 >
                   <Package className="h-4 w-4 mr-2" />
-                  Créer une commande
+                  Create Order
                 </Button>
                 <Button 
                   variant="outline" 
@@ -171,7 +171,7 @@ export default function MaterialForecast({ materials }: MaterialForecastProps) {
                   onClick={() => loadForecast(selectedMaterial)}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Actualiser
+                  Refresh
                 </Button>
               </div>
             </div>

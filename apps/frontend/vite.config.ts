@@ -17,44 +17,66 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     proxy: {
+      // Materials Service routes (via API Gateway on port 9001)
       '/api/materials': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/api/chat': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/api/site-materials': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/api/orders': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/api/material-flow': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/api/consumption': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/consumption-history': {
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/api/site-consumption': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/weather': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/ml-training': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/orders-tracking': {
+        target: 'http://localhost:3009',
+        changeOrigin: true,
+      },
+      '/api/supplier-rating': {
+        target: 'http://localhost:3009',
         changeOrigin: true,
       },
       '/fournisseurs': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/fournisseurs/, '/api/materials/suppliers')
       },
       '/api/fournisseurs': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/fournisseurs/, '/api/materials/suppliers')
       },
+      // Gestion Sites routes
       '/api/sites': {
         target: 'http://localhost:3001',
         changeOrigin: true,
@@ -68,11 +90,13 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // WebSocket for materials service
       '/socket.io': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3009',
         changeOrigin: true,
         ws: true,
       },
+      // Fallback for other API routes (Planning, etc.)
       '/api': {
         target: 'http://localhost:3002',
         changeOrigin: true,

@@ -15,30 +15,30 @@ interface MaterialAdvancedPredictionProps {
 }
 
 const weatherOptions = [
-  { value: 'sunny', label: 'Ensoleillé' },
-  { value: 'rainy', label: 'Pluvieux' },
-  { value: 'cloudy', label: 'Nuageux' },
-  { value: 'stormy', label: 'Orageux' },
-  { value: 'snowy', label: 'Neigeux' },
-  { value: 'windy', label: 'Venteux' },
+  { value: 'sunny', label: 'Sunny' },
+  { value: 'rainy', label: 'Rainy' },
+  { value: 'cloudy', label: 'Cloudy' },
+  { value: 'stormy', label: 'Stormy' },
+  { value: 'snowy', label: 'Snowy' },
+  { value: 'windy', label: 'Windy' },
 ];
 
 const projectTypeOptions = [
-  { value: 'residential', label: 'Résidentiel' },
+  { value: 'residential', label: 'Residential' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'infrastructure', label: 'Infrastructure' },
-  { value: 'industrial', label: 'Industriel' },
-  { value: 'renovation', label: 'Rénovation' },
+  { value: 'industrial', label: 'Industrial' },
+  { value: 'renovation', label: 'Renovation' },
 ];
 
 const dayOfWeekOptions = [
-  { value: 0, label: 'Dimanche' },
-  { value: 1, label: 'Lundi' },
-  { value: 2, label: 'Mardi' },
-  { value: 3, label: 'Mercredi' },
-  { value: 4, label: 'Jeudi' },
-  { value: 5, label: 'Vendredi' },
-  { value: 6, label: 'Samedi' },
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
 ];
 
 export default function MaterialAdvancedPrediction({
@@ -60,7 +60,7 @@ export default function MaterialAdvancedPrediction({
   const [weatherData, setWeatherData] = useState<any>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
-  // Charger les informations du matériau et récupérer la météo automatiquement
+  // Load material information and automatically fetch weather
   useEffect(() => {
     loadMaterialAndWeather();
   }, [materialId]);
@@ -70,78 +70,77 @@ export default function MaterialAdvancedPrediction({
     setWeatherError(null);
     
     try {
-      console.log('🔍 Step 1: Récupération du matériau', materialId);
-      // 1. Récupérer les informations du matériau
+      console.log('🔍 Step 1: Retrieving material', materialId);
+      // 1. Retrieve material information
       const material = await materialService.getMaterialById(materialId);
-      console.log('✅ Matériau récupéré:', material);
+      console.log('✅ Material retrieved:', material);
       
-      // 2. Vérifier si le matériau est assigné à un chantier
+      // 2. Check if material is assigned to a site
       if (!material.siteId) {
-        console.warn('⚠️ Matériau non assigné à un chantier');
-        setWeatherError('Ce matériau n\'est pas encore assigné à un chantier');
+        console.warn('⚠️ Material not assigned to a site');
+        setWeatherError('This material is not yet assigned to a site');
         setLoadingWeather(false);
         return;
       }
 
-      console.log('🔍 Step 2: Récupération du chantier', material.siteId);
-      // 3. Récupérer les informations du chantier depuis l'endpoint materials
+      console.log('🔍 Step 2: Retrieving site', material.siteId);
+      // 3. Retrieve site information from the materials endpoint
       const { data: siteData } = await axios.get(`/api/materials/sites/${material.siteId}`);
-      console.log('✅ Données du chantier:', siteData);
+      console.log('✅ Site data:', siteData);
       
       if (!siteData) {
-        console.error('❌ Chantier introuvable');
-        setWeatherError('Impossible de récupérer les informations du chantier');
+        console.error('❌ Site not found');
+        setWeatherError('Unable to retrieve site information');
         setLoadingWeather(false);
         return;
       }
 
       setMaterialSite(siteData);
 
-      // 4. Vérifier si le chantier a des coordonnées GPS
-      // Note: Le backend utilise "coordinates.lat" et "coordinates.lng"
-      console.log('🔍 Step 3: Vérification des coordonnées GPS');
-      console.log('Coordonnées trouvées:', siteData.coordinates);
+      // 4. Check if the site has GPS coordinates
+      // Note: The backend uses "coordinates.lat" and "coordinates.lng"
+      console.log('🔍 Step 3: Checking GPS coordinates');
+      console.log('Coordinates found:', siteData.coordinates);
       
       if (!siteData.coordinates?.lat || !siteData.coordinates?.lng) {
-        console.warn('⚠️ Coordonnées GPS manquantes:', siteData.coordinates);
-        setWeatherError('Le chantier assigné n\'a pas de coordonnées GPS configurées');
+        console.warn('⚠️ Missing GPS coordinates:', siteData.coordinates);
+        setWeatherError('The assigned site does not have configured GPS coordinates');
         setLoadingWeather(false);
         return;
       }
 
-      console.log('🔍 Step 4: Récupération de la météo');
-      console.log('Coordonnées utilisées:', {
+      console.log('🔍 Step 4: Retrieving weather');
+      console.log('Coordinates used:', {
         lat: siteData.coordinates.lat,
         lng: siteData.coordinates.lng
       });
       
-      // 5. Récupérer la météo automatiquement via les coordonnées du chantier
-      // IMPORTANT: Utiliser fetch() avec URL complète comme dans MaterialDetails (qui fonctionne)
-      const weatherUrl = `http://localhost:3002/api/materials/weather?lat=${siteData.coordinates.lat}&lng=${siteData.coordinates.lng}`;
+      // 5. Automatically fetch weather via site coordinates
+      const weatherUrl = `/api/weather?lat=${siteData.coordinates.lat}&lng=${siteData.coordinates.lng}`;
       console.log('🌍 Fetching weather from:', weatherUrl);
       
       const weatherResponse = await fetch(weatherUrl);
       
       if (!weatherResponse.ok) {
-        console.error(`❌ Erreur HTTP météo: ${weatherResponse.status}`);
+        console.error(`❌ Weather HTTP error: ${weatherResponse.status}`);
         throw new Error(`HTTP error! status: ${weatherResponse.status}`);
       }
       
       const weatherData = await weatherResponse.json();
-      console.log('✅ Réponse API météo:', weatherData);
+      console.log('✅ Weather API response:', weatherData);
 
       if (weatherData.success && weatherData.weather) {
         setWeatherData(weatherData.weather);
-        // Mettre à jour automatiquement le champ météo dans les features
+        // Automatically update the weather field in features
         setFeatures(prev => ({
           ...prev,
           weather: weatherData.weather.condition
         }));
-        toast.success(`Météo récupérée: ${weatherData.weather.description} (${weatherData.weather.temperature}°C)`);
-        console.log('✅ Météo chargée et appliquée:', weatherData.weather);
+        toast.success(`Weather retrieved: ${weatherData.weather.description} (${weatherData.weather.temperature}°C)`);
+        console.log('✅ Weather loaded and applied:', weatherData.weather);
       } else {
-        console.error('❌ Réponse météo invalide:', weatherData);
-        setWeatherError('Impossible de récupérer la météo pour ce chantier');
+        console.error('❌ Invalid weather response:', weatherData);
+        setWeatherError('Unable to retrieve weather for this site');
       }
     } catch (error: any) {
       console.error('❌ Error loading weather:', error);
@@ -150,7 +149,7 @@ export default function MaterialAdvancedPrediction({
         response: error.response?.data,
         status: error.response?.status
       });
-      setWeatherError(error.response?.data?.message || error.message || 'Erreur lors de la récupération de la météo');
+      setWeatherError(error.response?.data?.message || error.message || 'Error while retrieving weather');
     } finally {
       setLoadingWeather(false);
     }
@@ -161,10 +160,10 @@ export default function MaterialAdvancedPrediction({
     try {
       const result = await materialService.predictStockAdvanced(materialId, features);
       setPrediction(result);
-      toast.success('Prédiction avancée générée!');
+      toast.success('Advanced prediction generated!');
     } catch (error: any) {
       console.error('Error predicting:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la prédiction avancée');
+      toast.error(error.response?.data?.message || 'Error during advanced prediction');
     } finally {
       setLoading(false);
     }
@@ -197,21 +196,21 @@ export default function MaterialAdvancedPrediction({
       <CardHeader className="bg-purple-50">
         <CardTitle className="flex items-center gap-2 text-purple-700">
           <Brain className="h-5 w-5" />
-          Prédiction Avancée (IA)
+          Advanced Prediction (AI)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Affichage de la météo automatique */}
+        {/* Automatic weather display */}
         {loadingWeather ? (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            <span className="text-blue-700">Récupération de la météo du chantier...</span>
+            <span className="text-blue-700">Retrieving site weather...</span>
           </div>
         ) : weatherError ? (
           <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
             <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
               <AlertCircle className="h-5 w-5" />
-              Météo non disponible
+              Weather unavailable
             </div>
             <p className="text-red-600 text-sm">{weatherError}</p>
           </div>
@@ -220,7 +219,7 @@ export default function MaterialAdvancedPrediction({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <CloudSun className="h-5 w-5 text-green-700" />
-                <span className="font-semibold text-green-700">Météo Automatique</span>
+                <span className="font-semibold text-green-700">Automatic Weather</span>
               </div>
               <Button 
                 variant="ghost" 
@@ -235,35 +234,35 @@ export default function MaterialAdvancedPrediction({
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-700">
-                  <strong>Chantier:</strong> {materialSite.nom || materialSite.name || 'N/A'}
+                  <strong>Site:</strong> {materialSite.nom || materialSite.name || 'N/A'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <CloudSun className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-700">
-                  <strong>Météo:</strong> {weatherData.description}
+                  <strong>Weather:</strong> {weatherData.description}
                 </span>
               </div>
               <div className="text-gray-700">
-                <strong>Température:</strong> {weatherData.temperature}°C (ressenti {weatherData.feelsLike}°C)
+                <strong>Temperature:</strong> {weatherData.temperature}°C (feels like {weatherData.feelsLike}°C)
               </div>
               <div className="text-gray-700">
-                <strong>Condition:</strong> {weatherData.condition === 'sunny' ? 'Ensoleillé' : 
-                  weatherData.condition === 'rainy' ? 'Pluvieux' : 
-                  weatherData.condition === 'cloudy' ? 'Nuageux' : 
-                  weatherData.condition === 'stormy' ? 'Orageux' : 
-                  weatherData.condition === 'snowy' ? 'Neigeux' : 'Venteux'}
+                <strong>Condition:</strong> {weatherData.condition === 'sunny' ? 'Sunny' : 
+                  weatherData.condition === 'rainy' ? 'Rainy' : 
+                  weatherData.condition === 'cloudy' ? 'Cloudy' : 
+                  weatherData.condition === 'stormy' ? 'Stormy' : 
+                  weatherData.condition === 'snowy' ? 'Snowy' : 'Windy'}
               </div>
             </div>
             <p className="text-xs text-green-600 mt-2 italic">
-              ✅ La météo a été automatiquement récupérée selon la localisation du chantier
+              ✅ Weather was automatically retrieved based on site location
             </p>
           </div>
         ) : null}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Heure (0-23)</Label>
+            <Label>Hour (0-23)</Label>
             <Input
               type="number"
               min={0}
@@ -273,7 +272,7 @@ export default function MaterialAdvancedPrediction({
             />
           </div>
           <div>
-            <Label>Jour de la semaine</Label>
+            <Label>Day of week</Label>
             <select
               className="w-full p-2 border rounded-md"
               value={features.dayOfWeek}
@@ -287,7 +286,7 @@ export default function MaterialAdvancedPrediction({
             </select>
           </div>
           <div>
-            <Label>Activité chantier (0-1)</Label>
+            <Label>Site activity (0-1)</Label>
             <Input
               type="number"
               step="0.1"
@@ -298,12 +297,12 @@ export default function MaterialAdvancedPrediction({
             />
           </div>
           <div>
-            <Label>Météo {weatherData ? '(Auto-détectée)' : ''}</Label>
+            <Label>Weather {weatherData ? '(Auto-detected)' : ''}</Label>
             <select
               className="w-full p-2 border rounded-md bg-gray-100"
               value={features.weather}
               disabled={true}
-              title={weatherData ? 'Météo automatiquement récupérée du chantier' : 'En attente de la météo'}
+              title={weatherData ? 'Weather automatically retrieved from site' : 'Waiting for weather'}
             >
               {weatherOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -313,12 +312,12 @@ export default function MaterialAdvancedPrediction({
             </select>
             {weatherData && (
               <p className="text-xs text-gray-500 mt-1">
-                🔒 Champ verrouillé (météo automatique)
+                🔒 Locked field (automatic weather)
               </p>
             )}
           </div>
           <div className="col-span-2">
-            <Label>Type de projet</Label>
+            <Label>Project type</Label>
             <select
               className="w-full p-2 border rounded-md"
               value={features.projectType}
@@ -341,23 +340,23 @@ export default function MaterialAdvancedPrediction({
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Prédiction...
+              Predicting...
             </>
           ) : (
             <>
               <Brain className="h-4 w-4 mr-2" />
-              Générer la prédiction avancée
+              Generate advanced prediction
             </>
           )}
         </Button>
 
         {prediction && (
           <div className={`mt-4 p-4 rounded-lg border-2 space-y-3 ${getStatusColor(prediction.status)}`}>
-            <h3 className="font-bold text-lg">📊 Résultat pour {materialName}</h3>
+            <h3 className="font-bold text-lg">📊 Result for {materialName}</h3>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 bg-white/80 rounded">
                 <Calendar className="h-5 w-5 mx-auto mb-1 text-blue-600" />
-                <div className="text-sm text-gray-600">Date rupture</div>
+                <div className="text-sm text-gray-600">Rupture date</div>
                 <div className="font-bold text-sm">
                   {new Date(prediction.estimatedRuptureDate).toLocaleString('fr-FR', {
                     day: '2-digit',
@@ -368,18 +367,18 @@ export default function MaterialAdvancedPrediction({
               </div>
               <div className="p-3 bg-white/80 rounded">
                 <Package className="h-5 w-5 mx-auto mb-1 text-green-600" />
-                <div className="text-sm text-gray-600">Commander</div>
-                <div className="font-bold text-sm">{prediction.recommendedOrderQuantity} unités</div>
+                <div className="text-sm text-gray-600">Order quantity</div>
+                <div className="font-bold text-sm">{prediction.recommendedOrderQuantity} units</div>
               </div>
               <div className={`p-3 bg-white/80 rounded ${getStatusTextColor(prediction.status)}`}>
                 <AlertTriangle className="h-5 w-5 mx-auto mb-1" />
-                <div className="text-sm text-gray-600">Statut</div>
+                <div className="text-sm text-gray-600">Status</div>
                 <div className="font-bold text-sm uppercase">
                   {prediction.status === 'critical'
-                    ? 'CRITIQUE'
+                    ? 'CRITICAL'
                     : prediction.status === 'warning'
-                    ? 'ÉLEVÉ'
-                    : 'FAIBLE'}
+                    ? 'HIGH'
+                    : 'LOW'}
                 </div>
               </div>
             </div>

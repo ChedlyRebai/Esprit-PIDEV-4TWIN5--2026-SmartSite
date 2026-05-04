@@ -1,168 +1,241 @@
-# 🧪 Guide de Test Rapide - Météo et Historique
+# 🧪 GUIDE DE TEST RAPIDE
 
-## 🎯 Objectif
-Vérifier que la météo se charge automatiquement et que l'historique se sauvegarde correctement.
-
----
-
-## ✅ Test 1: Météo Automatique (2 minutes)
-
-### Étapes:
-1. **Ouvrir la console du navigateur**
-   - Appuyez sur `F12`
-   - Allez dans l'onglet "Console"
-
-2. **Ouvrir un matériau assigné**
-   - Allez dans "Matériaux"
-   - Cliquez sur l'icône "Prédiction IA" (cerveau violet) d'un matériau
-
-3. **Vérifier les logs dans la console**
-   Vous devriez voir:
-   ```
-   🔍 Step 1: Récupération du matériau [ID]
-   ✅ Matériau récupéré: {siteId: "...", ...}
-   🔍 Step 2: Récupération du chantier [ID]
-   ✅ Réponse API sites: {success: true, data: {...}}
-   🔍 Step 3: Vérification des coordonnées GPS
-   Coordonnées trouvées: {latitude: 36.8065, longitude: 10.1815}
-   🔍 Step 4: Récupération de la météo
-   Coordonnées utilisées: {lat: 36.8065, lng: 10.1815}
-   ✅ Réponse API météo: {success: true, weather: {...}}
-   ```
-
-4. **Vérifier l'affichage**
-   - ✅ Encadré vert "Météo Automatique"
-   - ✅ Nom du chantier affiché
-   - ✅ Description météo (ex: "ciel dégagé")
-   - ✅ Température (ex: "23°C")
-   - ✅ Condition (ex: "Ensoleillé")
-
-### ❌ Si ça ne marche pas:
-- Regardez les logs dans la console
-- Identifiez l'étape qui échoue
-- Vérifiez que le matériau est bien assigné à un chantier
-- Vérifiez que le chantier a des coordonnées GPS
+## 🎯 3 MODIFICATIONS À TESTER
 
 ---
 
-## ✅ Test 2: Historique Automatique (3 minutes)
+## 1️⃣ FILTRAGE DES MATÉRIAUX PAR SITE
 
-### Étapes:
-1. **Aller dans l'onglet Consommation**
-   - Cliquez sur "Consommation" dans les onglets
+### Comment tester:
+1. Ouvrir l'interface frontend
+2. Aller dans **"Site Consumption Tracking"**
+3. Sélectionner un site dans le dropdown (ex: "sitedowntunisia")
+4. Cliquer sur **"Add Material"**
 
-2. **Sélectionner un chantier**
-   - Choisissez un chantier dans le menu déroulant
+### ✅ Résultat attendu:
+- Seuls les matériaux assignés à ce site apparaissent dans la liste
+- Si vous changez de site, la liste change
 
-3. **Ajouter une consommation**
-   - Trouvez un matériau dans la liste
-   - Entrez une quantité (ex: 10)
-   - Cliquez sur "Ajouter consommation"
-   - ✅ Vous devriez voir: "10 unite consomme(s)"
-
-4. **Vérifier l'historique**
-   - Cliquez sur le sous-onglet "Historique"
-   - ✅ Une nouvelle entrée devrait apparaître immédiatement
-   - ✅ Vérifiez les détails:
-     - Matériau correct
-     - Quantité: 10
-     - Type: OUT (sortie)
-     - Date/heure actuelle
-
-5. **Vérifier les logs backend** (optionnel)
-   - Ouvrez les logs du service materials-service
-   - Vous devriez voir:
-   ```
-   +10 consomme: site=..., material=..., nouveau total=...
-   ✅ Historique créé: 10 unite consommé(s) sur site ...
-   ```
-
-### ❌ Si ça ne marche pas:
-- Vérifiez que le service materials-service est démarré
-- Vérifiez les logs backend pour voir les erreurs
-- Vérifiez la base de données MongoDB:
-  ```javascript
-  use smartmaterials
-  db.consumptionhistories.find().sort({createdAt: -1}).limit(5)
-  ```
+### ❌ Avant:
+- Tous les matériaux étaient affichés, peu importe le site
 
 ---
 
-## ✅ Test 3: Mise à Jour de Consommation (2 minutes)
+## 2️⃣ AI REPORT SIMPLIFIÉ
 
-### Étapes:
-1. **Modifier une consommation existante**
-   - Dans l'onglet "Consommation"
-   - Cliquez sur l'icône "Modifier" (crayon) d'un matériau
-   - Changez la quantité consommée
-   - Cliquez sur "Mettre à jour"
+### Comment tester:
+1. Aller dans **"Site Consumption Tracking"**
+2. Cliquer sur **"AI Report"**
+3. Attendre la génération du rapport
 
-2. **Vérifier l'historique**
-   - Allez dans le sous-onglet "Historique"
-   - ✅ Une nouvelle entrée devrait apparaître
-   - ✅ Type: OUT ou ADJUSTMENT selon le changement
+### ✅ Résultat attendu:
+
+**Si consommation normale:**
+```
+╔════════════════════════════════════════════════╗
+║  ✅ ÉTAT NORMAL DE CONSOMMATION               ║
+║                                                ║
+║  La consommation est dans les limites normales ║
+║  Déviation: +5.2%                              ║
+╚════════════════════════════════════════════════╝
+```
+
+**Si consommation excessive:**
+```
+╔════════════════════════════════════════════════╗
+║  🚨 RISQUE DE VOL OU GASPILLAGE               ║
+║                                                ║
+║  Consommation anormalement élevée détectée     ║
+║  Déviation: +45.8%                             ║
+╚════════════════════════════════════════════════╝
+```
+
+### ❌ Avant:
+- Affichait "AI Recommendations (3)"
+- Affichait toutes les alertes (INFO, WARNING, etc.)
+- Interface complexe avec trop d'informations
+
+### ✅ Maintenant:
+- Affiche seulement: Normal ou Risque
+- Pas de recommendations
+- Seulement les alertes critiques
 
 ---
 
-## 🔍 Débogage Rapide
+## 3️⃣ MATERIAL FLOW LOG - TEST MANUEL
 
-### Problème: "Météo non disponible"
-**Vérifications:**
-1. Le matériau est-il assigné à un chantier?
-   - Ouvrez la console: `🔍 Step 1: Récupération du matériau`
-   - Vérifiez `siteId` dans les logs
+### Comment tester:
 
-2. Le chantier a-t-il des coordonnées GPS?
-   - Regardez les logs: `Coordonnées trouvées: {...}`
-   - Vérifiez que `latitude` et `longitude` existent
+#### Option A: Script Interactif (Recommandé)
+```bash
+node test-material-flow-manual.cjs
+```
 
-3. L'API météo répond-elle?
-   - Regardez les logs: `✅ Réponse API météo`
-   - Vérifiez `success: true` et `weather: {...}`
+**Étapes**:
+1. Choisir un matériau (ex: 1 pour Ciment Portland)
+2. Choisir le type de mouvement:
+   - 1 = IN (Entrée)
+   - 2 = OUT (Sortie)
+   - 3 = DAMAGE (Endommagé)
+3. Entrer la quantité (ex: 50)
+4. Entrer la raison (ex: "Utilisation chantier")
 
-### Problème: "Historique ne se crée pas"
-**Vérifications:**
-1. Le backend est-il démarré?
-   ```bash
-   # Vérifiez que le service tourne sur le port 3002
-   curl http://localhost:3002/api/materials/health
+**Exemple**:
+```
+Choisir un matériau (1-10): 1
+Choisir le type (1-6): 2
+Entrer la quantité: 80
+Entrer la raison: Test sortie excessive
+
+✅ Flow log créé
+🚨 ANOMALIE: EXCESSIVE_OUT
+   Sortie excessive détectée! Quantité: 80 unités
+   Normale: 20 unités/jour
+   Déviation: 300%
+   RISQUE DE VOL OU GASPILLAGE!
+```
+
+#### Option B: Script Automatique
+```bash
+node test-flow-log-system.cjs
+```
+- Crée automatiquement 6 flow logs avec 1 anomalie
+
+### ✅ Vérifier dans l'interface:
+
+1. **Ouvrir MaterialDetails** pour le matériau testé
+2. **Vérifier "Movement Summary"**:
+   ```
+   Total Entries: 150
+   Total Exits: 120
+   Net Balance: +30
+   Anomalies: 1
    ```
 
-2. MongoDB est-il accessible?
-   ```bash
-   # Connectez-vous à MongoDB
-   mongosh
-   use smartmaterials
-   db.consumptionhistories.countDocuments()
-   ```
-
-3. Y a-t-il des erreurs dans les logs backend?
-   - Cherchez: `❌ Erreur création historique`
+3. **Vérifier "Recent Movements"**:
+   - Les flow logs apparaissent avec détails
+   - Les anomalies ont un badge rouge "⚠️ Anomaly"
+   - Le message d'anomalie est affiché
 
 ---
 
-## 📊 Résultats Attendus
+## 📊 VÉRIFICATION COMPLÈTE
 
-### Météo:
-- ✅ Chargement automatique en <2 secondes
-- ✅ Affichage dans un encadré vert
-- ✅ Toutes les informations présentes
-- ✅ Champ météo verrouillé
+### Checklist:
 
-### Historique:
-- ✅ Création automatique à chaque action
-- ✅ Affichage immédiat dans l'onglet Historique
-- ✅ Toutes les métadonnées correctes
-- ✅ Statistiques mises à jour
+#### SiteConsumptionTracker
+- [ ] Sélectionner un site
+- [ ] Cliquer "Add Material"
+- [ ] Vérifier que seuls les matériaux du site apparaissent
+- [ ] Changer de site
+- [ ] Vérifier que la liste change
+
+#### AI Report
+- [ ] Cliquer "AI Report"
+- [ ] Vérifier l'affichage: Normal ou Risque
+- [ ] Vérifier qu'il n'y a pas de "AI Recommendations"
+- [ ] Vérifier que seules les alertes critiques sont affichées
+
+#### Flow Logs
+- [ ] Exécuter `node test-material-flow-manual.cjs`
+- [ ] Créer un mouvement OUT avec quantité élevée (ex: 80)
+- [ ] Vérifier que l'anomalie est détectée
+- [ ] Ouvrir MaterialDetails dans l'interface
+- [ ] Vérifier que le flow log apparaît
+- [ ] Vérifier que l'anomalie est visible (badge rouge)
 
 ---
 
-## 🎉 Succès!
+## 🎯 TESTS RAPIDES (5 MINUTES)
+
+### Test 1: Filtrage (1 min)
+```
+1. Ouvrir Site Consumption Tracking
+2. Sélectionner "sitedowntunisia"
+3. Cliquer "Add Material"
+4. ✅ Vérifier: Seuls les matériaux de ce site
+```
+
+### Test 2: AI Report (2 min)
+```
+1. Cliquer "AI Report"
+2. Attendre génération
+3. ✅ Vérifier: "État Normal" ou "Risque"
+4. ✅ Vérifier: Pas de "AI Recommendations"
+```
+
+### Test 3: Flow Log (2 min)
+```
+1. Exécuter: node test-material-flow-manual.cjs
+2. Choisir matériau: 1
+3. Choisir type: 2 (OUT)
+4. Quantité: 80
+5. ✅ Vérifier: Anomalie détectée
+```
+
+---
+
+## 🐛 PROBLÈMES POSSIBLES
+
+### Problème 1: Pas de matériaux dans la liste
+**Cause**: Aucun matériau assigné au site sélectionné
+**Solution**: Assigner des matériaux au site d'abord
+
+### Problème 2: AI Report ne génère pas
+**Cause**: Pas de données de consommation
+**Solution**: Créer des flow logs d'abord avec le script
+
+### Problème 3: Flow logs n'apparaissent pas
+**Cause**: MongoDB non connecté ou collection vide
+**Solution**: Vérifier la connexion MongoDB et exécuter le script de test
+
+---
+
+## 📁 SCRIPTS DISPONIBLES
+
+### Tests Automatiques
+```bash
+# Test complet du système
+node test-complete-system.cjs
+
+# Créer des flow logs automatiquement
+node test-flow-log-system.cjs
+
+# Vérifier les flow logs
+node verify-flow-logs.cjs
+
+# Tester la mise à jour des matériaux
+node test-material-update.cjs
+```
+
+### Test Manuel (Nouveau)
+```bash
+# Interface interactive pour créer des flow logs
+node test-material-flow-manual.cjs
+```
+
+---
+
+## 🎉 RÉSULTAT FINAL
 
 Si tous les tests passent:
-- ✅ La météo se charge automatiquement
-- ✅ L'historique se sauvegarde automatiquement
-- ✅ L'interface se rafraîchit automatiquement
-- ✅ Tout fonctionne comme prévu!
 
-**Félicitations! Le système est opérationnel! 🚀**
+```
+╔════════════════════════════════════════════════╗
+║                                                ║
+║     ✅ TOUS LES TESTS RÉUSSIS ✅              ║
+║                                                ║
+║  1. Filtrage par site: WORKING                ║
+║  2. AI Report simplifié: WORKING              ║
+║  3. Flow logs: WORKING                        ║
+║                                                ║
+║  🚀 SYSTÈME PRÊT POUR PRODUCTION              ║
+║                                                ║
+╚════════════════════════════════════════════════╝
+```
+
+---
+
+**Date**: 3 Mai 2026
+**Version**: 1.1.0
+**Temps estimé**: 5-10 minutes

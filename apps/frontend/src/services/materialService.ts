@@ -51,6 +51,7 @@ export interface Material {
   minimumStock: number;
   maximumStock: number;
   reorderPoint: number;
+  stockMinimum?: number; // Backend field for reorder threshold
   qualityGrade?: number;
   location?: string;
   siteId?: string;
@@ -113,10 +114,25 @@ export interface MaterialQueryParams {
 const materialService = {
   async getMaterials(params?: MaterialQueryParams): Promise<{ data: Material[]; total: number; page: number; totalPages: number } | Material[]> {
     try {
-      console.log('📡 materialService.getMaterials called with params:', params);
-      const response = await apiClient.get('', { params });
-      console.log('📡 Raw response:', response);
-      console.log('📡 Response data:', response.data);
+      // ✅ Validate and clean parameters to avoid 400 errors
+      const cleanParams: any = {};
+      
+      if (params) {
+        if (params.search) cleanParams.search = params.search;
+        if (params.category) cleanParams.category = params.category;
+        if (params.status) cleanParams.status = params.status;
+        if (params.location) cleanParams.location = params.location;
+        if (params.lowStock !== undefined) cleanParams.lowStock = params.lowStock;
+        if (params.page && params.page > 0) cleanParams.page = params.page;
+        if (params.limit && params.limit > 0) cleanParams.limit = params.limit;
+        if (params.sortBy) cleanParams.sortBy = params.sortBy;
+        if (params.sortOrder && ['asc', 'desc'].includes(params.sortOrder)) {
+          cleanParams.sortOrder = params.sortOrder;
+        }
+      }
+      
+      console.log('📡 materialService.getMaterials with cleaned params:', cleanParams);
+      const response = await apiClient.get('', { params: cleanParams });
       
       // Handle both paginated and array responses
       const data = response.data;
@@ -201,7 +217,7 @@ const materialService = {
 
   async updateStock(id: string, data: UpdateStockData): Promise<Material> {
     try {
-      const response = await apiClient.put(`/materials/${id}/stock`, data);
+      const response = await apiClient.put(`/${id}/stock`, data);
       return response.data;
     } catch (error) {
       console.error('Erreur updateStock:', error);
@@ -251,7 +267,7 @@ const materialService = {
 
   async reorderMaterial(id: string): Promise<any> {
     try {
-      const response = await apiClient.post(`/materials/${id}/reorder`);
+      const response = await apiClient.post(`/${id}/reorder`);
       return response.data;
     } catch (error) {
       console.error('Erreur reorderMaterial:', error);
@@ -456,16 +472,6 @@ const materialService = {
     }
   },
 
-  async getAllPredictions(): Promise<any[]> {
-    try {
-      const response = await apiClient.get('/prediction/all');
-      return response.data;
-    } catch (error) {
-      console.error('Erreur getAllPredictions:', error);
-      throw error;
-    }
-  },
-
   // ========== ML TRAINING - UPLOAD CSV ==========
   async uploadHistoricalData(materialId: string, file: File): Promise<{
     success: boolean;
@@ -531,9 +537,19 @@ const materialService = {
     trainedAt?: Date;
   }> {
     try {
-      const response = await apiClient.get(`/${materialId}/model-info`);
+      // Try new endpoint first
+      const response = await apiClient.get(`/ml/model-info/${materialId}`);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // If 404, return default values (endpoint not implemented yet)
+      if (error.response?.status === 404) {
+        console.warn(`⚠️ Model info endpoint not available for ${materialId}, using defaults`);
+        return {
+          materialId,
+          modelTrained: false,
+          hasHistoricalData: false,
+        };
+      }
       console.error('Erreur getModelInfo:', error);
       throw error;
     }
@@ -589,10 +605,12 @@ const materialService = {
   // ✅ Nouvelle méthode pour récupérer toutes les prédictions IA
   async getAllPredictions(): Promise<any[]> {
     try {
-      const response = await apiClient.get('/predictions');
+      console.log('🔮 Fetching all predictions from /predictions/all');
+      const response = await apiClient.get('/predictions/all');
+      console.log('✅ Predictions received:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur getAllPredictions:', error);
+      console.error('❌ Erreur getAllPredictions:', error);
       throw error;
     }
   },
