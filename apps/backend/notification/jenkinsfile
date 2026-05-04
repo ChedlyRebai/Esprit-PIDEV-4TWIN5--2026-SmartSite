@@ -91,14 +91,18 @@ pipeline {
 
 
         stage('BUILD DOCKER IMAGE') {
-            steps {
-                script {
-                    def imageTag = "${NOTIFICATION_IMAGE}:${env.GIT_COMMIT_SHORT}"
-                    sh "docker build -t ${DOCKER_USERNAME}/${imageTag} ."
-                    echo " Docker image built: ${imageTag}"
-                }
+    steps {
+        script {
+            def imageTag = "${NOTIFICATION_IMAGE}:latest"
+
+            dir('apps/backend/notification') {
+                sh "docker build -t ${imageTag} ."
             }
+
+            echo "Docker image built: ${imageTag}"
         }
+    }
+}
 
         stage('Push docker image') {
             steps {
@@ -108,7 +112,7 @@ pipeline {
                       url: 'https://index.docker.io/v1/'
                   ]) {
                         sh 'echo docker login successful'
-                        sh " docker push ${DOCKER_USERNAME}/${NOTIFICATION_IMAGE}:latest"
+                        sh " docker push ${NOTIFICATION_IMAGE}:latest"
                   }
                 }
             }
