@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-management
+  namespace: smartsite
+  labels:
+    app: incident-management
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: incident-management
+  template:
+    metadata:
+      labels:
+        app: incident-management
+    spec:
+      containers:
+        - name: incident-management
+          image: chedlyrebai/incident-management-api:latest
+          ports:
+            - containerPort: 3006
+          env:
+            - name: PORT
+              value: "3006"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: incident-management-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: incident-management-secret
+                  key: JWT_SECRET
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: incident-management-secret
+                  key: GROQ_API_KEY
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-management
+  namespace: smartsite
+  labels:
+    app: incident-management
+spec:
+  type: ClusterIP
+  selector:
+    app: incident-management
+  ports:
+    - port: 3006
+      targetPort: 3006
+      protocol: TCP

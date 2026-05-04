@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartsite-config
+  namespace: smartsite
+data:
+  NODEJS_ENV: production
+  LOG_LEVEL: info
+  API_GATEWAY_URL: "http://api-gateway:3007"
+  GESTION_SITE_URL: "http://gestion-site:3001"
+  GESTION_PROJECTS_URL: "http://gestion-projects:3002"
+  GESTION_PLANING_URL: "http://gestion-planing:3002"
+  MATERIALS_SERVICE_URL: "http://materials-service:3000"
+  GESTION_SUPPLIERS_URL: "http://gestion-suppliers:3005"
+  INCIDENT_MANAGEMENT_URL: "http://incident-management:3006"
+  NOTIFICATION_URL: "http://notification:3004"
+  RESOURCE_OPTIMIZATION_URL: "http://resource-optimization:3007"
+  PAIEMENT_URL: "http://paiement:3008"
+  USER_AUTH_URL: "http://user-auth:3000"
+  VIDEOCALL_URL: "http://videocall:9000"
+  GESTION_FOURNISSEURS_URL: "http://gestion-fournisseurs:3009"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_CLIENT_ID: "smartsite-client"
+  KAFKA_GROUP_ID: "smartsite-group"
+  GROQ_MODEL: "llama-3.3-70b-versatile"
+  REDIS_URL: "redis://redis:6379"

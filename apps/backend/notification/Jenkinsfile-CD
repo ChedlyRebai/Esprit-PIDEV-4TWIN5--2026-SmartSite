@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        REGISTRY          = 'docker.io'
+        DOCKER_USERNAME   = 'chedlyrebai'
+        SERVICE_NAME      = 'notification'
+        SERVICE_DIR       = 'apps/backend/notification'
+        DOCKER_IMAGE      = "${DOCKER_USERNAME}/notification-service"
+        CONTAINER_NAME    = 'notification'
+        APP_PORT          = '3004'
+        SONAR_HOST_URL    = 'http://localhost:9000'
+        SONAR_PROJECT_KEY = 'pidev-key-notification'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo '✅ Code récupéré depuis GitHub'
+                script {
+                    env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                }
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm install'
+                    sh 'npm run test:cov --if-present'
+                    echo '✅ Tests et coverage générés'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sq1') {
+                    withCredentials([string(credentialsId: 'pidev-key-notification', variable: 'SONAR_LOGIN')]) {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                cd ${SERVICE_DIR}
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName='SmartSite - Notification' \
+                                -Dsonar.sources=src \
+                                -Dsonar.tests=src \
+                                -Dsonar.test.inclusions=**/*.spec.ts \
+                                -Dsonar.exclusions=**/*.module.ts,**/node_modules/**,**/dist/** \
+                                -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/** \
+                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_LOGIN}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 35, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh "docker build --no-cache -t ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT} -t ${DOCKER_IMAGE}:latest ."
+                    echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo \"$DOCKER_PASS\" | docker login -u \"$DOCKER_USER\" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    """
+                    echo '✅ Image Docker poussée'
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI'),
+                    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
+                    string(credentialsId: 'kafka-brokers', variable: 'KAFKA_BROKERS'),
+                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
+                ]) {
+                    sh """
+                        docker stop ${CONTAINER_NAME} 2>/dev/null || true
+                        docker rm ${CONTAINER_NAME} 2>/dev/null || true
+
+                        docker run -d \
+                            --name ${CONTAINER_NAME} \
+                            --restart unless-stopped \
+                            -p ${APP_PORT}:${APP_PORT} \
+                            -e PORT=${APP_PORT} \
+                            -e NODE_ENV=production \
+                            -e MONGODB_URI=\"${MONGODB_URI}\" \
+                            -e JWT_SECRET=\"${JWT_SECRET}\" \
+                            -e KAFKA_BROKERS=\"${KAFKA_BROKERS}\" \
+                            -e GROQ_API_KEY=\"${GROQ_API_KEY}\" \
+                            -e GROQ_MODEL=llama-3.3-70b-versatile \
+                            ${DOCKER_IMAGE}:latest
+                    """
+                    echo "✅ ${SERVICE_NAME} déployé sur le port ${APP_PORT}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CD réussi — ${SERVICE_NAME} déployé"
+        }
+        failure {
+            echo "❌ CD échoué pour ${SERVICE_NAME}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

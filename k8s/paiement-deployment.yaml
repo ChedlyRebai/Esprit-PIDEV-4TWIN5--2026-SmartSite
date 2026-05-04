@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paiement
+  namespace: smartsite
+  labels:
+    app: paiement
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: paiement
+  template:
+    metadata:
+      labels:
+        app: paiement
+    spec:
+      containers:
+        - name: paiement
+          image: chedlyrebai/paiement-service:latest
+          ports:
+            - containerPort: 3008
+          env:
+            - name: PORT
+              value: "3008"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: paiement-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: paiement-secret
+                  key: JWT_SECRET
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paiement-secret
+                  key: STRIPE_SECRET_KEY
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paiement-secret
+                  key: GROQ_API_KEY
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paiement
+  namespace: smartsite
+  labels:
+    app: paiement
+spec:
+  type: ClusterIP
+  selector:
+    app: paiement
+  ports:
+    - port: 3008
+      targetPort: 3008
+      protocol: TCP
