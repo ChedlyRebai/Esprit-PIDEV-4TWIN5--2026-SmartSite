@@ -26,7 +26,7 @@ import orderService from "../../../services/orderService";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-interface PayerAvecCarteDialogProps {
+interface CreditCardPaymentDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -66,12 +66,12 @@ function CardPaymentFormInner({
     e.preventDefault();
     
     if (!stripe || !elements) {
-      toast.error("Système de paiement non disponible");
+      toast.error("Payment system unavailable");
       return;
     }
 
     if (!cardComplete) {
-      setErrorMessage("Veuillez saisir les informations de carte valides");
+      setErrorMessage("Please enter valid card information");
       return;
     }
 
@@ -86,8 +86,8 @@ function CardPaymentFormInner({
       });
 
       if (error) {
-        setErrorMessage(error.message || "Erreur lors du paiement");
-        toast.error(error.message || "Erreur lors du paiement");
+        setErrorMessage(error.message || "Payment error");
+        toast.error(error.message || "Payment error");
         setProcessing(false);
         return;
       }
@@ -101,24 +101,24 @@ function CardPaymentFormInner({
               const invoice = await orderService.generateInvoice(orderId, siteName);
               if (invoice) {
                 onInvoiceGenerated(invoice);
-                toast.success(`📄 Facture ${invoice.numeroFacture} générée!`);
+                toast.success(`📄 Invoice ${invoice.numeroFacture} generated!`);
               }
             } catch (invoiceError) {
               console.error("Error generating invoice:", invoiceError);
-              toast.warning("Paiement réussi mais échec génération facture");
+              toast.warning("Payment successful but invoice generation failed");
             }
           }
           
-          toast.success("✅ Paiement effectué avec succès!");
+          toast.success("✅ Payment successful!");
           onSuccess();
         } else {
-          toast.error(result.message || "Erreur lors de la confirmation");
+          toast.error(result.message || "Confirmation error");
         }
       }
     } catch (error: any) {
       console.error("Payment error:", error);
-      setErrorMessage(error.message || "Erreur lors du paiement");
-      toast.error(error.message || "Erreur lors du paiement");
+      setErrorMessage(error.message || "Payment error");
+      toast.error(error.message || "Payment error");
     } finally {
       setProcessing(false);
     }
@@ -145,7 +145,7 @@ function CardPaymentFormInner({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Informations de la carte bancaire</Label>
+        <Label className="text-sm font-medium">Credit Card Information</Label>
         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
           <CardElement
             options={cardElementOptions}
@@ -157,7 +157,7 @@ function CardPaymentFormInner({
         </div>
         <p className="text-xs text-gray-500 flex items-center gap-1">
           <Lock className="h-3 w-3" />
-          Paiement sécurisé par Stripe - Vos informations sont cryptées
+          Secure payment by Stripe - Your information is encrypted
         </p>
         {errorMessage && (
           <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
@@ -175,13 +175,13 @@ function CardPaymentFormInner({
         />
         <Label htmlFor="generate-invoice-card" className="text-sm cursor-pointer flex items-center gap-1">
           <FileText className="h-4 w-4" />
-          Générer une facture après paiement (PDF)
+          Generate invoice after payment (PDF)
         </Label>
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg">
         <div className="flex justify-between items-center">
-          <span className="text-gray-600">Montant à payer:</span>
+          <span className="text-gray-600">Amount to pay:</span>
           <span className="text-2xl font-bold text-blue-600 flex items-center gap-1">
             <Euro className="h-5 w-5" />
             {amount.toFixed(2)} €
@@ -191,7 +191,7 @@ function CardPaymentFormInner({
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-          Annuler
+          Cancel
         </Button>
         <Button 
           type="submit" 
@@ -203,14 +203,14 @@ function CardPaymentFormInner({
           ) : (
             <CreditCard className="h-4 w-4 mr-2" />
           )}
-          Payer {amount.toFixed(2)} €
+          Pay {amount.toFixed(2)} €
         </Button>
       </div>
     </form>
   );
 }
 
-export default function PayerAvecCarteDialog({
+export default function CreditCardPaymentDialog({
   open,
   onClose,
   onSuccess,
@@ -220,18 +220,18 @@ export default function PayerAvecCarteDialog({
   supplierName,
   siteName,
   amount,
-}: PayerAvecCarteDialogProps) {
+}: CreditCardPaymentDialogProps) {
   const [loading, setLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [showStripeForm, setShowStripeForm] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
 
-  // Initialiser le paiement quand le dialogue s'ouvre (une seule fois)
+  // Initialize payment when dialog opens (once)
   React.useEffect(() => {
     if (open && !clientSecret && !showStripeForm && !generatedInvoice) {
       initPayment();
     }
-    // Nettoyer à la fermeture
+    // Clean up on close
     return () => {
       if (!open) {
         setShowStripeForm(false);
@@ -246,18 +246,18 @@ export default function PayerAvecCarteDialog({
       const result = await orderService.processPayment(orderId, "card");
 
       if (!result.success) {
-        throw new Error(result.message || "Erreur lors de l'initialisation");
+        throw new Error(result.message || "Initialization error");
       }
 
       if (result.payment?.clientSecret) {
         setClientSecret(result.payment.clientSecret);
         setShowStripeForm(true);
       } else {
-        throw new Error("Réponse de paiement invalide");
+        throw new Error("Invalid payment response");
       }
     } catch (error: any) {
       console.error("Init payment error:", error);
-      toast.error(error.message || "Erreur lors de l'initialisation du paiement");
+      toast.error(error.message || "Error initializing payment");
       onClose();
     } finally {
       setLoading(false);
@@ -267,8 +267,8 @@ export default function PayerAvecCarteDialog({
   const handlePaymentSuccess = () => {
     setShowStripeForm(false);
     setClientSecret(null);
-    // Ne PAS appeler onSuccess ici - on le fait APRÈS avoir généré la facture
-    // Mais on a déjà généré la facture dans CardPaymentFormInner
+    // Don't call onSuccess here - we call it AFTER generating the invoice
+    // But we've already generated the invoice in CardPaymentFormInner
     onSuccess();
   };
 
@@ -301,8 +301,8 @@ export default function PayerAvecCarteDialog({
     <Dialog 
       open={open} 
       onOpenChange={(isOpen) => {
-        // Ne appeler handleCancel que si on ferme le dialogue
-        // et qu'on n'a pas encore généré la facture
+        // Only call handleCancel if closing the dialog
+        // and no invoice has been generated yet
         if (!isOpen && !generatedInvoice) {
           handleCancel();
         }
@@ -312,32 +312,32 @@ export default function PayerAvecCarteDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <CreditCard className="h-5 w-5 text-blue-600" />
-            Paiement par carte bancaire
+            Credit Card Payment
           </DialogTitle>
           <DialogDescription>
-            Veuillez saisir les informations de votre carte pour finaliser le paiement.
+            Please enter your credit card information to complete the payment.
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
-          {/* Récapitulatif */}
+          {/* Summary */}
           <Card className="bg-gray-50 border-gray-200 mb-4">
             <CardContent className="pt-4">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Commande:</span>
+                  <span className="text-gray-600">Order:</span>
                   <span className="font-medium">{orderNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Matériau:</span>
+                  <span className="text-gray-600">Material:</span>
                   <span className="font-medium">{materialName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Fournisseur:</span>
+                  <span className="text-gray-600">Supplier:</span>
                   <span className="font-medium">{supplierName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Chantier:</span>
+                  <span className="text-gray-600">Construction Site:</span>
                   <span className="font-medium">{siteName}</span>
                 </div>
               </div>
@@ -347,7 +347,7 @@ export default function PayerAvecCarteDialog({
           {loading && (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-              <p className="mt-2 text-gray-500">Initialisation du paiement...</p>
+              <p className="mt-2 text-gray-500">Initializing payment...</p>
             </div>
           )}
 
@@ -371,8 +371,8 @@ export default function PayerAvecCarteDialog({
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <div>
-                    <p className="font-medium text-green-800">Paiement réussi !</p>
-                    <p className="text-sm text-green-600">Facture N° {generatedInvoice.numeroFacture}</p>
+                    <p className="font-medium text-green-800">Payment successful!</p>
+                    <p className="text-sm text-green-600">Invoice #{generatedInvoice.numeroFacture}</p>
                   </div>
                 </div>
                 <Button 
@@ -382,7 +382,7 @@ export default function PayerAvecCarteDialog({
                   className="border-green-300 text-green-700 hover:bg-green-100"
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Télécharger PDF
+                  Download PDF
                 </Button>
               </div>
             </div>
@@ -392,12 +392,12 @@ export default function PayerAvecCarteDialog({
         <DialogFooter>
           {!generatedInvoice && !loading && !showStripeForm && (
             <Button variant="outline" onClick={handleCancel}>
-              Annuler
+              Cancel
             </Button>
           )}
           {generatedInvoice && (
             <Button onClick={handlePaymentSuccess} className="bg-green-600 hover:bg-green-700">
-              Terminer
+              Finish
             </Button>
           )}
         </DialogFooter>

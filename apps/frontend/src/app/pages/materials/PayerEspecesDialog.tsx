@@ -17,7 +17,7 @@ import { Wallet, CheckCircle, Loader2, Euro, FileText, AlertCircle } from "lucid
 import { toast } from "sonner";
 import orderService from "../../../services/orderService";
 
-interface PayerEspecesDialogProps {
+interface CashPaymentDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -29,7 +29,7 @@ interface PayerEspecesDialogProps {
   amount: number;
 }
 
-export default function PayerEspecesDialog({
+export default function CashPaymentDialog({
   open,
   onClose,
   onSuccess,
@@ -39,7 +39,7 @@ export default function PayerEspecesDialog({
   supplierName,
   siteName,
   amount,
-}: PayerEspecesDialogProps) {
+}: CashPaymentDialogProps) {
   const [loading, setLoading] = useState(false);
   const [generateInvoice, setGenerateInvoice] = useState(true);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
@@ -53,26 +53,26 @@ export default function PayerEspecesDialog({
       const result = await orderService.processPayment(orderId, "cash");
 
       if (!result.success) {
-        throw new Error(result.message || "Erreur lors du paiement");
+        throw new Error(result.message || "Payment error");
       }
 
-      toast.success("✅ Paiement en espèces enregistré!");
+      toast.success("✅ Cash payment recorded!");
       
-      // Envoyer une notification via WebSocket
+      // Send WebSocket notification
       try {
         const socketMessage = {
           type: 'payment_confirmation',
           orderId: orderId,
           amount: amount,
           method: 'cash',
-          message: `💰 Paiement de ${amount}€ en espèces confirmé pour la commande ${orderNumber}`
+          message: `💰 Cash payment of ${amount}€ confirmed for order ${orderNumber}`
         };
-        // Émettre via socket si disponible
+        // Emit via socket if available
         if (typeof window !== 'undefined' && (window as any).socket) {
           (window as any).socket.emit('payment-confirmed', socketMessage);
         }
       } catch (socketError) {
-        console.log('Socket notification non disponible');
+        console.log('Socket notification not available');
       }
       
       if (generateInvoice) {
@@ -80,22 +80,22 @@ export default function PayerEspecesDialog({
           const invoice = await orderService.generateInvoice(orderId, siteName);
           if (invoice) {
             setGeneratedInvoice(invoice);
-            toast.success(`📄 Facture ${invoice.numeroFacture} générée!`);
+            toast.success(`📄 Invoice ${invoice.numeroFacture} generated!`);
           }
         } catch (invoiceError) {
           console.error("Error generating invoice:", invoiceError);
-          toast.warning("Paiement réussi mais échec génération facture");
+          toast.warning("Payment successful but invoice generation failed");
         }
       }
       
-      // Attendre un peu avant de fermer pour montrer le succès
+      // Wait a bit before closing to show success
       setTimeout(() => {
         setLoading(false);
         onSuccess();
       }, 1500);
     } catch (error: any) {
       console.error("Cash payment error:", error);
-      toast.error(error.message || "Erreur lors de l'enregistrement du paiement");
+      toast.error(error.message || "Error recording payment");
       setLoading(false);
       setConfirmed(false);
     }
@@ -134,37 +134,37 @@ export default function PayerEspecesDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Wallet className="h-5 w-5 text-green-600" />
-            Paiement en espèces
+            Cash Payment
           </DialogTitle>
           <DialogDescription>
-            Confirmez le paiement en espèces pour la commande.
+            Confirm the cash payment for the order.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Récapitulatif */}
+          {/* Summary */}
           <Card className="bg-yellow-50 border-yellow-200">
             <CardContent className="pt-4">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Commande:</span>
+                  <span className="text-gray-600">Order:</span>
                   <span className="font-medium">{orderNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Matériau:</span>
+                  <span className="text-gray-600">Material:</span>
                   <span className="font-medium">{materialName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Fournisseur:</span>
+                  <span className="text-gray-600">Supplier:</span>
                   <span className="font-medium">{supplierName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Chantier:</span>
+                  <span className="text-gray-600">Construction Site:</span>
                   <span className="font-medium">{siteName}</span>
                 </div>
                 <div className="border-t pt-2 mt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Montant à encaisser:</span>
+                    <span className="text-lg font-semibold">Amount to collect:</span>
                     <span className="text-2xl font-bold text-green-600 flex items-center gap-1">
                       <Euro className="h-5 w-5" />
                       {amount.toFixed(2)} €
@@ -184,7 +184,7 @@ export default function PayerEspecesDialog({
             />
             <Label htmlFor="generate-invoice-cash" className="text-sm cursor-pointer flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              Générer une facture après paiement
+              Generate invoice after payment
             </Label>
           </div>
 
@@ -192,8 +192,8 @@ export default function PayerEspecesDialog({
             <div className="flex items-start gap-2">
               <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
               <div className="text-sm text-blue-700">
-                <p className="font-medium">Confirmation requise:</p>
-                <p>En confirmant, vous attesterez avoir reçu le paiement en espèces de {amount.toFixed(2)}€ de la part de {supplierName}.</p>
+                <p className="font-medium">Confirmation required:</p>
+                <p>By confirming, you certify that you have received the cash payment of {amount.toFixed(2)}€ from {supplierName}.</p>
               </div>
             </div>
           </div>
@@ -204,8 +204,8 @@ export default function PayerEspecesDialog({
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <div>
-                    <p className="font-medium text-green-800">Paiement confirmé !</p>
-                    <p className="text-sm text-green-600">Facture N° {generatedInvoice.numeroFacture}</p>
+                    <p className="font-medium text-green-800">Payment confirmed!</p>
+                    <p className="text-sm text-green-600">Invoice #{generatedInvoice.numeroFacture}</p>
                   </div>
                 </div>
                 <Button 
@@ -215,7 +215,7 @@ export default function PayerEspecesDialog({
                   className="border-green-300 text-green-700 hover:bg-green-100"
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Télécharger PDF
+                  Download PDF
                 </Button>
               </div>
             </div>
@@ -224,7 +224,7 @@ export default function PayerEspecesDialog({
           {loading && !generatedInvoice && (
             <div className="text-center py-4">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-green-600" />
-              <p className="mt-2 text-gray-500">Traitement en cours...</p>
+              <p className="mt-2 text-gray-500">Processing...</p>
             </div>
           )}
         </div>
@@ -233,17 +233,17 @@ export default function PayerEspecesDialog({
           {!generatedInvoice && !loading && (
             <>
               <Button variant="outline" onClick={handleClose}>
-                Annuler
+                Cancel
               </Button>
               <Button onClick={handleConfirm} className="bg-green-600 hover:bg-green-700">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Confirmer le paiement
+                Confirm Payment
               </Button>
             </>
           )}
           {generatedInvoice && (
             <Button onClick={onSuccess} className="bg-green-600 hover:bg-green-700">
-              Terminer
+              Finish
             </Button>
           )}
         </DialogFooter>

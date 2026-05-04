@@ -77,7 +77,7 @@ interface OrderMapProps {
   onOrderConfirmed?: () => void;
 }
 
-// Fonction pour générer des points intermédiaires
+// Function to generate intermediate points
 function generateIntermediatePoints(
   start: [number, number],
   end: [number, number],
@@ -92,18 +92,18 @@ function generateIntermediatePoints(
   return points;
 }
 
-// Composant RoutingControl avec intervalle pour respecter le temps réel
+// RoutingControl component with interval for real-time tracking
 function RoutingControl({
   start,
   end,
-  totalDurationMinutes, // Renommé pour être plus clair - cette valeur ne change pas
+  totalDurationMinutes, // Renamed for clarity - this value doesn't change
   onProgress,
   onArrival,
   onTimeUpdate,
 }: {
   start: [number, number];
   end: [number, number];
-  totalDurationMinutes: number; // Durée totale fixe en minutes
+  totalDurationMinutes: number; // Fixed total duration in minutes
   onProgress?: (progress: number) => void;
   onArrival?: () => void;
   onTimeUpdate?: (remainingMinutes: number) => void;
@@ -129,7 +129,7 @@ function RoutingControl({
   useEffect(() => {
     if (!map || !start || !end || totalDurationMinutes <= 0) return;
 
-    // Nettoyer l'animation précédente
+    // Clean up previous animation
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -138,17 +138,17 @@ function RoutingControl({
     if (truckRef.current) map.removeLayer(truckRef.current);
     if (polylineRef.current) map.removeLayer(polylineRef.current);
 
-    // Créer les points intermédiaires
+    // Create intermediate points
     stepsRef.current = generateIntermediatePoints(start, end, 200);
     
-    // Ajouter le camion
+    // Add truck marker
     truckRef.current = L.marker(start, { icon: truckIcon }).addTo(map);
     
-    // Ajuster la vue
+    // Adjust view
     const bounds = L.latLngBounds([start, end]);
     map.fitBounds(bounds, { padding: [50, 50] });
 
-    // Dessiner la ligne du trajet
+    // Draw route line
     polylineRef.current = L.polyline([start, end], {
       color: "#2563eb",
       weight: 4,
@@ -156,36 +156,36 @@ function RoutingControl({
       dashArray: "10, 10"
     }).addTo(map);
 
-    // Démarrer l'animation
+    // Start animation
     startTimeRef.current = Date.now();
     isAnimatingRef.current = true;
     totalDurationMsRef.current = totalDurationMinutes * 60 * 1000;
     const totalSteps = stepsRef.current.length - 1;
 
-    console.log(`🎬 Animation démarrée - Durée totale FIXE: ${totalDurationMinutes} minutes (${totalDurationMsRef.current} ms = ${totalDurationMsRef.current / 1000} secondes)`);
-    console.log(`📍 Départ: [${start[0]}, ${start[1]}]`);
-    console.log(`📍 Arrivée: [${end[0]}, ${end[1]}]`);
+    console.log(`🎬 Animation started - FIXED total duration: ${totalDurationMinutes} minutes (${totalDurationMsRef.current} ms = ${totalDurationMsRef.current / 1000} seconds)`);
+    console.log(`📍 Departure: [${start[0]}, ${start[1]}]`);
+    console.log(`📍 Arrival: [${end[0]}, ${end[1]}]`);
 
-    // Fonction de mise à jour
+    // Update position function
     const updatePosition = () => {
       if (!isAnimatingRef.current) return;
       
       const elapsed = Date.now() - startTimeRef.current;
       let progressRatio = elapsed / totalDurationMsRef.current;
       
-      // S'assurer que progressRatio ne dépasse pas 1
+      // Ensure progressRatio doesn't exceed 1
       if (progressRatio > 1) progressRatio = 1;
       
       const targetStep = Math.floor(progressRatio * totalSteps);
       
-      // Calculer le temps restant en minutes
+      // Calculate remaining time in minutes
       const remainingMs = Math.max(0, totalDurationMsRef.current - elapsed);
       const remainingMinutes = remainingMs / (60 * 1000);
       
-      // Mettre à jour l'affichage du temps restant
+      // Update remaining time display
       onTimeUpdateRef.current?.(remainingMinutes);
       
-      // Mettre à jour la position du camion
+      // Update truck position
       if (targetStep >= 0 && targetStep <= totalSteps && truckRef.current) {
         const position = stepsRef.current[targetStep];
         truckRef.current.setLatLng(position);
@@ -193,9 +193,9 @@ function RoutingControl({
         onProgressRef.current?.(progressPercent);
       }
       
-      // Vérifier si l'animation est terminée
+      // Check if animation is complete
       if (progressRatio >= 1) {
-        console.log("🏁 Animation terminée!");
+        console.log("🏁 Animation complete!");
         isAnimatingRef.current = false;
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
@@ -208,10 +208,10 @@ function RoutingControl({
       }
     };
 
-    // Mettre à jour toutes les secondes
+    // Update every second
     intervalRef.current = setInterval(updatePosition, 1000);
     
-    // Exécuter immédiatement la première mise à jour
+    // Execute first update immediately
     updatePosition();
 
     return () => {
@@ -267,7 +267,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
   const [progress, setProgress] = useState(0);
   const [remainingTime, setRemainingTime] = useState(0);
   const [totalDistance, setTotalDistance] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(0); // Durée totale fixe en minutes
+  const [totalDuration, setTotalDuration] = useState(0); // Fixed total duration in minutes
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'orders' | 'stock'>('orders');
   const [messages, setMessages] = useState<{ id: string; sender: string; text: string; type: string }[]>([]);
@@ -278,7 +278,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
   const [paymentOrderData, setPaymentOrderData] = useState<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const routingKeyRef = useRef<number>(0);
-  const animationDurationRef = useRef<number>(0); // Stocke la durée pour l'animation
+  const animationDurationRef = useRef<number>(0); // Stores duration for animation
 
   useEffect(() => {
     if (open) {
@@ -302,12 +302,12 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
       const order = orders.find((o) => o._id === orderId);
       if (order) {
         setSelectedOrder(order);
-        // Récupérer la durée estimée depuis la commande
+        // Get estimated duration from order
         if (order.estimatedDurationMinutes && order.estimatedDurationMinutes > 0) {
           const duration = order.estimatedDurationMinutes;
           setTotalDuration(duration);
           setRemainingTime(duration);
-          console.log(`📋 Durée estimée depuis la commande: ${duration} minutes`);
+          console.log(`📋 Estimated duration from order: ${duration} minutes`);
         }
       }
     }
@@ -340,13 +340,13 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
           );
           setTotalDistance(dist);
           
-          // Utiliser la durée estimée de la commande
+          // Use estimated duration from order
           if (selectedOrder.estimatedDurationMinutes && selectedOrder.estimatedDurationMinutes > 0) {
             setTotalDuration(selectedOrder.estimatedDurationMinutes);
             if (selectedOrder.status !== 'in_transit') {
               setRemainingTime(selectedOrder.estimatedDurationMinutes);
             }
-            console.log(`📏 Distance: ${dist.toFixed(2)} km, Durée commande: ${selectedOrder.estimatedDurationMinutes} minutes`);
+            console.log(`📏 Distance: ${dist.toFixed(2)} km, Order duration: ${selectedOrder.estimatedDurationMinutes} minutes`);
           }
         }
       }
@@ -362,7 +362,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
         if (!isArrived) {
           setIsArrived(true);
           setIsDelivering(false);
-          toast.success(`🚚 Commande ${selectedOrder.orderNumber} livrée!`);
+          toast.success(`🚚 Order ${selectedOrder.orderNumber} delivered!`);
         }
         if (selectedOrder.destinationCoordinates) {
           setTruckPosition([selectedOrder.destinationCoordinates.lat, selectedOrder.destinationCoordinates.lng]);
@@ -382,17 +382,17 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Chargement des données Order Map...');
+      console.log('🔄 Loading Order Map data...');
       await Promise.all([
         loadOrders(),
         loadLowStock(),
         loadSites(),
         loadFournisseurs()
       ]);
-      console.log('✅ Données chargées - Orders:', orders.length, 'Sites:', sites.length, 'Fournisseurs:', fournisseurs.length);
+      console.log('✅ Data loaded - Orders:', orders.length, 'Sites:', sites.length, 'Suppliers:', fournisseurs.length);
     } catch (error) {
-      console.error('❌ Erreur chargement données Order Map:', error);
-      toast.error('Erreur lors du chargement des données');
+      console.error('❌ Error loading Order Map data:', error);
+      toast.error('Error loading data');
     } finally {
       setLoading(false);
     }
@@ -401,14 +401,14 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
   const loadOrders = async () => {
     try {
       const data = await orderService.getActiveOrders();
-      console.log('📦 Commandes actives chargées:', data.length);
+      console.log('📦 Active orders loaded:', data.length);
       if (data.length === 0) {
-        console.log('⚠️ Aucune commande active trouvée');
+        console.log('⚠️ No active orders found');
       }
       setOrders(data);
       if (data.length > 0 && !selectedOrder) {
         setSelectedOrder(data[0]);
-        console.log('✅ Commande sélectionnée:', data[0].orderNumber);
+        console.log('✅ Order selected:', data[0].orderNumber);
       } else if (selectedOrder && data.length > 0) {
         const updatedSelected = data.find(o => o._id === selectedOrder._id);
         if (updatedSelected) {
@@ -416,7 +416,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
         }
       }
     } catch (error) {
-      console.error("Erreur chargement commandes:", error);
+      console.error("Error loading orders:", error);
     }
   };
 
@@ -434,34 +434,34 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
         siteName: m.siteName,
         siteCoordinates: m.siteCoordinates
       }));
-      console.log('📦 Matériaux en rupture/low stock:', lowStock.length);
+      console.log('📦 Out of stock/low stock materials:', lowStock.length);
       setLowStockMaterials(lowStock);
     } catch (error) {
-      console.error("❌ Erreur chargement low stock:", error);
+      console.error("❌ Error loading low stock:", error);
     }
   };
 
   const loadSites = async () => {
     try {
       const data = await siteService.getActiveSites();
-      console.log('🏗️ Sites actifs chargés:', data.length);
+      console.log('🏗️ Active sites loaded:', data.length);
       setSites(data);
       if (data.length > 0 && !selectedSite) {
         setSelectedSite(data[0]);
-        console.log('✅ Site sélectionné:', data[0].nom);
+        console.log('✅ Site selected:', data[0].nom);
       }
     } catch (error) {
-      console.error("❌ Erreur chargement sites:", error);
+      console.error("❌ Error loading sites:", error);
     }
   };
 
   const loadFournisseurs = async () => {
     try {
       const data = await fournisseurService.getFournisseurs();
-      console.log('🏭 Fournisseurs chargés:', data.length);
+      console.log('🏭 Suppliers loaded:', data.length);
       setFournisseurs(data);
     } catch (error) {
-      console.error("❌ Erreur chargement fournisseurs:", error);
+      console.error("❌ Error loading suppliers:", error);
     }
   };
 
@@ -500,7 +500,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
     if (material.siteCoordinates) {
       setSelectedSite({
         _id: material.siteId || '',
-        nom: material.siteName || 'Chantier',
+        nom: material.siteName || 'Construction Site',
         adresse: '',
         coordinates: material.siteCoordinates,
         budget: 0,
@@ -520,22 +520,22 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
 
   const handleStartDelivery = async () => {
     if (!selectedSite || !selectedFournisseur?.coordinates) {
-      toast.error("Coordonnées manquantes");
+      toast.error("Missing coordinates");
       return;
     }
 
-    // Utiliser la durée totale depuis la commande
+    // Use total duration from order
     const duration = totalDuration;
     
     if (duration <= 0) {
-      toast.error("Durée invalide");
+      toast.error("Invalid duration");
       return;
     }
 
-    console.log(`🚚 DÉMARRAGE LIVRAISON - Durée réelle: ${duration} minutes (${duration * 60} secondes)`);
-    console.log(`📍 Départ (Site): ${selectedSite.coordinates.lat}, ${selectedSite.coordinates.lng}`);
-    console.log(`📍 Arrivée (Fournisseur): ${selectedFournisseur.coordinates.lat}, ${selectedFournisseur.coordinates.lng}`);
-    console.log(`⏱️ La livraison prendra EXACTEMENT ${duration} minutes (${duration * 60} secondes)`);
+    console.log(`🚚 STARTING DELIVERY - Actual duration: ${duration} minutes (${duration * 60} seconds)`);
+    console.log(`📍 Departure (Site): ${selectedSite.coordinates.lat}, ${selectedSite.coordinates.lng}`);
+    console.log(`📍 Arrival (Supplier): ${selectedFournisseur.coordinates.lat}, ${selectedFournisseur.coordinates.lng}`);
+    console.log(`⏱️ Delivery will take EXACTLY ${duration} minutes (${duration * 60} seconds)`);
 
     try {
       await orderService.updateOrderStatus(orderId!, { status: 'in_transit' });
@@ -544,17 +544,17 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
       setProgress(0);
       setRemainingTime(duration);
       
-      // Stocker la durée pour l'animation
+      // Store duration for animation
       animationDurationRef.current = duration;
       
-      // Incrémenter la clé pour forcer le remontage du RoutingControl
+      // Increment key to force RoutingControl remount
       routingKeyRef.current += 1;
       
-      toast.success(`🚚 Livraison démarrée! Durée: ${formatTime(duration)}`);
+      toast.success(`🚚 Delivery started! Duration: ${formatTime(duration)}`);
       
     } catch (error) {
-      console.error("Erreur livraison:", error);
-      toast.error("Erreur lors de la simulation de livraison");
+      console.error("Delivery error:", error);
+      toast.error("Error starting delivery simulation");
       setIsDelivering(false);
     }
   };
@@ -576,10 +576,10 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
       setMessages([...messages, {
         id: Date.now().toString(),
         sender: 'Me',
-        text: '🎤 Message vocal',
+        text: '🎤 Voice message',
         type: 'voice'
       }]);
-      toast.success("Message vocal envoyé!");
+      toast.success("Voice message sent!");
     }
   };
 
@@ -595,10 +595,10 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "pending": return "En attente";
-      case "in_transit": return "En cours";
-      case "delivered": return "Livré";
-      case "delayed": return "Retardé";
+      case "pending": return "Pending";
+      case "in_transit": return "In Transit";
+      case "delivered": return "Delivered";
+      case "delayed": return "Delayed";
       default: return status;
     }
   };
@@ -612,25 +612,25 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
   };
 
   const handleArrival = async () => {
-    console.log("🏁 ARRIVÉE DESTINATION");
+    console.log("🏁 ARRIVED AT DESTINATION");
     setIsArrived(true);
     setIsDelivering(false);
     setProgress(100);
     setRemainingTime(0);
     
     await orderService.updateOrderStatus(orderId!, { status: 'delivered' });
-    toast.success(`✅ Le camion est arrivé chez ${selectedFournisseur?.nom}!`);
+    toast.success(`✅ The truck has arrived at ${selectedFournisseur?.nom}!`);
     
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       sender: 'System',
-      text: `✅ Livraison terminée! Le camion est arrivé chez ${selectedFournisseur?.nom}`,
+      text: `✅ Delivery complete! The truck has arrived at ${selectedFournisseur?.nom}`,
       type: 'arrival'
     }]);
     
-    // 💰 OUVRIR LE DIALOG DE PAIEMENT AUTOMATIQUEMENT
+    // 💰 OPEN PAYMENT DIALOG AUTOMATICALLY
     if (selectedOrder) {
-      const amount = selectedOrder.quantity * 100; // Prix unitaire * quantité
+      const amount = selectedOrder.quantity * 100; // Unit price * quantity
       setPaymentOrderData({
         orderId: selectedOrder._id,
         orderNumber: selectedOrder.orderNumber,
@@ -641,11 +641,11 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
       });
       setShowPaymentDialog(true);
       
-      // Message dans le chat
+      // Chat message
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: 'System',
-        text: `💰 Dialog de paiement ouvert - Montant: ${amount}€`,
+        text: `💰 Payment dialog opened - Amount: ${amount}€`,
         type: 'payment'
       }]);
     }
@@ -674,15 +674,15 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
 
         <div className="p-4 flex justify-between items-center border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-xl">
           <div>
-            <h2 className="font-bold text-lg">🚚 Suivi de livraison</h2>
-            <p className="text-sm text-blue-100">🏗️ Chantier (DÉPART) → 🏭 Fournisseur (ARRIVÉE)</p>
+            <h2 className="font-bold text-lg">🚚 Delivery Tracking</h2>
+            <p className="text-sm text-blue-100">🏗️ Construction Site (DEPARTURE) → 🏭 Supplier (ARRIVAL)</p>
             {totalDuration > 0 && !isDelivering && (
-              <p className="text-xs text-blue-200 mt-1">⏱️ Durée estimée: {formatTime(totalDuration)}</p>
+              <p className="text-xs text-blue-200 mt-1">⏱️ Estimated duration: {formatTime(totalDuration)}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="bg-white/20 text-white border-white/30 hover:bg-white/30" onClick={() => setViewMode(viewMode === 'orders' ? 'stock' : 'orders')}>
-              {viewMode === 'orders' ? '📦 Stock' : '📋 Commandes'}
+              {viewMode === 'orders' ? '📦 Stock' : '📋 Orders'}
             </Button>
             <button onClick={onClose} className="text-white hover:text-blue-200 text-2xl p-2">
               <X />
@@ -696,33 +696,33 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
             <div className="p-2 border-b bg-white flex gap-1">
               <Button variant={viewMode === 'stock' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('stock')} className="flex-1">
                 <AlertTriangle className="w-4 h-4 mr-1" />
-                Rupture Stock
+                Stock Shortage
               </Button>
               <Button variant={viewMode === 'orders' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('orders')} className="flex-1">
                 <Truck className="w-4 h-4 mr-1" />
-                Commandes
+                Orders
               </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {loading ? (
-                <div className="text-center py-8 text-gray-500">Chargement...</div>
+                <div className="text-center py-8 text-gray-500">Loading...</div>
               ) : viewMode === 'stock' ? (
                 <>
                   {lowStockMaterials.length === 0 && sites.length === 0 && supplierRoutes.length === 0 ? (
                     <div className="text-center py-8 px-4">
                       <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm mb-2">Aucune donnée disponible</p>
-                      <p className="text-xs text-gray-400">Créez des sites et fournisseurs pour commencer</p>
+                      <p className="text-gray-500 text-sm mb-2">No data available</p>
+                      <p className="text-xs text-gray-400">Create sites and suppliers to get started</p>
                     </div>
                   ) : (
                     <>
                       <div className="text-sm font-semibold text-gray-600 px-2 py-1 bg-yellow-50 rounded">
-                        📦 Matériaux en rupture/low stock ({lowStockMaterials.length})
+                        📦 Out of stock/Low stock materials ({lowStockMaterials.length})
                       </div>
                       {lowStockMaterials.length === 0 ? (
                         <div className="text-center py-4 text-xs text-gray-400">
-                          Aucun matériau en rupture
+                          No out of stock materials
                         </div>
                       ) : (
                         lowStockMaterials.map((mat) => (
@@ -730,7 +730,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                             <div className="flex justify-between">
                               <span className="font-semibold">{mat.name}</span>
                               <Badge variant={mat.quantity === 0 ? 'destructive' : 'secondary'}>
-                                {mat.quantity === 0 ? 'Rupture' : 'Low stock'}
+                                {mat.quantity === 0 ? 'Out of stock' : 'Low stock'}
                               </Badge>
                             </div>
                             <div className="text-xs text-gray-500">{mat.code} • Stock: {mat.quantity}/{mat.reorderPoint}</div>
@@ -739,11 +739,11 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                       )}
 
                       <div className="text-sm font-semibold text-gray-600 px-2 py-1 bg-blue-50 rounded mt-4">
-                        🏗️ Chantiers ({sites.length})
+                        🏗️ Construction Sites ({sites.length})
                       </div>
                       {sites.length === 0 ? (
                         <div className="text-center py-4 text-xs text-gray-400">
-                          Aucun chantier disponible
+                          No construction sites available
                         </div>
                       ) : (
                         sites.filter(s => s.coordinates).slice(0, 5).map((site) => (
@@ -755,11 +755,11 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                       )}
 
                       <div className="text-sm font-semibold text-gray-600 px-2 py-1 bg-green-50 rounded mt-4">
-                        🏭 Fournisseurs ({supplierRoutes.length})
+                        🏭 Suppliers ({supplierRoutes.length})
                       </div>
                       {supplierRoutes.length === 0 ? (
                         <div className="text-center py-4 text-xs text-gray-400">
-                          {fournisseurs.length === 0 ? 'Aucun fournisseur disponible' : 'Sélectionnez un chantier pour voir les fournisseurs'}
+                          {fournisseurs.length === 0 ? 'No suppliers available' : 'Select a site to see suppliers'}
                         </div>
                       ) : (
                         supplierRoutes.map((route) => (
@@ -781,14 +781,14 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                   {orders.length === 0 ? (
                     <div className="text-center py-8 px-4">
                       <Truck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm mb-2">Aucune commande active</p>
-                      <p className="text-xs text-gray-400 mb-4">Créez une commande depuis la page Materials</p>
+                      <p className="text-gray-500 text-sm mb-2">No active orders</p>
+                      <p className="text-xs text-gray-400 mb-4">Create an order from the Materials page</p>
                       <Button 
                         size="sm" 
                         variant="outline"
                         onClick={() => setViewMode('stock')}
                       >
-                        📦 Voir les stocks faibles
+                        📦 View low stock
                       </Button>
                     </div>
                   ) : (
@@ -799,7 +799,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                           <Badge className={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge>
                         </div>
                         <div className="text-xs text-gray-500">🏗️ {order.destinationSiteName} → 🏭 {order.supplierName}</div>
-                        <div className="text-xs font-medium text-blue-600">⏱️ Durée: {formatTime(order.estimatedDurationMinutes)}</div>
+                        <div className="text-xs font-medium text-blue-600">⏱️ Duration: {formatTime(order.estimatedDurationMinutes)}</div>
                       </div>
                     ))
                   )}
@@ -811,7 +811,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
               <div className="text-xs font-semibold text-gray-600 mb-2">💬 Messages</div>
               <div className="h-24 overflow-y-auto bg-gray-50 rounded p-2 mb-2 space-y-1">
                 {messages.length === 0 ? (
-                  <div className="text-xs text-gray-400 text-center">Aucun message</div>
+                  <div className="text-xs text-gray-400 text-center">No messages</div>
                 ) : messages.map((msg) => (
                   <div key={msg.id} className="text-xs bg-white p-1 rounded">
                     <span className="font-medium">{msg.sender}:</span> {msg.text}
@@ -837,7 +837,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                   <Marker position={startPos} icon={siteIcon}>
                     <Popup>
                       <div className="text-center">
-                        <strong>🏗️ DÉPART: Chantier</strong><br/>
+                        <strong>🏗️ DEPARTURE: Construction Site</strong><br/>
                         {selectedSite.nom}
                       </div>
                     </Popup>
@@ -848,7 +848,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                   <Marker position={endPos} icon={supplierIcon}>
                     <Popup>
                       <div className="text-center">
-                        <strong>🏭 ARRIVÉE: Fournisseur</strong><br/>
+                        <strong>🏭 ARRIVAL: Supplier</strong><br/>
                         {selectedFournisseur.nom}<br/>
                         {selectedFournisseur.adresse}
                       </div>
@@ -872,7 +872,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                   <Marker position={truckPosition} icon={truckIcon}>
                     <Popup>
                       <div className="text-center">
-                        <strong>🚚 Camion</strong><br/>
+                        <strong>🚚 Truck</strong><br/>
                         {materialName || selectedOrder?.materialName}<br/>
                         🏗️ {selectedSite?.nom} → 🏭 {selectedFournisseur?.nom}
                       </div>
@@ -885,7 +885,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
                     <Navigation className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium">Trajet: 🏗️ Chantier → 🏭 Fournisseur</span>
+                    <span className="text-sm font-medium">Route: 🏗️ Construction Site → 🏭 Supplier</span>
                   </div>
                   <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
                 </div>
@@ -899,19 +899,19 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                 
                 <div className="flex justify-between text-xs text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
-                    <span>🏗️ {selectedSite?.nom?.substring(0, 15) || "Chantier"}</span>
+                    <span>🏗️ {selectedSite?.nom?.substring(0, 15) || "Construction Site"}</span>
                   </div>
                   <div className="flex items-center gap-1 text-blue-600">
                     <Truck className="h-3 w-3" />
                     <span>{Math.round(totalDistance * progress / 100)}/{Math.round(totalDistance)} km</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span>🏭 {selectedFournisseur?.nom?.substring(0, 15) || "Fournisseur"}</span>
+                    <span>🏭 {selectedFournisseur?.nom?.substring(0, 15) || "Supplier"}</span>
                   </div>
                 </div>
                 
                 <div className="flex justify-between items-center text-sm mb-3">
-                  <span className="text-gray-500">⏱️ Temps restant:</span>
+                  <span className="text-gray-500">⏱️ Time remaining:</span>
                   <span className={`font-semibold ${remainingTime < 5 && remainingTime > 0 ? 'text-red-600 animate-pulse' : 'text-gray-700'}`}>
                     {formatTime(remainingTime)}
                   </span>
@@ -923,14 +923,14 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     <Truck className="h-4 w-4 mr-2" />
-                    Démarrer la livraison ({formatTime(totalDuration)})
+                    Start delivery ({formatTime(totalDuration)})
                   </Button>
                 )}
                 
                 {isDelivering && !isArrived && (
                   <div className="flex items-center justify-center gap-3 text-blue-600">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
-                    <span className="text-sm">Livraison en cours...</span>
+                    <span className="text-sm">Delivery in progress...</span>
                     <span className="text-sm font-medium">{Math.round(progress)}%</span>
                   </div>
                 )}
@@ -938,7 +938,7 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
                 {isArrived && (
                   <div className="flex items-center justify-center gap-2 text-green-600">
                     <CheckCircle className="h-5 w-5" />
-                    <span className="text-sm font-medium">✅ Livraison terminée !</span>
+                    <span className="text-sm font-medium">✅ Delivery complete!</span>
                   </div>
                 )}
               </div>
@@ -946,18 +946,18 @@ export default function OrderMap({ open, onClose, orderId, materialName, siteLoc
           </div>
         </div>
 
-        {/* Dialog de Paiement */}
+        {/* Payment Dialog */}
         {showPaymentDialog && paymentOrderData && (
           <PaymentDialog
             open={showPaymentDialog}
             onClose={() => setShowPaymentDialog(false)}
             onSuccess={() => {
               setShowPaymentDialog(false);
-              toast.success('💰 Paiement effectué avec succès!');
+              toast.success('💰 Payment successful!');
               setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 sender: 'System',
-                text: `✅ Paiement confirmé pour ${paymentOrderData.amount}€`,
+                text: `✅ Payment confirmed for ${paymentOrderData.amount}€`,
                 type: 'payment_success'
               }]);
             }}

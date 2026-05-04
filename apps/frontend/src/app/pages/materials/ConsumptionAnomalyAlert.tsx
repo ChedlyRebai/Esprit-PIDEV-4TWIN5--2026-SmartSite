@@ -37,14 +37,14 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
       if (top && onAnomalyDetected) {
         onAnomalyDetected({
           consumption: top,
-          anomalyType: top.anomalyType === 'vol' ? 'VOL_POSSIBLE' : 'CHANTIER_BLOQUE',
+          anomalyType: top.anomalyType === 'vol' ? 'POSSIBLE_THEFT' : 'SITE_BLOCKED',
           anomalyScore: top.anomalyScore,
           message: top.anomalyReason,
           severity: top.anomalyType === 'vol' ? 'critical' : 'warning',
         });
       }
     } catch (error) {
-      console.error('Erreur chargement anomalies:', error);
+      console.error('Error loading anomalies:', error);
     } finally {
       setLoading(false);
     }
@@ -64,9 +64,9 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
   const getAnomalyBadge = (type: string) => {
     switch (type) {
       case 'vol':
-        return <Badge variant="destructive" className="bg-red-500">VOL POSSIBLE</Badge>;
+        return <Badge variant="destructive" className="bg-red-500">POSSIBLE THEFT</Badge>;
       case 'probleme':
-        return <Badge variant="secondary" className="bg-yellow-500 text-white">CHANTIER BLOQUE</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-500 text-white">SITE BLOCKED</Badge>;
       default:
         return <Badge variant="default" className="bg-green-500">NORMAL</Badge>;
     }
@@ -75,10 +75,10 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
   const handleResendAlert = async (recordId: string) => {
     try {
       await consumptionService.resendAlert(recordId);
-      toast.success('Alerte renvoyee avec succes');
+      toast.success('Alert resent successfully');
       loadAnomalies();
     } catch (error) {
-      toast.error("Erreur lors de l'envoi");
+      toast.error("Error sending alert");
     }
   };
 
@@ -87,7 +87,7 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
       <Card>
         <CardContent className="py-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-500">Chargement des anomalies...</p>
+          <p className="mt-2 text-gray-500">Loading anomalies...</p>
         </CardContent>
       </Card>
     );
@@ -100,16 +100,16 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-red-200"><CardContent className="p-4"><p className="text-sm text-gray-500">Alertes critiques</p><p className="text-2xl font-bold text-red-600">{criticalAnomalies.length}</p></CardContent></Card>
-        <Card className="border-yellow-200"><CardContent className="p-4"><p className="text-sm text-gray-500">Avertissements</p><p className="text-2xl font-bold text-yellow-600">{warningAnomalies.length}</p></CardContent></Card>
-        <Card className="border-green-200"><CardContent className="p-4"><p className="text-sm text-gray-500">Consommations normales</p><p className="text-2xl font-bold text-green-600">{normalRecords.length}</p></CardContent></Card>
+        <Card className="border-red-200"><CardContent className="p-4"><p className="text-sm text-gray-500">Critical alerts</p><p className="text-2xl font-bold text-red-600">{criticalAnomalies.length}</p></CardContent></Card>
+        <Card className="border-yellow-200"><CardContent className="p-4"><p className="text-sm text-gray-500">Warnings</p><p className="text-2xl font-bold text-yellow-600">{warningAnomalies.length}</p></CardContent></Card>
+        <Card className="border-green-200"><CardContent className="p-4"><p className="text-sm text-gray-500">Normal consumption</p><p className="text-2xl font-bold text-green-600">{normalRecords.length}</p></CardContent></Card>
       </div>
 
       {anomalies.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-gray-500">
             <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-            <p>Aucune anomalie detectee</p>
+            <p>No anomalies detected</p>
           </CardContent>
         </Card>
       ) : (
@@ -117,7 +117,7 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Detection intelligente des anomalies
+              Intelligent anomaly detection
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -138,7 +138,7 @@ export default function ConsumptionAnomalyAlert({ materialId, siteId, onAnomalyD
                     {!anomaly.emailSent && anomaly.anomalyType !== 'normal' && (
                       <Button size="sm" variant="outline" onClick={() => handleResendAlert(anomaly._id)}>
                         <Mail className="h-4 w-4 mr-1" />
-                        Envoyer alerte
+                        Send alert
                       </Button>
                     )}
                   </div>

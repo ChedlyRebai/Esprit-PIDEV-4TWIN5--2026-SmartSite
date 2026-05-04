@@ -49,6 +49,10 @@ export function FlowLogPage() {
   return <MaterialFlowLog />;
 }
 
+export function FlowAnomalyAnalysisPage() {
+  return <MaterialFlowLog />;
+}
+
 export function MLTrainingPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
@@ -84,14 +88,14 @@ export function MLTrainingPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Matériau</Label>
+            <Label>Material</Label>
             <Select
               value={selectedMaterialId}
               onValueChange={setSelectedMaterialId}
               disabled={loading || materials.length === 0}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loading ? "Chargement…" : "Choisir un matériau"} />
+                <SelectValue placeholder={loading ? "Loading..." : "Choose a material"} />
               </SelectTrigger>
               <SelectContent>
                 {materials.map((m) => (

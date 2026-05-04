@@ -29,6 +29,7 @@ import { ImportExportService } from './services/import-export.service';
 import { MaterialFlowService } from './services/material-flow.service';
 import { MLTrainingEnhancedService } from './services/ml-training-enhanced.service';
 import { FlowType } from './entities/material-flow-log.entity';
+import { SitesService } from '../sites/sites.service';
 
 @Injectable()
 export class MaterialsService {
@@ -44,6 +45,7 @@ export class MaterialsService {
     @Inject(forwardRef(() => MaterialFlowService))
     private readonly materialFlowService: MaterialFlowService,
     private readonly mlTrainingService: MLTrainingEnhancedService,
+    private readonly sitesService: SitesService,
   ) {}
 
   async create(
@@ -179,51 +181,53 @@ export class MaterialsService {
         this.materialModel.countDocuments(filter),
       ]);
 
+      // ✅ FIX: Fetch site info from MongoDB using SitesService
       const mappedData = await Promise.all(
         data.map(async (material: any) => {
           const siteIdStr = material.siteId?.toString();
+          
+          let siteInfo = {
+            siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+            siteAddress: '',
+            siteCoordinates: null as { lat: number; lng: number } | null,
+          };
 
-          let siteData: any = null;
           if (siteIdStr) {
             try {
-              const siteResponse = await this.httpService.axiosRef.get(
-                `http://localhost:3001/api/gestion-sites/${siteIdStr}`,
-              );
-              siteData = siteResponse.data;
-
-              this.logger.log(
-                `📍 Site ${siteIdStr}: ${siteData?.nom}, Coords: ${JSON.stringify(siteData?.coordinates)}`,
-              );
+              this.logger.log(`🔍 [findAll] Fetching site: ${siteIdStr}`);
+              const site = await this.sitesService.findOne(siteIdStr);
+              
+              if (site) {
+                this.logger.log(`✅ [findAll] Site FOUND: ${site.nom}`);
+                this.logger.log(`   coordonnees:`, JSON.stringify(site.coordinates, null, 2));
+                
+                siteInfo = {
+                  siteName: site.nom || 'Site assigné',
+                  siteAddress: site.adresse || site.localisation || '',
+                  siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+                    ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+                    : null,
+                };
+                
+                if (siteInfo.siteCoordinates) {
+                  this.logger.log(`✅ [findAll] GPS: (${siteInfo.siteCoordinates.lat}, ${siteInfo.siteCoordinates.lng})`);
+                } else {
+                  this.logger.error(`❌ [findAll] GPS MISSING for ${site.nom}`);
+                }
+              } else {
+                this.logger.error(`❌ [findAll] SITE NOT FOUND: ${siteIdStr}`);
+              }
             } catch (e) {
-              this.logger.warn(`Could not fetch site ${siteIdStr}:`, e.message);
+              this.logger.error(`❌ [findAll] Error fetching site ${siteIdStr}:`, e.message);
             }
           }
-
-          // Extraire les coordonnées correctement (le champ s'appelle "coordinates" dans l'entité Site)
-          let siteCoordinates: { lat: number; lng: number } | null = null;
-          if (siteData?.coordinates?.lat && siteData?.coordinates?.lng) {
-            siteCoordinates = {
-              lat: siteData.coordinates.lat,
-              lng: siteData.coordinates.lng,
-            };
-            this.logger.log(
-              `✅ Coordonnées extraites: lat=${siteCoordinates.lat}, lng=${siteCoordinates.lng}`,
-            );
-          } else {
-            this.logger.warn(
-              `⚠️ Aucune coordonnée trouvée pour le site ${siteIdStr}`,
-            );
-          }
-
+          
           return {
             ...material.toObject(),
             siteId: siteIdStr || '',
-            siteName:
-              siteData?.nom ||
-              siteData?.name ||
-              (siteIdStr ? 'Site assigné' : 'Non assigné'),
-            siteAddress: siteData?.adresse || siteData?.address || '',
-            siteCoordinates: siteCoordinates,
+            siteName: siteInfo.siteName,
+            siteAddress: siteInfo.siteAddress,
+            siteCoordinates: siteInfo.siteCoordinates,
             stockMinimum: material.stockMinimum,
             needsReorder: material.quantity <= material.stockMinimum,
           };
@@ -242,7 +246,7 @@ export class MaterialsService {
     }
   }
 
-  async findOne(id: string): Promise<Material> {
+  async findOne(id: string): Promise<any> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de matériau invalide');
     }
@@ -252,27 +256,136 @@ export class MaterialsService {
       throw new NotFoundException(`Matériau #${id} non trouvé`);
     }
 
-    return material;
+    // ✅ Fetch site info from MongoDB
+    const siteIdStr = material.siteId?.toString();
+    let siteInfo = {
+      siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+      siteAddress: '',
+      siteCoordinates: null as { lat: number; lng: number } | null,
+    };
+
+    if (siteIdStr) {
+      try {
+        this.logger.log(`🔍 Attempting to fetch site with ID: ${siteIdStr}`);
+        const site = await this.sitesService.findOne(siteIdStr);
+        
+        if (site) {
+          this.logger.log(`✅ Site FOUND: ${site.nom}`);
+          this.logger.log(`   _id: ${site._id}`);
+          this.logger.log(`   adresse: ${site.adresse || 'N/A'}`);
+          this.logger.log(`   ville: ${site.localisation || 'N/A'}`);
+          this.logger.log(`   coordonnees:`, JSON.stringify(site.coordinates, null, 2));
+          
+          siteInfo = {
+            siteName: site.nom || 'Site assigné',
+            siteAddress: site.adresse || site.localisation || '',
+            siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+              ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+              : null,
+          };
+          
+          if (siteInfo.siteCoordinates) {
+            this.logger.log(`✅ GPS COORDINATES FOUND: (${siteInfo.siteCoordinates.lat}, ${siteInfo.siteCoordinates.lng})`);
+          } else {
+            this.logger.error(`❌ GPS COORDINATES MISSING for site ${site.nom}`);
+            this.logger.error(`   coordonnees object:`, site.coordinates);
+          }
+        } else {
+          this.logger.error(`❌ SITE NOT FOUND with ID: ${siteIdStr}`);
+          this.logger.error(`   This means sitesService.findOne() returned null`);
+        }
+      } catch (e) {
+        this.logger.error(`❌ ERROR fetching site ${siteIdStr}:`, e.message);
+        this.logger.error(`   Stack:`, e.stack);
+      }
+    } else {
+      this.logger.warn(`⚠️ Material ${id} has NO siteId assigned`);
+    }
+
+    return {
+      ...material.toObject(),
+      siteName: siteInfo.siteName,
+      siteAddress: siteInfo.siteAddress,
+      siteCoordinates: siteInfo.siteCoordinates,
+    };
   }
 
-  async findByCode(code: string): Promise<Material> {
+  async findByCode(code: string): Promise<any> {
     const material = await this.materialModel.findOne({ code }).exec();
     if (!material) {
       throw new NotFoundException(`Matériau avec code ${code} non trouvé`);
     }
-    return material;
+
+    // ✅ Fetch site info from MongoDB
+    const siteIdStr = material.siteId?.toString();
+    let siteInfo = {
+      siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+      siteAddress: '',
+      siteCoordinates: null as { lat: number; lng: number } | null,
+    };
+
+    if (siteIdStr) {
+      try {
+        const site = await this.sitesService.findOne(siteIdStr);
+        if (site) {
+          siteInfo = {
+            siteName: site.nom || 'Site assigné',
+            siteAddress: site.adresse || site.localisation || '',
+            siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+              ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+              : null,
+          };
+          this.logger.log(`✅ Site info for code search: ${site.nom} (${siteInfo.siteCoordinates?.lat}, ${siteInfo.siteCoordinates?.lng})`);
+        }
+      } catch (e) {
+        this.logger.warn(`⚠️ Could not fetch site ${siteIdStr}:`, e.message);
+      }
+    }
+
+    return {
+      ...material.toObject(),
+      siteName: siteInfo.siteName,
+      siteAddress: siteInfo.siteAddress,
+      siteCoordinates: siteInfo.siteCoordinates,
+    };
   }
 
   async update(
     id: string,
     updateMaterialDto: UpdateMaterialDto,
     userId: string | null,
-  ): Promise<Material> {
+  ): Promise<any> {
     try {
-      const material = await this.findOne(id);
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('ID de matériau invalide');
+      }
 
-      Object.assign(material, updateMaterialDto);
+      const material = await this.materialModel.findById(id).exec();
+      if (!material) {
+        throw new NotFoundException(`Matériau #${id} non trouvé`);
+      }
 
+      // ✅ FIX: Gérer les champs V2 du formulaire
+      const updateData: any = { ...updateMaterialDto };
+      
+      // Mapper les champs V2 vers les champs standards
+      if (updateData.stockActuel !== undefined) {
+        updateData.quantity = updateData.stockActuel;
+        delete updateData.stockActuel;
+      }
+      
+      if (updateData.stockMinimum !== undefined) {
+        updateData.minimumStock = updateData.stockMinimum;
+        // Garder aussi stockMinimum pour compatibilité
+      }
+
+      // ✅ IMPORTANT: NE PAS supprimer stockEntree, stockSortie, stockExistant
+      // Ces champs sont dans le schema et doivent être sauvegardés
+      // delete updateData.stockEntree;  // ❌ NE PAS SUPPRIMER
+      // delete updateData.stockSortie;  // ❌ NE PAS SUPPRIMER
+      // delete updateData.stockExistant; // ❌ NE PAS SUPPRIMER
+
+      Object.assign(material, updateData);
       const updated = await material.save();
 
       this.materialsGateway.emitMaterialUpdate('materialUpdated', updated);
@@ -285,7 +398,8 @@ export class MaterialsService {
         userId || 'system',
       );
 
-      return updated;
+      // ✅ Retourner avec les infos de site (GPS inclus)
+      return this.findOne(id);
     } catch (error) {
       this.logger.error(`❌ Erreur mise à jour: ${error.message}`);
       throw error;
@@ -551,79 +665,53 @@ export class MaterialsService {
       .exec();
   }
 
-  async getExpiringMaterials(days: number = 30): Promise<Material[]> {
+  async getExpiringMaterials(days: number = 30): Promise<any[]> {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + days);
 
-    return this.materialModel
+    // ✅ FIX: Inclure les matériaux déjà expirés en retirant $gte: new Date()
+    // Cela permet de voir les matériaux expirés ET ceux qui vont expirer
+    const materials = await this.materialModel
       .find({
-        expiryDate: { $lte: targetDate, $gte: new Date() },
+        expiryDate: { $lte: targetDate },
         status: 'active',
       })
       .sort({ expiryDate: 1 })
       .exec();
-  }
 
-  async getMaterialsWithSiteInfo() {
-    const materials = await this.materialModel.find().exec();
-
+    // ✅ FIX: Ajouter les informations de site avec GPS
     const result = await Promise.all(
       materials.map(async (material: any) => {
         const siteIdStr = material.siteId?.toString();
 
-        let siteData: any = null;
+        let siteInfo = {
+          siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+          siteAddress: '',
+          siteCoordinates: null as { lat: number; lng: number } | null,
+        };
+
         if (siteIdStr) {
           try {
-            const axios = require('axios');
-            const siteResponse = await axios.get(
-              `http://localhost:3001/api/gestion-sites/${siteIdStr}`,
-            );
-            siteData = siteResponse.data;
-
-            this.logger.log(
-              `📍 Site ${siteIdStr}: ${siteData?.nom}, Coords: ${JSON.stringify(siteData?.coordinates)}`,
-            );
+            const site = await this.sitesService.findOne(siteIdStr);
+            if (site) {
+              siteInfo = {
+                siteName: site.nom || 'Site assigné',
+                siteAddress: site.adresse || site.localisation || '',
+                siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+                  ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+                  : null,
+              };
+            }
           } catch (e) {
-            this.logger.warn(`Could not fetch site ${siteIdStr}:`, e.message);
+            this.logger.warn(`⚠️ Could not fetch site ${siteIdStr}:`, e.message);
           }
         }
 
-        // Extraire les coordonnées correctement (le champ s'appelle "coordinates" dans l'entité Site)
-        let siteCoordinates: { lat: number; lng: number } | null = null;
-        if (siteData?.coordinates?.lat && siteData?.coordinates?.lng) {
-          siteCoordinates = {
-            lat: siteData.coordinates.lat,
-            lng: siteData.coordinates.lng,
-          };
-          this.logger.log(
-            `✅ Coordonnées extraites: lat=${siteCoordinates.lat}, lng=${siteCoordinates.lng}`,
-          );
-        } else {
-          this.logger.warn(
-            `⚠️ Aucune coordonnée trouvée pour le site ${siteIdStr}`,
-          );
-        }
-
         return {
-          _id: material._id,
-          name: material.name,
-          code: material.code,
-          category: material.category,
-          quantity: material.quantity,
-          unit: material.unit,
-          reorderPoint: material.stockMinimum,
-          minimumStock: material.minimumStock,
-          maximumStock: material.maximumStock,
-          stockMinimum: material.stockMinimum,
-          status: material.status,
-          barcode: material.barcode,
-          qrCode: material.qrCode,
-          siteId: siteIdStr,
-          siteName:
-            siteData?.nom || (siteIdStr ? 'Site assigné' : 'Non assigné'),
-          siteAddress: siteData?.adresse || '',
-          siteCoordinates: siteCoordinates,
-          needsReorder: material.quantity <= material.stockMinimum,
+          ...material.toObject(),
+          siteName: siteInfo.siteName,
+          siteAddress: siteInfo.siteAddress,
+          siteCoordinates: siteInfo.siteCoordinates,
         };
       }),
     );
@@ -631,22 +719,148 @@ export class MaterialsService {
     return result;
   }
 
-  async findByQRCode(qrCode: string): Promise<Material> {
+  async getMaterialsWithSiteInfo() {
+    try {
+      const materials = await this.materialModel.find().exec();
+
+      // ✅ FIX: Fetch site info from MongoDB using SitesService
+      const result = await Promise.all(
+        materials.map(async (material: any) => {
+          const siteIdStr = material.siteId?.toString();
+
+          let siteInfo = {
+            siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+            siteAddress: '',
+            siteCoordinates: null as { lat: number; lng: number } | null,
+          };
+
+          if (siteIdStr) {
+            try {
+              const site = await this.sitesService.findOne(siteIdStr);
+              if (site) {
+                siteInfo = {
+                  siteName: site.nom || 'Site assigné',
+                  siteAddress: site.adresse || site.localisation || '',
+                  siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+                    ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+                    : null,
+                };
+              }
+            } catch (e) {
+              this.logger.warn(`⚠️ Could not fetch site ${siteIdStr}:`, e.message);
+            }
+          }
+
+          return {
+            _id: material._id,
+            name: material.name,
+            code: material.code,
+            category: material.category,
+            quantity: material.quantity,
+            unit: material.unit,
+            reorderPoint: material.stockMinimum,
+            minimumStock: material.minimumStock,
+            maximumStock: material.maximumStock,
+            stockMinimum: material.stockMinimum,
+            status: material.status,
+            barcode: material.barcode,
+            qrCode: material.qrCode,
+            siteId: siteIdStr,
+            siteName: siteInfo.siteName,
+            siteAddress: siteInfo.siteAddress,
+            siteCoordinates: siteInfo.siteCoordinates,
+            needsReorder: material.quantity <= material.stockMinimum,
+          };
+        }),
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Error in getMaterialsWithSiteInfo: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async findByQRCode(qrCode: string): Promise<any> {
     const material = await this.materialModel.findOne({ qrCode }).exec();
     if (!material) {
       throw new NotFoundException(`Matériau avec QR code non trouvé`);
     }
-    return material;
+
+    // ✅ Fetch site info from MongoDB
+    const siteIdStr = material.siteId?.toString();
+    let siteInfo = {
+      siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+      siteAddress: '',
+      siteCoordinates: null as { lat: number; lng: number } | null,
+    };
+
+    if (siteIdStr) {
+      try {
+        const site = await this.sitesService.findOne(siteIdStr);
+        if (site) {
+          siteInfo = {
+            siteName: site.nom || 'Site assigné',
+            siteAddress: site.adresse || site.localisation || '',
+            siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+              ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+              : null,
+          };
+          this.logger.log(`✅ Site info for QR scan: ${site.nom} (${siteInfo.siteCoordinates?.lat}, ${siteInfo.siteCoordinates?.lng})`);
+        }
+      } catch (e) {
+        this.logger.warn(`⚠️ Could not fetch site ${siteIdStr}:`, e.message);
+      }
+    }
+
+    return {
+      ...material.toObject(),
+      siteName: siteInfo.siteName,
+      siteAddress: siteInfo.siteAddress,
+      siteCoordinates: siteInfo.siteCoordinates,
+    };
   }
 
-  async findByBarcode(barcode: string): Promise<Material> {
+  async findByBarcode(barcode: string): Promise<any> {
     const material = await this.materialModel.findOne({ barcode }).exec();
     if (!material) {
       throw new NotFoundException(
         `Matériau avec code-barres ${barcode} non trouvé`,
       );
     }
-    return material;
+
+    // ✅ Fetch site info from MongoDB
+    const siteIdStr = material.siteId?.toString();
+    let siteInfo = {
+      siteName: siteIdStr ? 'Site assigné' : 'Non assigné',
+      siteAddress: '',
+      siteCoordinates: null as { lat: number; lng: number } | null,
+    };
+
+    if (siteIdStr) {
+      try {
+        const site = await this.sitesService.findOne(siteIdStr);
+        if (site) {
+          siteInfo = {
+            siteName: site.nom || 'Site assigné',
+            siteAddress: site.adresse || site.localisation || '',
+            siteCoordinates: site.coordinates?.lat && site.coordinates?.lng
+              ? { lat: site.coordinates.lat, lng: site.coordinates.lng }
+              : null,
+          };
+          this.logger.log(`✅ Site info for barcode scan: ${site.nom} (${siteInfo.siteCoordinates?.lat}, ${siteInfo.siteCoordinates?.lng})`);
+        }
+      } catch (e) {
+        this.logger.warn(`⚠️ Could not fetch site ${siteIdStr}:`, e.message);
+      }
+    }
+
+    return {
+      ...material.toObject(),
+      siteName: siteInfo.siteName,
+      siteAddress: siteInfo.siteAddress,
+      siteCoordinates: siteInfo.siteCoordinates,
+    };
   }
 
   async generateQRCode(
@@ -820,7 +1034,22 @@ export class MaterialsService {
             (material.expiryDate.getTime() - Date.now()) /
               (1000 * 60 * 60 * 24),
           );
-          if (daysToExpiry <= 30 && daysToExpiry > 0) {
+          
+          // ✅ FIX: Détecter les matériaux déjà expirés (daysToExpiry <= 0)
+          if (daysToExpiry <= 0) {
+            alerts.push({
+              materialId: material._id.toString(),
+              materialName: material.name,
+              currentQuantity: material.quantity,
+              threshold: 0,
+              type: 'expired',
+              severity: 'high',
+              message: `${material.name} est EXPIRÉ depuis ${Math.abs(daysToExpiry)} jour${Math.abs(daysToExpiry) > 1 ? 's' : ''} !`,
+              date: new Date(),
+              expiryDate: material.expiryDate,
+            });
+          } else if (daysToExpiry <= 30) {
+            // Matériaux qui vont expirer dans les 30 prochains jours
             alerts.push({
               materialId: material._id.toString(),
               materialName: material.name,
@@ -828,7 +1057,7 @@ export class MaterialsService {
               threshold: 30,
               type: 'expiring',
               severity: daysToExpiry <= 7 ? 'high' : 'medium',
-              message: `${material.name} expire dans ${daysToExpiry} jours`,
+              message: `${material.name} expire dans ${daysToExpiry} jour${daysToExpiry > 1 ? 's' : ''}`,
               date: new Date(),
               expiryDate: material.expiryDate,
             });

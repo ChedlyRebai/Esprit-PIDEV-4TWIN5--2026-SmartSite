@@ -18,7 +18,7 @@ import axios from 'axios';
 interface SupplierRatingDialogProps {
   open: boolean;
   onClose: () => void;
-  onIgnore?: () => void; // Nouvelle prop pour ignorer explicitement
+  onIgnore?: () => void; // New prop to explicitly ignore
   materialId: string;
   materialName: string;
   supplierId: string;
@@ -42,43 +42,43 @@ export default function SupplierRatingDialog({
   userId,
   userName,
 }: SupplierRatingDialogProps) {
-  const [avis, setAvis] = useState<'POSITIF' | 'NEGATIF' | null>(null);
-  const [note, setNote] = useState<number>(0);
-  const [commentaire, setCommentaire] = useState('');
-  const [hasReclamation, setHasReclamation] = useState(false);
-  const [reclamationMotif, setReclamationMotif] = useState('');
-  const [reclamationDescription, setReclamationDescription] = useState('');
+  const [rating, setRating] = useState<'POSITIVE' | 'NEGATIVE' | null>(null);
+  const [score, setScore] = useState<number>(0);
+  const [comment, setComment] = useState('');
+  const [hasComplaint, setHasComplaint] = useState(false);
+  const [complaintReason, setComplaintReason] = useState('');
+  const [complaintDescription, setComplaintDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const motifsReclamation = [
-    'Qualité insuffisante',
-    'Livraison en retard',
-    'Quantité incorrecte',
-    'Produit endommagé',
-    'Non-conformité',
-    'Service client médiocre',
-    'Autre',
+  const complaintReasons = [
+    'Insufficient quality',
+    'Late delivery',
+    'Incorrect quantity',
+    'Damaged product',
+    'Non-compliance',
+    'Poor customer service',
+    'Other',
   ];
 
   const handleSubmit = async () => {
     // Validation
-    if (!avis) {
-      toast.error('Veuillez donner votre avis (Positif ou Négatif)');
+    if (!rating) {
+      toast.error('Please provide your feedback (Positive or Negative)');
       return;
     }
 
-    if (note === 0) {
-      toast.error('Veuillez donner une note (1-5 étoiles)');
+    if (score === 0) {
+      toast.error('Please provide a rating (1-5 stars)');
       return;
     }
 
-    if (hasReclamation && !reclamationMotif) {
-      toast.error('Veuillez sélectionner un motif de réclamation');
+    if (hasComplaint && !complaintReason) {
+      toast.error('Please select a complaint reason');
       return;
     }
 
-    if (hasReclamation && !reclamationDescription.trim()) {
-      toast.error('Veuillez décrire votre réclamation');
+    if (hasComplaint && !complaintDescription.trim()) {
+      toast.error('Please describe your complaint');
       return;
     }
 
@@ -91,28 +91,31 @@ export default function SupplierRatingDialog({
         siteId,
         userId,
         userName,
-        avis,
-        note,
-        commentaire: commentaire.trim() || undefined,
-        hasReclamation,
-        reclamationMotif: hasReclamation ? reclamationMotif : undefined,
-        reclamationDescription: hasReclamation ? reclamationDescription.trim() : undefined,
+        avis: rating === 'POSITIVE' ? 'POSITIF' : 'NEGATIF', // ✅ Conversion correcte
+        note: score,
+        commentaire: comment.trim() || undefined,
+        hasReclamation: hasComplaint,
+        reclamationMotif: hasComplaint ? complaintReason : undefined,
+        reclamationDescription: hasComplaint ? complaintDescription.trim() : undefined,
         consumptionPercentage,
       };
+
+      console.log('📤 Sending rating data:', ratingData);
 
       await axios.post('/api/supplier-ratings', ratingData);
 
       toast.success(
-        hasReclamation
-          ? 'Avis enregistré et réclamation envoyée!'
-          : 'Merci pour votre avis!'
+        hasComplaint
+          ? 'Feedback recorded and complaint sent!'
+          : 'Thank you for your feedback!'
       );
 
-      // Fermer le dialog après succès
+      // Close dialog on success
       onClose();
     } catch (error: any) {
       console.error('Error submitting rating:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'envoi de l\'avis');
+      const errorMessage = error.response?.data?.message || error.message || 'Error submitting feedback';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -125,14 +128,14 @@ export default function SupplierRatingDialog({
           <button
             key={star}
             type="button"
-            onClick={() => setNote(star)}
+            onClick={() => setScore(star)}
             className={`transition-all ${
-              star <= note ? 'text-yellow-500 scale-110' : 'text-gray-300'
+              star <= score ? 'text-yellow-500 scale-110' : 'text-gray-300'
             }`}
           >
             <Star
               className="h-8 w-8"
-              fill={star <= note ? 'currentColor' : 'none'}
+              fill={star <= score ? 'currentColor' : 'none'}
             />
           </button>
         ))}
@@ -145,159 +148,159 @@ export default function SupplierRatingDialog({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            🎯 Évaluer le Fournisseur (Optionnel)
+            🎯 Rate the Supplier (Optional)
           </DialogTitle>
           <DialogDescription>
-            Vous avez consommé <strong>{consumptionPercentage}%</strong> de{' '}
-            <strong>{materialName}</strong>. Souhaitez-vous donner votre avis sur le fournisseur{' '}
-            <strong>{supplierName}</strong> ? Cette évaluation est entièrement optionnelle.
+            You have consumed <strong>{consumptionPercentage}%</strong> of{' '}
+            <strong>{materialName}</strong>. Would you like to rate the supplier{' '}
+            <strong>{supplierName}</strong>? This rating is completely optional.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Note informative */}
+          {/* Informational note */}
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">
-              💡 <strong>Information :</strong> Cette évaluation est entièrement optionnelle. 
-              Elle nous aide à améliorer la qualité de nos fournisseurs. 
-              Vous pouvez ignorer cette demande si vous le souhaitez.
+              💡 <strong>Information:</strong> This rating is completely optional. 
+              It helps us improve our supplier quality. 
+              You can ignore this request if you wish.
             </p>
           </div>
 
-          {/* Avis Positif/Négatif */}
+          {/* Positive/Negative Rating */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">
-              Votre avis général *
+              Your overall feedback *
             </Label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setAvis('POSITIF')}
+                onClick={() => setRating('POSITIVE')}
                 className={`p-4 border-2 rounded-lg transition-all ${
-                  avis === 'POSITIF'
+                  rating === 'POSITIVE'
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-green-300'
                 }`}
               >
                 <ThumbsUp
                   className={`h-8 w-8 mx-auto mb-2 ${
-                    avis === 'POSITIF' ? 'text-green-600' : 'text-gray-400'
+                    rating === 'POSITIVE' ? 'text-green-600' : 'text-gray-400'
                   }`}
                 />
                 <span
                   className={`font-semibold ${
-                    avis === 'POSITIF' ? 'text-green-700' : 'text-gray-600'
+                    rating === 'POSITIVE' ? 'text-green-700' : 'text-gray-600'
                   }`}
                 >
-                  Positif
+                  Positive
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setAvis('NEGATIF')}
+                onClick={() => setRating('NEGATIVE')}
                 className={`p-4 border-2 rounded-lg transition-all ${
-                  avis === 'NEGATIF'
+                  rating === 'NEGATIVE'
                     ? 'border-red-500 bg-red-50'
                     : 'border-gray-200 hover:border-red-300'
                 }`}
               >
                 <ThumbsDown
                   className={`h-8 w-8 mx-auto mb-2 ${
-                    avis === 'NEGATIF' ? 'text-red-600' : 'text-gray-400'
+                    rating === 'NEGATIVE' ? 'text-red-600' : 'text-gray-400'
                   }`}
                 />
                 <span
                   className={`font-semibold ${
-                    avis === 'NEGATIF' ? 'text-red-700' : 'text-gray-600'
+                    rating === 'NEGATIVE' ? 'text-red-700' : 'text-gray-600'
                   }`}
                 >
-                  Négatif
+                  Negative
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Note en étoiles */}
+          {/* Star Rating */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">
-              Note (1-5 étoiles) *
+              Rating (1-5 stars) *
             </Label>
             {renderStars()}
-            {note > 0 && (
+            {score > 0 && (
               <p className="text-center text-sm text-gray-600">
-                {note === 1 && 'Très mauvais'}
-                {note === 2 && 'Mauvais'}
-                {note === 3 && 'Moyen'}
-                {note === 4 && 'Bon'}
-                {note === 5 && 'Excellent'}
+                {score === 1 && 'Very poor'}
+                {score === 2 && 'Poor'}
+                {score === 3 && 'Average'}
+                {score === 4 && 'Good'}
+                {score === 5 && 'Excellent'}
               </p>
             )}
           </div>
 
-          {/* Commentaire */}
+          {/* Comment */}
           <div className="space-y-2">
-            <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
+            <Label htmlFor="comment">Comment (optional)</Label>
             <Textarea
-              id="commentaire"
-              placeholder="Partagez votre expérience avec ce fournisseur..."
-              value={commentaire}
-              onChange={(e) => setCommentaire(e.target.value)}
+              id="comment"
+              placeholder="Share your experience with this supplier..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
               rows={3}
             />
           </div>
 
-          {/* Réclamation */}
+          {/* Complaint */}
           <div className="p-4 bg-orange-50 border-2 border-orange-200 rounded-lg space-y-3">
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                id="hasReclamation"
-                checked={hasReclamation}
-                onChange={(e) => setHasReclamation(e.target.checked)}
+                id="hasComplaint"
+                checked={hasComplaint}
+                onChange={(e) => setHasComplaint(e.target.checked)}
                 className="h-4 w-4"
               />
-              <Label htmlFor="hasReclamation" className="cursor-pointer font-semibold">
+              <Label htmlFor="hasComplaint" className="cursor-pointer font-semibold">
                 <AlertTriangle className="h-4 w-4 inline mr-1 text-orange-600" />
-                Je souhaite faire une réclamation
+                I want to file a complaint
               </Label>
             </div>
 
-            {hasReclamation && (
+            {hasComplaint && (
               <div className="space-y-3 mt-3">
                 <div className="space-y-2">
-                  <Label htmlFor="reclamationMotif">Motif de la réclamation *</Label>
+                  <Label htmlFor="complaintReason">Complaint reason *</Label>
                   <select
-                    id="reclamationMotif"
+                    id="complaintReason"
                     className="w-full px-3 py-2 border rounded-md"
-                    value={reclamationMotif}
-                    onChange={(e) => setReclamationMotif(e.target.value)}
+                    value={complaintReason}
+                    onChange={(e) => setComplaintReason(e.target.value)}
                   >
-                    <option value="">Sélectionner un motif...</option>
-                    {motifsReclamation.map((motif) => (
-                      <option key={motif} value={motif}>
-                        {motif}
+                    <option value="">Select a reason...</option>
+                    {complaintReasons.map((reason) => (
+                      <option key={reason} value={reason}>
+                        {reason}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reclamationDescription">
-                    Description de la réclamation *
+                  <Label htmlFor="complaintDescription">
+                    Complaint description *
                   </Label>
                   <Textarea
-                    id="reclamationDescription"
-                    placeholder="Décrivez en détail le problème rencontré..."
-                    value={reclamationDescription}
-                    onChange={(e) => setReclamationDescription(e.target.value)}
+                    id="complaintDescription"
+                    placeholder="Describe the problem in detail..."
+                    value={complaintDescription}
+                    onChange={(e) => setComplaintDescription(e.target.value)}
                     rows={4}
                   />
                 </div>
 
                 <p className="text-xs text-orange-700">
-                  ⚠️ Votre réclamation sera transmise au service qualité et au
-                  fournisseur pour traitement.
+                  ⚠️ Your complaint will be forwarded to the quality department and
+                  the supplier for processing.
                 </p>
               </div>
             )}
@@ -306,7 +309,7 @@ export default function SupplierRatingDialog({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
-            Fermer
+            Close
           </Button>
           <Button 
             type="button" 
@@ -317,16 +320,16 @@ export default function SupplierRatingDialog({
             }}
             className="text-gray-500 hover:text-gray-700"
           >
-            Ignorer (optionnel)
+            Ignore (optional)
           </Button>
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={loading || !avis || note === 0}
+            disabled={loading || !rating || score === 0}
             className={
-              avis === 'POSITIF'
+              rating === 'POSITIVE'
                 ? 'bg-green-600 hover:bg-green-700'
-                : avis === 'NEGATIF'
+                : rating === 'NEGATIVE'
                 ? 'bg-red-600 hover:bg-red-700'
                 : ''
             }
@@ -334,10 +337,10 @@ export default function SupplierRatingDialog({
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Envoi...
+                Sending...
               </>
             ) : (
-              <>Envoyer l'avis</>
+              <>Submit Feedback</>
             )}
           </Button>
         </DialogFooter>

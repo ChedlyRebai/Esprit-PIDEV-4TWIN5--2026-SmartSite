@@ -15,13 +15,13 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
     try {
       const result = await materialService.reorderMaterial(materialId);
       if (result.success) {
-        toast.success(`Commande créée! Livraison prévue: ${new Date(result.expectedDelivery).toLocaleDateString()}`);
+        toast.success(`Order created! Expected delivery: ${new Date(result.expectedDelivery).toLocaleDateString()}`);
       } else {
-        toast.warning(result.message || 'Commande initiée');
+        toast.warning(result.message || 'Order initiated');
       }
       onRefresh();
     } catch (error) {
-      toast.error('Échec de la création de la commande');
+      toast.error('Failed to create order');
     }
   };
 
@@ -37,9 +37,9 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
 
   const getSeverityText = (severity: string) => {
     switch(severity) {
-      case 'high': return 'Critique';
-      case 'medium': return 'Moyen';
-      case 'low': return 'Faible';
+      case 'high': return 'Critical';
+      case 'medium': return 'Medium';
+      case 'low': return 'Low';
       default: return 'Info';
     }
   };
@@ -55,7 +55,7 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
       <Card>
         <CardContent className="py-8 text-center text-gray-500">
           <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-          <p>Aucune alerte pour le moment</p>
+          <p>No alerts at this time</p>
         </CardContent>
       </Card>
     );
@@ -68,7 +68,7 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
           <CardHeader className="bg-red-50">
             <CardTitle className="flex items-center gap-2 text-red-700">
               <AlertTriangle className="h-5 w-5" />
-              Alertes Critiques ({groupedAlerts.critical.length})
+              Critical Alerts ({groupedAlerts.critical.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -80,7 +80,7 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
                     <div>
                       <p className="font-medium">{alert.message}</p>
                       <p className="text-sm text-gray-500">
-                        Stock: {alert.currentQuantity} | Seuil: {alert.threshold}
+                        Stock: {alert.currentQuantity} | Threshold: {alert.threshold}
                       </p>
                     </div>
                   </div>
@@ -89,7 +89,7 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
                     variant="destructive"
                     onClick={() => handleReorder(alert.materialId)}
                   >
-                    Commander
+                    Order Now
                   </Button>
                 </div>
               ))}
@@ -103,7 +103,7 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
           <CardHeader className="bg-yellow-50">
             <CardTitle className="flex items-center gap-2 text-yellow-700">
               <AlertTriangle className="h-5 w-5" />
-              Alertes ({groupedAlerts.warning.length})
+              Alerts ({groupedAlerts.warning.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -134,7 +134,7 @@ export default function MaterialAlerts({ alerts, onRefresh }: MaterialAlertsProp
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Informations ({groupedAlerts.info.length})
+              Information ({groupedAlerts.info.length})
             </CardTitle>
           </CardHeader>
           <CardContent>

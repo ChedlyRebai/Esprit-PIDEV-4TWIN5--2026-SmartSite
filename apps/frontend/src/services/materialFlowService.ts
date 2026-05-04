@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = '/api/flows';
+const API_URL = '/api/material-flow';
 
 const apiClient = axios.create({
   baseURL: API_URL,

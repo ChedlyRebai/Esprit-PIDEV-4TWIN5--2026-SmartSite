@@ -32,7 +32,7 @@ import MessageAnalysisDisplay from "../../../components/chat/MessageAnalysisDisp
 import MessageSuggestion from "../../../components/chat/MessageSuggestion";
 import { Socket } from "socket.io-client";
 
-// Initialisation des icônes Leaflet
+// Initialize Leaflet icons
 if (typeof window !== "undefined") {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
@@ -136,7 +136,7 @@ const MessageMedia = ({ type, metadata }: { type: string; metadata?: any }) => {
           </div>
         </div>
         <span className="text-xs text-gray-500">
-          {metadata.duration ? `${metadata.duration}s` : 'Message vocal'}
+          {metadata.duration ? `${metadata.duration}s` : 'Voice message'}
         </span>
       </div>
     );
@@ -228,7 +228,7 @@ export default function ChatDialog({
   const ringtoneIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
 
-  // Calculer la distance et la durée estimée
+  // Calculate distance and estimated duration
   useEffect(() => {
     if (supplierCoordinates && siteCoordinates) {
       const dist = calculateDistance(
@@ -245,7 +245,7 @@ export default function ChatDialog({
     }
   }, [supplierCoordinates, siteCoordinates]);
 
-  // Initialiser WebSocket et charger les données
+  // Initialize WebSocket and load data
   useEffect(() => {
     if (open && orderId && !hasInitializedRef.current) {
       hasInitializedRef.current = true;
@@ -289,7 +289,7 @@ export default function ChatDialog({
 
     } catch (error) {
       console.error('Error initializing chat:', error);
-      toast.error('Erreur de connexion au chat');
+      toast.error('Chat connection error');
     }
   };
 
@@ -361,7 +361,7 @@ export default function ChatDialog({
     stopRingtone();
   };
 
-  // Charger les informations de paiement de la commande
+  // Load order payment information
   useEffect(() => {
     if (orderId && deliveryStatus === 'delivered' && !hasPaymentBeenProcessed) {
       loadOrderPaymentInfo();
@@ -373,24 +373,24 @@ export default function ChatDialog({
       const order = await orderService.getOrderById(orderId);
       setOrderNumber(order.orderNumber || `ORD-${orderId.slice(-6)}`);
       
-      // Calculer le montant (à adapter selon votre logique)
+      // Calculate amount (adapt according to your logic)
       const amount = await calculateOrderAmount(order);
       setPaymentAmount(amount);
       
-      // Vérifier si déjà payé
+      // Check if already paid
       const paymentStatus = await orderService.getPaymentStatus(orderId);
       if (paymentStatus?.hasPayment && paymentStatus?.status === 'completed') {
         setHasPaymentBeenProcessed(true);
       }
     } catch (error) {
       console.error("Error loading payment info:", error);
-      setPaymentAmount(250); // Montant par défaut
+      setPaymentAmount(250); // Default amount
     }
   };
 
   const calculateOrderAmount = async (order: any): Promise<number> => {
     try {
-      // Appel API pour récupérer le prix du matériau
+      // API call to get material price
       const response = await fetch(`/api/materials/${order.materialId}`);
       const material = await response.json();
       const unitPrice = material.unitPrice || material.price || 100;
@@ -557,7 +557,7 @@ export default function ChatDialog({
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Erreur envoi message");
+      toast.error("Error sending message");
     } finally {
       setSending(false);
     }
@@ -587,7 +587,7 @@ export default function ChatDialog({
 
   const handleSendLocation = async () => {
     if (!truckPosition) {
-      toast.error("Position non disponible, démarrez d'abord la livraison");
+      toast.error("Position not available, start delivery first");
       return;
     }
     
@@ -595,14 +595,14 @@ export default function ChatDialog({
       await chatService.sendMessage({
         orderId,
         senderType: 'site',
-        message: `📍 Position actuelle du camion - Progression: ${Math.round(progress)}% - Temps restant: ${Math.round(remainingTime)} min`,
+        message: `📍 Current truck position - Progress: ${Math.round(progress)}% - Time remaining: ${Math.round(remainingTime)} min`,
         type: 'location',
         location: truckPosition
       });
-      toast.success("Localisation partagée!");
+      toast.success("Location shared!");
       await loadMessages();
     } catch (error) {
-      toast.error("Erreur partage localisation");
+      toast.error("Error sharing location");
     }
   };
 
@@ -611,18 +611,18 @@ export default function ChatDialog({
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Fichier trop volumineux (max 10MB)");
+      toast.error("File too large (max 10MB)");
       return;
     }
 
     setSending(true);
     try {
       const result = await chatService.uploadFile(orderId, 'site', file);
-      toast.success("Fichier envoyé!");
+      toast.success("File sent!");
       await loadMessages();
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      toast.error(error.message || "Erreur envoi fichier");
+      toast.error(error.message || "Error sending file");
     } finally {
       setSending(false);
     }
@@ -634,10 +634,10 @@ export default function ChatDialog({
 
   const handleTakePhoto = async () => {
     try {
-      toast.info("Accès à la caméra...");
+      toast.info("Accessing camera...");
       
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error("Votre navigateur ne supporte pas l'accès à la caméra");
+        toast.error("Your browser does not support camera access");
         return;
       }
       
@@ -668,10 +668,10 @@ export default function ChatDialog({
             setSending(true);
             try {
               await chatService.uploadFile(orderId, 'site', file);
-              toast.success("Photo envoyée!");
+              toast.success("Photo sent!");
               await loadMessages();
             } catch (error) {
-              toast.error("Erreur envoi photo");
+              toast.error("Error sending photo");
             } finally {
               setSending(false);
             }
@@ -681,16 +681,16 @@ export default function ChatDialog({
         }, 'image/jpeg', 0.8);
       } else {
         stream.getTracks().forEach(track => track.stop());
-        toast.error("Impossible de capturer l'image");
+        toast.error("Unable to capture image");
       }
     } catch (error: any) {
       console.error("Error accessing camera:", error);
       if (error.name === 'NotAllowedError') {
-        toast.error("Permission caméra refusée");
+        toast.error("Camera permission denied");
       } else if (error.name === 'NotFoundError') {
-        toast.error("Aucune caméra trouvée");
+        toast.error("No camera found");
       } else {
-        toast.error("Impossible d'accéder à la caméra");
+        toast.error("Unable to access camera");
       }
     }
   };
@@ -715,11 +715,11 @@ export default function ChatDialog({
         setSending(true);
         try {
           await chatService.uploadVoice(orderId, 'site', audioBlob, duration);
-          toast.success("Message vocal envoyé!");
+          toast.success("Voice message sent!");
           await loadMessages();
         } catch (error: any) {
           console.error("Error uploading voice:", error);
-          toast.error(error.message || "Erreur envoi message vocal");
+          toast.error(error.message || "Error sending voice message");
         } finally {
           setSending(false);
         }
@@ -730,10 +730,10 @@ export default function ChatDialog({
       
       mediaRecorderRef.current.start(100);
       setIsRecording(true);
-      toast.info("Enregistrement en cours...");
+      toast.info("Recording...");
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      toast.error("Impossible d'accéder au microphone");
+      toast.error("Unable to access microphone");
     }
   };
 
@@ -758,7 +758,7 @@ export default function ChatDialog({
       playRingtone();
       
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error("Votre navigateur ne supporte pas les appels");
+        toast.error("Your browser does not support calls");
         setCallStatus('idle');
         stopRingtone();
         return;
@@ -784,22 +784,22 @@ export default function ChatDialog({
       await chatService.sendMessage({
         orderId,
         senderType: 'site',
-        message: videoEnabled ? '📹 Appel vidéo' : '📞 Appel audio',
+        message: videoEnabled ? '📹 Video call' : '📞 Audio call',
         type: 'call_request'
       });
       
-      toast.success(videoEnabled ? "Appel vidéo démarré" : "Appel audio démarré");
+      toast.success(videoEnabled ? "Video call started" : "Audio call started");
       simulateRemoteStream();
       
     } catch (error: any) {
       console.error("Error starting call:", error);
       stopRingtone();
       if (error.name === 'NotAllowedError') {
-        toast.error("Permission caméra/microphone refusée");
+        toast.error("Camera/microphone permission denied");
       } else if (error.name === 'NotFoundError') {
-        toast.error("Aucune caméra/microphone trouvé");
+        toast.error("No camera/microphone found");
       } else {
-        toast.error("Impossible de démarrer l'appel");
+        toast.error("Unable to start call");
       }
       setCallStatus('idle');
       setIsCallActive(false);
@@ -826,7 +826,7 @@ export default function ChatDialog({
         ctx.fillText('📞 ' + supplierName, canvas.width/2 - 100, canvas.height/2);
         ctx.fillStyle = '#ffffff';
         ctx.font = '16px Arial';
-        ctx.fillText('Appel en cours...', canvas.width/2 - 80, canvas.height/2 + 40);
+        ctx.fillText('Call in progress...', canvas.width/2 - 80, canvas.height/2 + 40);
         
         const stream = canvas.captureStream(30);
         setRemoteStream(stream);
@@ -847,7 +847,7 @@ export default function ChatDialog({
   const rejectCall = () => {
     setIncomingCall(null);
     stopRingtone();
-    toast.info("Appel refusé");
+    toast.info("Call rejected");
   };
 
   const stopCall = () => {
@@ -876,30 +876,30 @@ export default function ChatDialog({
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
-        toast.info(audioTrack.enabled ? "Microphone activé" : "Microphone désactivé");
+        toast.info(audioTrack.enabled ? "Microphone enabled" : "Microphone disabled");
       }
     }
   };
 
   const startDeliverySimulation = async () => {
     if (!supplierCoordinates || !siteCoordinates) {
-      toast.error("Coordonnées manquantes");
+      toast.error("Missing coordinates");
       return;
     }
 
     if (deliveryStatus === 'in_transit' || deliveryStatus === 'delivered') {
-      console.log("Livraison déjà en cours ou terminée");
+      console.log("Delivery already in progress or completed");
       return;
     }
 
     const duration = estimatedDuration;
     
     if (duration <= 0) {
-      toast.error("Durée invalide");
+      toast.error("Invalid duration");
       return;
     }
 
-    console.log("🚀 DÉMARRAGE LIVRAISON");
+    console.log("🚀 STARTING DELIVERY");
 
     try {
       await orderService.updateOrderStatus(orderId, { status: 'in_transit' });
@@ -955,17 +955,17 @@ export default function ChatDialog({
           setRemainingTime(0);
           setTruckPosition({ lat: endLat, lng: endLng });
           await orderService.updateOrderStatus(orderId, { status: 'delivered' });
-          toast.success(`✅ Livraison terminée! Le camion est arrivé chez ${supplierName}!`);
+          toast.success(`✅ Delivery completed! The truck has arrived at ${supplierName}!`);
           
           await chatService.sendMessage({
             orderId,
             senderType: 'system',
-            message: `✅ Livraison terminée! Le camion est arrivé chez ${supplierName}. Distance: ${Math.round(distance)} km, Durée: ${duration} min.`,
+            message: `✅ Delivery completed! The truck has arrived at ${supplierName}. Distance: ${Math.round(distance)} km, Duration: ${duration} min.`,
             type: 'status_update'
           });
           await loadMessages();
           
-          // Afficher le dialogue de paiement après la livraison
+          // Show payment dialog after delivery
           await loadOrderPaymentInfo();
           setShowPayment(true);
         }
@@ -973,7 +973,7 @@ export default function ChatDialog({
       
     } catch (error) {
       console.error("Error starting delivery:", error);
-      toast.error("Erreur démarrage livraison");
+      toast.error("Error starting delivery");
     }
   };
 
@@ -981,16 +981,16 @@ export default function ChatDialog({
     setHasPaymentBeenProcessed(true);
     setShowPayment(false);
     
-    // Envoyer un message de confirmation dans le chat
+    // Send confirmation message in chat
     await chatService.sendMessage({
       orderId,
       senderType: 'system',
-      message: `💰 Paiement de ${paymentAmount}€ effectué avec succès pour la commande ${orderNumber}`,
+      message: `💰 Payment of ${paymentAmount}€ successfully processed for order ${orderNumber}`,
       type: 'status_update'
     });
     
     await loadMessages();
-    toast.success("✅ Paiement confirmé! Livraison finalisée.");
+    toast.success("✅ Payment confirmed! Delivery finalized.");
   };
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -1004,11 +1004,11 @@ export default function ChatDialog({
   };
 
   const formatTime = (date: string) => {
-    return new Date(date).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    return new Date(date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   };
 
   const formatRemainingTime = (minutes: number): string => {
-    if (minutes <= 0) return "Arrivé";
+    if (minutes <= 0) return "Arrived";
     if (minutes < 1) return `${Math.ceil(minutes * 60)} sec`;
     if (minutes < 60) return `${Math.ceil(minutes)} min`;
     const hours = Math.floor(minutes / 60);
@@ -1053,16 +1053,16 @@ export default function ChatDialog({
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Phone className="h-8 w-8 text-green-600 animate-pulse" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Appel entrant</h3>
+            <h3 className="text-lg font-semibold mb-2">Incoming call</h3>
             <p className="text-gray-600 mb-4">{incomingCall.from}</p>
             <div className="flex gap-4 justify-center">
               <Button onClick={acceptCall} className="bg-green-600 hover:bg-green-700">
                 <Phone className="h-4 w-4 mr-2" />
-                Accepter
+                Accept
               </Button>
               <Button onClick={rejectCall} variant="destructive">
                 <PhoneOff className="h-4 w-4 mr-2" />
-                Refuser
+                Decline
               </Button>
             </div>
           </div>
@@ -1100,7 +1100,7 @@ export default function ChatDialog({
                       size="sm"
                       className="text-white hover:bg-white/20"
                       onClick={() => startCall(false)}
-                      title="Appel audio"
+                      title="Audio call"
                     >
                       <Phone className="h-4 w-4" />
                     </Button>
@@ -1109,7 +1109,7 @@ export default function ChatDialog({
                       size="sm"
                       className="text-white hover:bg-white/20"
                       onClick={() => startCall(true)}
-                      title="Appel vidéo"
+                      title="Video call"
                     >
                       <Video className="h-4 w-4" />
                     </Button>
@@ -1118,7 +1118,7 @@ export default function ChatDialog({
                 {callStatus === 'ringing' && (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    <span className="text-sm">Appel en cours...</span>
+                    <span className="text-sm">Calling...</span>
                   </div>
                 )}
                 {isCallActive && (
@@ -1142,13 +1142,13 @@ export default function ChatDialog({
                   </>
                 )}
                 {deliveryStatus === 'pending' && (
-                  <Badge className="bg-yellow-500 text-white">En attente</Badge>
+                  <Badge className="bg-yellow-500 text-white">Pending</Badge>
                 )}
                 {deliveryStatus === 'in_transit' && (
-                  <Badge className="bg-blue-500 text-white animate-pulse">En livraison</Badge>
+                  <Badge className="bg-blue-500 text-white animate-pulse">In transit</Badge>
                 )}
                 {deliveryStatus === 'delivered' && (
-                  <Badge className="bg-green-500 text-white">Livré</Badge>
+                  <Badge className="bg-green-500 text-white">Delivered</Badge>
                 )}
               </div>
             </div>
@@ -1178,7 +1178,7 @@ export default function ChatDialog({
                 <div className="flex items-center justify-center h-full text-white">
                   <div className="text-center">
                     <Phone className="h-12 w-12 mx-auto mb-2 animate-pulse" />
-                    <p>Appel audio en cours...</p>
+                    <p>Audio call in progress...</p>
                     <p className="text-xs text-gray-300 mt-1">{supplierName}</p>
                   </div>
                 </div>
@@ -1190,7 +1190,7 @@ export default function ChatDialog({
             <TabsList className="mx-4 mt-2 grid w-[calc(100%-2rem)] grid-cols-2">
               <TabsTrigger value="chat" className="flex items-center gap-2">
                 <MessageCircle className="h-4 w-4" />
-                Chat Fournisseur
+                Supplier Chat
                 {unreadCount > 0 && (
                   <Badge className="ml-1 bg-red-500 text-white text-xs px-1">
                     {unreadCount}
@@ -1199,7 +1199,7 @@ export default function ChatDialog({
               </TabsTrigger>
               <TabsTrigger value="tracking" className="flex items-center gap-2">
                 <Navigation className="h-4 w-4" />
-                Suivi livraison
+                Delivery Tracking
                 {deliveryStatus === 'in_transit' && (
                   <div className="ml-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 )}
@@ -1207,7 +1207,7 @@ export default function ChatDialog({
             </TabsList>
 
             <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden m-0 p-0">
-              {/* ScrollArea avec hauteur fixe pour permettre le scroll manuel */}
+              {/* ScrollArea with fixed height to allow manual scrolling */}
               <ScrollArea className="flex-1 p-4" style={{ height: "calc(100% - 120px)" }}>
                 {loading ? (
                   <div className="flex justify-center py-8">
@@ -1216,8 +1216,8 @@ export default function ChatDialog({
                 ) : messages.length === 0 ? (
                   <div className="text-center py-12">
                     <MessageCircle className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                    <p className="text-gray-500">Aucun message</p>
-                    <p className="text-sm text-gray-400">Commencez la conversation avec le fournisseur</p>
+                    <p className="text-gray-500">No messages</p>
+                    <p className="text-sm text-gray-400">Start the conversation with the supplier</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1249,7 +1249,7 @@ export default function ChatDialog({
                               </p>
                             )}
                             {msg.senderRole === 'system' && (
-                              <p className="text-xs font-medium text-gray-400 mb-1">📢 Système</p>
+                              <p className="text-xs font-medium text-gray-400 mb-1">📢 System</p>
                             )}
                             <div className="text-sm break-words">
                               {msg.type === 'location' && <MapPin className="inline mr-1 h-3 w-3" />}
@@ -1288,7 +1288,7 @@ export default function ChatDialog({
                 )}
               </ScrollArea>
 
-              {/* Barre d'outils fixe en bas */}
+              {/* Fixed toolbar at bottom */}
               <div className="p-4 border-t bg-gray-50">
                 {/* Message Suggestion */}
                 {showSuggestion && currentAnalysis && (
@@ -1303,7 +1303,7 @@ export default function ChatDialog({
                 {/* Connection Status */}
                 {!isConnected && (
                   <div className="mb-2 p-2 bg-yellow-100 border border-yellow-300 rounded-md text-sm text-yellow-800">
-                    🔄 Reconnexion en cours...
+                    🔄 Reconnecting...
                   </div>
                 )}
 
@@ -1313,7 +1313,7 @@ export default function ChatDialog({
                     size="sm"
                     onClick={handleSendLocation}
                     disabled={!truckPosition || deliveryStatus !== 'in_transit'}
-                    title="Partager position"
+                    title="Share location"
                   >
                     <MapPin className="h-4 w-4" />
                   </Button>
@@ -1322,7 +1322,7 @@ export default function ChatDialog({
                     size="sm"
                     onClick={toggleRecording}
                     className={isRecording ? "bg-red-100 text-red-600 animate-pulse" : ""}
-                    title="Message vocal"
+                    title="Voice message"
                   >
                     <Mic className="h-4 w-4" />
                   </Button>
@@ -1330,7 +1330,7 @@ export default function ChatDialog({
                     variant="outline"
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Pièce jointe"
+                    title="Attachment"
                   >
                     <Paperclip className="h-4 w-4" />
                   </Button>
@@ -1338,7 +1338,7 @@ export default function ChatDialog({
                     variant="outline"
                     size="sm"
                     onClick={handleTakePhoto}
-                    title="Prendre une photo"
+                    title="Take a photo"
                   >
                     <Camera className="h-4 w-4" />
                   </Button>
@@ -1355,28 +1355,28 @@ export default function ChatDialog({
                       size="sm"
                       onClick={() => setShowPayment(true)}
                       className="bg-green-100 text-green-700 hover:bg-green-200"
-                      title="Payer"
+                      title="Pay"
                     >
                       <Wallet className="h-4 w-4 mr-1" />
-                      Payer
+                      Pay
                     </Button>
                   )}
                   {deliveryStatus === 'delivered' && hasPaymentBeenProcessed && (
                     <Badge className="bg-green-100 text-green-700">
                       <CheckCircle className="h-3 w-3 mr-1" />
-                      Payé
+                      Paid
                     </Badge>
                   )}
                   {deliveryStatus === 'delivered' && !hasPaymentBeenProcessed && (
                     <Badge className="bg-yellow-100 text-yellow-700">
                       <Wallet className="h-3 w-3 mr-1" />
-                      En attente de paiement
+                      Awaiting payment
                     </Badge>
                   )}
                 </div>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Tapez votre message..."
+                    placeholder="Type your message..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
@@ -1415,7 +1415,7 @@ export default function ChatDialog({
                       <Marker position={[siteCoordinates.lat, siteCoordinates.lng]} icon={siteIconMap}>
                         <Popup>
                           <div className="text-center">
-                            <strong>🏗️ DÉPART: Chantier</strong><br />
+                            <strong>🏗️ DEPARTURE: Site</strong><br />
                             {siteName}
                           </div>
                         </Popup>
@@ -1424,7 +1424,7 @@ export default function ChatDialog({
                       <Marker position={[supplierCoordinates.lat, supplierCoordinates.lng]} icon={supplierIconMap}>
                         <Popup>
                           <div className="text-center">
-                            <strong>🏭 ARRIVÉE: Fournisseur</strong><br />
+                            <strong>🏭 ARRIVAL: Supplier</strong><br />
                             {supplierName}<br />
                             Distance: {Math.round(distance)} km
                           </div>
@@ -1446,10 +1446,10 @@ export default function ChatDialog({
                         <Marker position={[truckPosition.lat, truckPosition.lng]} icon={truckIcon}>
                           <Popup>
                             <div className="text-center">
-                              <strong>🚚 Camion</strong><br />
+                              <strong>🚚 Truck</strong><br />
                               🏗️ {siteName} → 🏭 {supplierName}<br />
-                              Progression: {Math.round(progress)}%<br />
-                              Reste: {formatRemainingTime(remainingTime)}
+                              Progress: {Math.round(progress)}%<br />
+                              Remaining: {formatRemainingTime(remainingTime)}
                             </div>
                           </Popup>
                         </Marker>
@@ -1462,7 +1462,7 @@ export default function ChatDialog({
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-2">
                           <Navigation className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium">🏗️ Chantier → 🏭 Fournisseur</span>
+                          <span className="text-sm font-medium">🏗️ Site → 🏭 Supplier</span>
                         </div>
                         <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
                       </div>
@@ -1488,7 +1488,7 @@ export default function ChatDialog({
                       </div>
                       
                       <div className="flex justify-between items-center text-sm mb-3">
-                        <span className="text-gray-500">⏱️ Temps restant:</span>
+                        <span className="text-gray-500">⏱️ Time remaining:</span>
                         <span className={`font-semibold ${remainingTime < 5 && remainingTime > 0 ? 'text-red-600 animate-pulse' : 'text-gray-700'}`}>
                           {formatRemainingTime(remainingTime)}
                         </span>
@@ -1500,14 +1500,14 @@ export default function ChatDialog({
                           className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2"
                         >
                           <Truck className="h-4 w-4 mr-2" />
-                          🚚 Démarrer la livraison ({formatRemainingTime(estimatedDuration)})
+                          🚚 Start delivery ({formatRemainingTime(estimatedDuration)})
                         </Button>
                       )}
                       
                       {deliveryStatus === 'in_transit' && (
                         <div className="flex items-center justify-center gap-3 text-blue-600">
                           <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
-                          <span className="text-sm">Livraison en cours...</span>
+                          <span className="text-sm">Delivery in progress...</span>
                           <span className="text-sm font-medium">{Math.round(progress)}%</span>
                         </div>
                       )}
@@ -1518,14 +1518,14 @@ export default function ChatDialog({
                           className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2"
                         >
                           <Wallet className="h-4 w-4 mr-2" />
-                          💰 Payer {paymentAmount}€
+                          💰 Pay {paymentAmount}€
                         </Button>
                       )}
                       
                       {deliveryStatus === 'delivered' && hasPaymentBeenProcessed && (
                         <div className="flex items-center justify-center gap-2 text-green-600">
                           <CheckCircle className="h-5 w-5" />
-                          <span className="text-sm font-medium">✅ Livraison terminée et payée!</span>
+                          <span className="text-sm font-medium">✅ Delivery completed and paid!</span>
                         </div>
                       )}
                     </div>
@@ -1533,9 +1533,9 @@ export default function ChatDialog({
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center p-8">
                     <Navigation className="h-12 w-12 text-gray-300 mb-4" />
-                    <p className="text-gray-500">Coordonnées GPS non disponibles</p>
+                    <p className="text-gray-500">GPS coordinates not available</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      Le fournisseur ou le site n'a pas de coordonnées GPS
+                      The supplier or site does not have GPS coordinates
                     </p>
                   </div>
                 )}

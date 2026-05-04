@@ -37,11 +37,14 @@ import {
 } from './services/stock-prediction.service';
 import { PredictionResult } from './dto/historical-data.dto';
 import { MLTrainingService } from './services/ml-training.service';
+import { AutoMLPredictionService } from './services/auto-ml-prediction.service';
+import { PredictionResult as MLPredictionResult } from './services/ml-training.service';
 import { IntelligentRecommendationService } from './services/intelligent-recommendation.service';
 import { SitesService, SiteDocument } from '../sites/sites.service';
 import { AnomalyEmailService } from '../common/email/anomaly-email.service';
 import { AnomalyType } from './entities/material-flow-log.entity';
 import { DailyReportService } from './services/daily-report.service';
+import { MLPredictionClientService } from './services/ml-prediction-client.service';
 
 @Controller('materials')
 export class MaterialsController {
@@ -51,45 +54,54 @@ export class MaterialsController {
     private readonly materialsService: MaterialsService,
     private readonly predictionService: StockPredictionService,
     private readonly mlTrainingService: MLTrainingService,
+    private readonly autoMLService: AutoMLPredictionService,
     private readonly intelligentRecommendationService: IntelligentRecommendationService,
     private readonly sitesService: SitesService,
     private readonly anomalyEmailService: AnomalyEmailService,
     private readonly dailyReportService: DailyReportService,
+    private readonly mlPredictionClient: MLPredictionClientService,
   ) {}
 
   /** Même contrat que StockPredictionService pour le front (Materials.tsx, PredictionsList). */
   private mapMlPredictionToClientFormat(
     material: Material,
-    ml: PredictionResult,
+    ml: MLPredictionResult,
   ): StockPredictionResult {
+    // S'assurer que toutes les valeurs sont définies et valides
+    const consumptionRate = ml.consumptionRate ?? 0;
+    const hoursToOutOfStock = ml.hoursToOutOfStock ?? 999;
+    const hoursToLowStock = ml.hoursToLowStock ?? 999;
+    const currentStock = material.quantity ?? 0;
+    const predictedStock = ml.predictedStock ?? currentStock;
+    
     const recommendedOrderQuantity =
       ml.recommendedOrderQuantity ??
       Math.max(
         0,
         Math.ceil(
-          (ml.consumptionRate || 1) * 48 +
-            (material.stockMinimum ?? 0) -
-            material.quantity,
+          consumptionRate * 48 +
+            (material.stockMinimum ?? material.minimumStock ?? 0) -
+            currentStock,
         ),
       );
 
     return {
       materialId: ml.materialId,
       materialName: material.name,
-      currentStock: material.quantity,
-      predictedStock: ml.predictedStock,
-      consumptionRate: ml.consumptionRate,
-      minimumStock: material.minimumStock,
-      maximumStock: material.maximumStock,
-      reorderPoint: material.stockMinimum,
-      hoursToLowStock: ml.hoursToLowStock,
-      hoursToOutOfStock: ml.hoursToOutOfStock,
+      currentStock,
+      predictedStock,
+      consumptionRate,
+      minimumStock: material.minimumStock || 0,
+      maximumStock: material.maximumStock || currentStock * 2,
+      reorderPoint: material.stockMinimum || material.minimumStock || 0,
+      hoursToLowStock,
+      hoursToOutOfStock,
       status: ml.status,
       recommendedOrderQuantity,
-      predictionModelUsed: ml.modelTrained,
-      confidence: ml.confidence,
+      predictionModelUsed: true,
+      confidence: ml.confidence ?? 0.5,
       simulationData: [],
-      message: ml.message,
+      message: ml.message || 'Prédiction ML',
     };
   }
 
@@ -226,39 +238,106 @@ export class MaterialsController {
       ? materials
       : (materials as any).data || [];
 
-    const predictions = await Promise.all(
-      materialList.map(async (material: any) => {
-        try {
-          // Use ML training service if historical data exists
-          if (
-            this.mlTrainingService.hasHistoricalData(material._id.toString())
-          ) {
-            const mlPrediction = await this.mlTrainingService.predictStock(
-              material._id.toString(),
-              24,
-              material.quantity,
-              material.reorderPoint,
+    this.logger.log(`\n${'='.repeat(80)}`);
+    this.logger.log(`🔮 [MATERIALS-SERVICE] PREDICTIONS REQUEST`);
+    this.logger.log(`${'='.repeat(80)}`);
+    this.logger.log(`📊 Total Materials: ${materialList.length}`);
+
+    // Check if FastAPI ML service is available
+    const mlServiceAvailable = await this.mlPredictionClient.isServiceAvailable();
+    
+    if (mlServiceAvailable) {
+      this.logger.log('✅ FastAPI ML Service: AVAILABLE');
+      this.logger.log('🤖 Using FastAPI for ML predictions...\n');
+      
+      const predictions = await Promise.all(
+        materialList.map(async (material: any, index: number) => {
+          try {
+            this.logger.log(`\n[${index + 1}/${materialList.length}] Processing: ${material.name}`);
+            
+            // Call FastAPI for ML prediction
+            const mlPrediction = await this.mlPredictionClient.predictStockDepletion({
+              material_id: material._id.toString(),
+              material_name: material.name,
+              current_stock: material.quantity || 0,
+              minimum_stock: material.minimumStock || material.stockMinimum || 0,
+              consumption_rate: material.consumptionRate || 1,
+              days_to_predict: 7,
+            });
+
+            this.logger.log(`   ✅ FastAPI Response: ${mlPrediction.days_until_stockout} days (${mlPrediction.status})`);
+
+            // Convert FastAPI response to frontend format
+            return {
+              materialId: mlPrediction.material_id,
+              materialName: mlPrediction.material_name,
+              currentStock: mlPrediction.current_stock,
+              predictedStock: mlPrediction.predicted_stock_in_days,
+              consumptionRate: material.consumptionRate || 1,
+              minimumStock: material.minimumStock || 0,
+              maximumStock: material.maximumStock || material.quantity * 2,
+              reorderPoint: material.stockMinimum || material.minimumStock || 0,
+              hoursToLowStock: mlPrediction.days_until_stockout ? mlPrediction.days_until_stockout * 24 : 999,
+              hoursToOutOfStock: mlPrediction.days_until_stockout ? mlPrediction.days_until_stockout * 24 : 999,
+              status: mlPrediction.status === 'critical' ? 'critical' : mlPrediction.status === 'warning' ? 'warning' : 'safe',
+              recommendedOrderQuantity: mlPrediction.recommended_order_quantity,
+              predictionModelUsed: true,
+              confidence: mlPrediction.confidence,
+              simulationData: [],
+              message: mlPrediction.message,
+            };
+          } catch (error) {
+            this.logger.error(
+              `   ❌ FastAPI Error for ${material.name}: ${error.message}`,
             );
-            return this.mapMlPredictionToClientFormat(material, mlPrediction);
+            return null;
           }
+        }),
+      );
 
-          // Fallback to stock prediction service
-          return await this.predictionService.predictStockDepletion(
-            material._id.toString(),
-            material.name,
-            material.quantity,
-            material.minimumStock,
-            material.maximumStock,
-            material.stockMinimum,
-            material.consumptionRate || 1,
-          );
-        } catch (error) {
-          return null;
-        }
-      }),
-    );
+      const validPredictions = predictions.filter((p) => p !== null);
+      this.logger.log(`\n${'='.repeat(80)}`);
+      this.logger.log(`✅ [MATERIALS-SERVICE] PREDICTIONS COMPLETE`);
+      this.logger.log(`   ├─ Total Requested: ${materialList.length}`);
+      this.logger.log(`   ├─ Successful: ${validPredictions.length}`);
+      this.logger.log(`   ├─ Failed: ${materialList.length - validPredictions.length}`);
+      this.logger.log(`   └─ Source: FastAPI ML Service (Port 8000)`);
+      this.logger.log(`${'='.repeat(80)}\n`);
+      
+      return validPredictions;
+    } else {
+      // Fallback to standard prediction service
+      this.logger.warn('⚠️  FastAPI ML Service: NOT AVAILABLE');
+      this.logger.warn('🔄 Falling back to standard prediction service...\n');
+      
+      const predictions = await Promise.all(
+        materialList.map(async (material: any) => {
+          try {
+            const prediction = await this.predictionService.predictStockDepletion(
+              material._id.toString(),
+              material.name,
+              material.quantity,
+              material.minimumStock || 0,
+              material.maximumStock || material.quantity * 2,
+              material.stockMinimum || material.minimumStock || 0,
+              material.consumptionRate || 0,
+            );
+            
+            return prediction;
+          } catch (error) {
+            this.logger.error(
+              `❌ Erreur prédiction ${material.name}: ${error.message}`,
+            );
+            return null;
+          }
+        }),
+      );
 
-    return predictions.filter((p) => p !== null);
+      const validPredictions = predictions.filter((p) => p !== null);
+      this.logger.log(`\n✅ ${validPredictions.length} prédictions standard générées avec succès\n`);
+      
+      return validPredictions;
+    }
   }
 
   @Get(':id/prediction')
@@ -269,18 +348,7 @@ export class MaterialsController {
       throw new BadRequestException('Matériau non trouvé');
     }
 
-    // Use ML training service if historical data exists
-    if (this.mlTrainingService.hasHistoricalData(id)) {
-      const mlPrediction = await this.mlTrainingService.predictStock(
-        id,
-        24,
-        material.quantity,
-        material.stockMinimum,
-      );
-      return this.mapMlPredictionToClientFormat(material, mlPrediction);
-    }
-
-    // Fallback to stock prediction service
+    // Utiliser le service de prédiction standard
     return this.predictionService.predictStockDepletion(
       material._id.toString(),
       material.name,
@@ -349,8 +417,8 @@ export class MaterialsController {
           sites: sites.slice(0, 3).map((s) => ({
             _id: s._id,
             nom: s.nom,
-            ville: s.ville,
-            coordonnees: s.coordonnees,
+            ville: s.localisation,
+            coordonnees: s.coordinates,
           })),
         },
       };
@@ -534,10 +602,10 @@ export class MaterialsController {
       if (siteId && !siteLatitude && !siteLongitude) {
         try {
           const site = await this.sitesService.findOne(siteId);
-          if (site?.coordonnees?.latitude && site?.coordonnees?.longitude) {
+          if (site?.coordinates?.lat && site?.coordinates?.lng) {
             siteCoordinates = {
-              latitude: site.coordonnees.latitude,
-              longitude: site.coordonnees.longitude,
+              latitude: site.coordinates.lat,
+              longitude: site.coordinates.lng,
             };
             this.logger.log(
               `📍 Coordonnées du site ${siteId}: ${siteCoordinates.latitude}, ${siteCoordinates.longitude}`,
@@ -603,13 +671,42 @@ export class MaterialsController {
   @Post('reports/daily/send')
   async sendDailyReport(@Body() body?: { email?: string }): Promise<any> {
     try {
+      console.log('🔵 [DAILY REPORT] Début de la requête');
+      console.log('🔵 [DAILY REPORT] Body reçu:', JSON.stringify(body));
+      
       this.logger.log('📊 Déclenchement manuel du rapport quotidien...');
 
+      if (!body?.email) {
+        console.log('🔴 [DAILY REPORT] Email manquant dans le body');
+        return {
+          success: false,
+          message: 'Email de destination requis',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      // Validation basique de l'email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(body.email)) {
+        console.log('🔴 [DAILY REPORT] Format email invalide:', body.email);
+        return {
+          success: false,
+          message: 'Format d\'email invalide',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      console.log('🟢 [DAILY REPORT] Email valide:', body.email);
+      console.log('🔵 [DAILY REPORT] Appel du service sendManualReport...');
+
       const result = await this.dailyReportService.sendManualReport(
-        body?.email,
+        body.email,
       );
 
+      console.log('🔵 [DAILY REPORT] Résultat du service:', JSON.stringify(result));
+
       if (result.success) {
+        console.log('🟢 [DAILY REPORT] Succès:', result.message);
         this.logger.log(`✅ ${result.message}`);
         return {
           success: true,
@@ -617,6 +714,7 @@ export class MaterialsController {
           timestamp: new Date().toISOString(),
         };
       } else {
+        console.log('🔴 [DAILY REPORT] Échec:', result.message);
         this.logger.error(`❌ ${result.message}`);
         return {
           success: false,
@@ -625,6 +723,10 @@ export class MaterialsController {
         };
       }
     } catch (error) {
+      console.log('🔴 [DAILY REPORT] Exception capturée:', error);
+      console.log('🔴 [DAILY REPORT] Error message:', error.message);
+      console.log('🔴 [DAILY REPORT] Error stack:', error.stack);
+      
       this.logger.error(
         "❌ Erreur lors de l'envoi du rapport quotidien:",
         error,
@@ -632,7 +734,353 @@ export class MaterialsController {
       return {
         success: false,
         message: `Erreur lors de l'envoi du rapport: ${error.message}`,
+        error: error.stack,
         timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  // ========== ML TRAINING & PREDICTION ENDPOINTS ==========
+  
+  @Get('ml/status')
+  async getMLStatus(): Promise<any> {
+    return {
+      success: true,
+      trainedModels: this.autoMLService.getTrainedModelsCount(),
+      message: `${this.autoMLService.getTrainedModelsCount()} modèles ML entraînés`,
+    };
+  }
+
+  @Get('anomalies/detect')
+  async detectAnomalies(): Promise<any> {
+    try {
+      this.logger.log('\n🔍 [MATERIALS-SERVICE] ANOMALY DETECTION REQUEST');
+      this.logger.log('='.repeat(80));
+
+      // Get all materials
+      const materials = await this.materialsService.findAll({ limit: 1000 });
+      const materialList = Array.isArray(materials)
+        ? materials
+        : (materials as any).data || [];
+
+      this.logger.log(`📊 Total Materials: ${materialList.length}`);
+
+      // Check if FastAPI ML service is available
+      const mlServiceAvailable = await this.mlPredictionClient.isServiceAvailable();
+
+      if (!mlServiceAvailable) {
+        this.logger.warn('⚠️ FastAPI ML Service not available');
+        return {
+          success: false,
+          message: 'ML Service not available',
+          theft_risk: [],
+          waste_risk: [],
+          over_consumption: [],
+        };
+      }
+
+      this.logger.log('✅ FastAPI ML Service: AVAILABLE');
+      this.logger.log('🤖 Calculating consumption statistics from dataset...\n');
+
+      // Read anomaly-detection.csv to get consumption statistics
+      const fs = require('fs');
+      const path = require('path');
+      const csvParser = require('csv-parser');
+      
+      const csvPath = path.join(process.cwd(), 'anomaly-detection.csv');
+      
+      if (!fs.existsSync(csvPath)) {
+        this.logger.warn('⚠️ anomaly-detection.csv not found');
+        return {
+          success: false,
+          message: 'Dataset not found',
+          theft_risk: [],
+          waste_risk: [],
+          over_consumption: [],
+        };
+      }
+
+      // Parse CSV and calculate statistics per material NAME (not ID)
+      const materialStats = new Map<string, { 
+        expectedSum: number; 
+        actualSum: number; 
+        count: number;
+        materialId: string;
+      }>();
+
+      await new Promise((resolve, reject) => {
+        fs.createReadStream(csvPath)
+          .pipe(csvParser())
+          .on('data', (row: any) => {
+            const materialName = (row.materialName || row.material_name || '').trim();
+            const expected = parseFloat(row.expectedConsumption || row.expected_consumption || 0);
+            const actual = parseFloat(row.actualConsumption || row.actual_consumption || 0);
+            
+            if (materialName && !isNaN(expected) && !isNaN(actual)) {
+              if (!materialStats.has(materialName)) {
+                materialStats.set(materialName, { 
+                  expectedSum: 0, 
+                  actualSum: 0, 
+                  count: 0,
+                  materialId: row.materialId || row.material_id || ''
+                });
+              }
+              const stats = materialStats.get(materialName)!;
+              stats.expectedSum += expected;
+              stats.actualSum += actual;
+              stats.count += 1;
+            }
+          })
+          .on('end', resolve)
+          .on('error', reject);
+      });
+
+      this.logger.log(`📊 Loaded consumption data for ${materialStats.size} materials from CSV`);
+
+      // Prepare materials data for anomaly detection
+      const materialsData: Array<{
+        material_id: string;
+        material_name: string;
+        current_consumption: number;
+        average_consumption: number;
+        std_consumption: number;
+        site_id: string | null;
+        site_name: string | null;
+      }> = [];
+      
+      for (const material of materialList) {
+        // Match by material name (case insensitive)
+        const materialName = material.name.trim();
+        let stats = materialStats.get(materialName);
+        
+        // Try case-insensitive match if exact match fails
+        if (!stats) {
+          for (const [name, data] of materialStats.entries()) {
+            if (name.toLowerCase() === materialName.toLowerCase()) {
+              stats = data;
+              break;
+            }
+          }
+        }
+        
+        if (stats && stats.count > 0) {
+          const avgExpected = stats.expectedSum / stats.count;
+          const avgActual = stats.actualSum / stats.count;
+          const stdDev = avgExpected * 0.2; // Estimate std as 20% of average
+          
+          materialsData.push({
+            material_id: material._id.toString(),
+            material_name: material.name,
+            current_consumption: avgActual,
+            average_consumption: avgExpected,
+            std_consumption: stdDev,
+            site_id: material.siteId || null,
+            site_name: material.siteName || null,
+          });
+        }
+      }
+
+      if (materialsData.length === 0) {
+        this.logger.warn('⚠️ No materials with consumption data found in CSV');
+        return {
+          success: true,
+          total_materials: 0,
+          anomalies_detected: 0,
+          theft_risk: [],
+          waste_risk: [],
+          over_consumption: [],
+        };
+      }
+
+      this.logger.log(`📊 Prepared ${materialsData.length} materials for anomaly detection`);
+
+      // Call FastAPI for batch anomaly detection
+      const axios = require('axios');
+      const ML_SERVICE_URL = process.env.ML_PREDICTION_SERVICE_URL || 'http://localhost:8000';
+
+      const response = await axios.post(
+        `${ML_SERVICE_URL}/detect/batch-anomalies`,
+        { materials: materialsData },
+        {
+          timeout: 30000,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      const result = response.data;
+
+      this.logger.log('\n📊 [MATERIALS-SERVICE] ANOMALY DETECTION RESULTS:');
+      this.logger.log(`   ├─ Total Analyzed: ${result.total_materials}`);
+      this.logger.log(`   ├─ Anomalies Detected: ${result.anomalies_detected}`);
+      this.logger.log(`   ├─ Theft Risk: ${result.theft_risk.length}`);
+      this.logger.log(`   ├─ Waste Risk: ${result.waste_risk.length}`);
+      this.logger.log(`   ├─ Over Consumption: ${result.over_consumption.length}`);
+      this.logger.log(`   └─ Normal: ${result.normal.length}`);
+      this.logger.log('='.repeat(80) + '\n');
+
+      return {
+        success: true,
+        ...result,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error detecting anomalies: ${error.message}`);
+      this.logger.error(error.stack);
+      return {
+        success: false,
+        message: `Error: ${error.message}`,
+        theft_risk: [],
+        waste_risk: [],
+        over_consumption: [],
+      };
+    }
+  }
+
+  @Post('ml/retrain')
+  async retrainAllModels(): Promise<any> {
+    try {
+      this.logger.log('🔄 Réentraînement de tous les modèles ML...');
+      await this.autoMLService.retrainAll();
+      return {
+        success: true,
+        trainedModels: this.autoMLService.getTrainedModelsCount(),
+        message: 'Tous les modèles ont été réentraînés avec succès',
+      };
+    } catch (error) {
+      this.logger.error(`❌ Erreur réentraînement: ${error.message}`);
+      return {
+        success: false,
+        message: `Erreur lors du réentraînement: ${error.message}`,
+      };
+    }
+  }
+
+  @Post('ml/upload-dataset')
+  @UseInterceptors(FileInterceptor('dataset'))
+  async uploadDataset(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('materialId') materialId: string,
+  ): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('Fichier CSV requis');
+    }
+
+    if (!file.originalname.endsWith('.csv')) {
+      throw new BadRequestException('Format non supporté. Utilisez un fichier CSV.');
+    }
+
+    try {
+      // Sauvegarder le fichier
+      const uploadsDir = 'uploads/datasets';
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filename = `dataset-${materialId}-${Date.now()}.csv`;
+      const filepath = `${uploadsDir}/${filename}`;
+      fs.writeFileSync(filepath, file.buffer);
+
+      this.logger.log(`📁 Dataset uploadé: ${filepath}`);
+
+      return {
+        success: true,
+        datasetPath: filepath,
+        filename,
+        size: file.size,
+        message: 'Dataset uploadé avec succès',
+      };
+    } catch (error) {
+      this.logger.error(`❌ Erreur upload dataset: ${error.message}`);
+      throw new BadRequestException(
+        error.message || 'Erreur lors de l\'upload du dataset',
+      );
+    }
+  }
+
+  @Post('ml/train')
+  async trainModel(
+    @Body() body: { materialId: string; datasetPath: string },
+  ): Promise<any> {
+    try {
+      this.logger.log(`🤖 Entraînement ML pour matériau ${body.materialId}`);
+
+      const result = await this.mlTrainingService.trainModel(
+        body.materialId,
+        body.datasetPath,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Erreur entraînement: ${error.message}`);
+      throw new BadRequestException(
+        error.message || 'Erreur lors de l\'entraînement',
+      );
+    }
+  }
+
+  @Post('ml/predict')
+  async predictWithModel(
+    @Body() body: { materialId: string; modelPath: string },
+  ): Promise<any> {
+    try {
+      this.logger.log(`🔮 Prédiction ML pour matériau ${body.materialId}`);
+
+      // Récupérer le matériau
+      const material = await this.materialsService.findOne(body.materialId);
+      if (!material) {
+        throw new BadRequestException('Matériau non trouvé');
+      }
+
+      const result = await this.mlTrainingService.predict(
+        body.materialId,
+        material.name,
+        material.quantity,
+        material.minimumStock || material.stockMinimum || 0,
+        body.modelPath,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Erreur prédiction: ${error.message}`);
+      throw new BadRequestException(
+        error.message || 'Erreur lors de la prédiction',
+      );
+    }
+  }
+
+  @Get('ml/model-info/:id')
+  async getModelInfo(@Param('id') materialId: string): Promise<any> {
+    try {
+      this.logger.log(`🔍 Getting model info for material ${materialId}`);
+      
+      const material = await this.materialsService.findOne(materialId);
+      if (!material) {
+        throw new BadRequestException('Material not found');
+      }
+
+      // ✅ FIX: Use hasModel() instead of isModelTrained()
+      const modelTrained = this.autoMLService.hasModel(materialId);
+      
+      // For now, assume historical data exists if material exists
+      const hasHistoricalData = true;
+      
+      return {
+        success: true,
+        materialId,
+        materialName: material.name,
+        modelTrained,
+        hasHistoricalData,
+        message: modelTrained 
+          ? 'Model is trained and ready' 
+          : 'Model not trained yet. Upload historical data to train.',
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error getting model info: ${error.message}`);
+      return {
+        success: false,
+        materialId,
+        modelTrained: false,
+        hasHistoricalData: false,
+        error: error.message,
       };
     }
   }
@@ -868,159 +1316,6 @@ export class MaterialsController {
       console.error('❌ Export PDF error:', error);
       throw new BadRequestException(error.message);
     }
-  }
-
-  // ========== ML TRAINING - UPLOAD CSV ==========
-  @Post(':id/upload-csv')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadHistoricalData(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    try {
-      if (!file) {
-        throw new BadRequestException('Aucun fichier CSV uploaded');
-      }
-
-      const material = await this.materialsService.findOne(id);
-      if (!material) {
-        throw new BadRequestException('Matériau non trouvé');
-      }
-
-      let csvContent: string;
-      if (file.buffer && file.buffer.length > 0) {
-        csvContent = file.buffer.toString('utf-8');
-      } else if (file.path) {
-        csvContent = require('fs').readFileSync(file.path, 'utf-8');
-      } else {
-        throw new BadRequestException('Impossible de lire le fichier');
-      }
-
-      console.log(
-        '📄 CSV Content (first 200 chars):',
-        csvContent.substring(0, 200),
-      );
-
-      const parsedData = this.mlTrainingService.parseCSV(csvContent, id);
-
-      return {
-        success: true,
-        message: `CSV parsed successfully. ${parsedData.totalRecords} records loaded.`,
-        data: {
-          totalRecords: parsedData.totalRecords,
-          dateRange: parsedData.dateRange,
-          averageConsumption: parsedData.averageConsumption,
-        },
-      };
-    } catch (error) {
-      console.error('❌ Error uploading CSV:', error.message);
-      throw new BadRequestException(`Error parsing CSV: ${error.message}`);
-    }
-  }
-
-  // ========== ML TRAINING - TRAIN MODEL ==========
-  @Post(':id/train')
-  async trainModel(@Param('id') id: string) {
-    const material = await this.materialsService.findOne(id);
-    if (!material) {
-      throw new BadRequestException('Matériau non trouvé');
-    }
-
-    const hasData = this.mlTrainingService.hasHistoricalData(id);
-    if (!hasData) {
-      throw new BadRequestException(
-        'Aucune donnée historique. Upload CSV first.',
-      );
-    }
-
-    const result = await this.mlTrainingService.trainModel(
-      id,
-      material.name,
-      material.quantity,
-      material.stockMinimum,
-    );
-
-    return {
-      success: true,
-      message: `Model trained successfully! Accuracy: ${(result.accuracy * 100).toFixed(1)}%`,
-      trainingResult: result,
-    };
-  }
-
-  // ========== ML PREDICTION ==========
-  @Get(':id/predict')
-  async predictStock(
-    @Param('id') id: string,
-    @Query('hours') hours: string = '24',
-  ) {
-    const material = await this.materialsService.findOne(id);
-    if (!material) {
-      throw new BadRequestException('Matériau non trouvé');
-    }
-
-    const hoursAhead = parseInt(hours, 10) || 24;
-
-    const prediction = await this.mlTrainingService.predictStock(
-      id,
-      hoursAhead,
-      material.quantity,
-      material.stockMinimum,
-    );
-
-    prediction.materialName = material.name;
-
-    return prediction;
-  }
-
-  // ========== ML MODEL INFO ==========
-  @Get(':id/model-info')
-  async getModelInfo(@Param('id') id: string) {
-    const hasModel = this.mlTrainingService.hasModel(id);
-    const hasData = this.mlTrainingService.hasHistoricalData(id);
-
-    return {
-      materialId: id,
-      modelTrained: hasModel,
-      hasHistoricalData: hasData,
-      ...this.mlTrainingService.getModelInfo(id),
-    };
-  }
-
-  // ========== ADVANCED PREDICTION ==========
-  @Post(':id/predict-advanced')
-  async predictAdvanced(
-    @Param('id') id: string,
-    @Body()
-    features: {
-      hourOfDay: number;
-      dayOfWeek: number;
-      siteActivityLevel: number;
-      weather: string;
-      projectType: string;
-    },
-  ) {
-    const material = await this.materialsService.findOne(id);
-    if (!material) {
-      throw new BadRequestException('Matériau non trouvé');
-    }
-
-    const prediction = await this.mlTrainingService.predictStockAdvanced(
-      id,
-      {
-        hourOfDay: features.hourOfDay,
-        dayOfWeek: features.dayOfWeek,
-        siteActivityLevel: features.siteActivityLevel,
-        weather: features.weather,
-        projectType: features.projectType,
-      },
-      material.quantity,
-      material.stockMinimum,
-    );
-
-    prediction.materialName = material.name;
-    prediction.currentStock = material.quantity;
-
-    return prediction;
   }
 
   // ========== CONSUMPTION HISTORY ENDPOINTS (MUST BE BEFORE :id ROUTES) ==========

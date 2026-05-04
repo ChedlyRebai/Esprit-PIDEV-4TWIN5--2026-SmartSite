@@ -46,10 +46,13 @@ const ExpiringMaterials: React.FC = () => {
       const enrichedData: ExpiringMaterial[] = data.map((material) => {
         const expiryDate = new Date(material.expiryDate!);
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        expiryDate.setHours(0, 0, 0, 0);
         const daysRemaining = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         
         let urgency: 'critical' | 'warning' | 'info' = 'info';
-        if (daysRemaining <= 7) urgency = 'critical';
+        if (daysRemaining <= 0) urgency = 'critical'; // ✅ Déjà expiré
+        else if (daysRemaining <= 7) urgency = 'critical';
         else if (daysRemaining <= 15) urgency = 'warning';
         
         return {
@@ -57,6 +60,15 @@ const ExpiringMaterials: React.FC = () => {
           daysRemaining,
           urgency,
         };
+      });
+      
+      // ✅ Trier par urgence (critiques en premier) puis par jours restants
+      enrichedData.sort((a, b) => {
+        if (a.urgency !== b.urgency) {
+          const urgencyOrder = { critical: 0, warning: 1, info: 2 };
+          return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
+        }
+        return a.daysRemaining - b.daysRemaining;
       });
       
       setMaterials(enrichedData);
@@ -178,7 +190,7 @@ const ExpiringMaterials: React.FC = () => {
                     <TableCell align="right"><strong>Quantité</strong></TableCell>
                     <TableCell><strong>Date d'expiration</strong></TableCell>
                     <TableCell align="center"><strong>Jours restants</strong></TableCell>
-                    <TableCell><strong>Site</strong></TableCell>
+                    <TableCell><strong>Site / Localisation</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -225,22 +237,43 @@ const ExpiringMaterials: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={`${material.daysRemaining} jour${material.daysRemaining > 1 ? 's' : ''}`}
-                          size="small"
-                          color={
-                            material.urgency === 'critical'
-                              ? 'error'
-                              : material.urgency === 'warning'
-                              ? 'warning'
-                              : 'default'
-                          }
-                        />
+                        {material.daysRemaining <= 0 ? (
+                          <Chip
+                            label={`EXPIRÉ depuis ${Math.abs(material.daysRemaining)} jour${Math.abs(material.daysRemaining) > 1 ? 's' : ''}`}
+                            size="small"
+                            color="error"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        ) : (
+                          <Chip
+                            label={`${material.daysRemaining} jour${material.daysRemaining > 1 ? 's' : ''}`}
+                            size="small"
+                            color={
+                              material.urgency === 'critical'
+                                ? 'error'
+                                : material.urgency === 'warning'
+                                ? 'warning'
+                                : 'default'
+                            }
+                          />
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {material.siteName || 'Non assigné'}
-                        </Typography>
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            {material.siteName || 'Non assigné'}
+                          </Typography>
+                          {(material as any).siteAddress && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {(material as any).siteAddress}
+                            </Typography>
+                          )}
+                          {material.siteCoordinates && (
+                            <Typography variant="caption" color="primary" display="block" sx={{ fontFamily: 'monospace', mt: 0.5 }}>
+                              📍 GPS: {material.siteCoordinates.lat.toFixed(5)}, {material.siteCoordinates.lng.toFixed(5)}
+                            </Typography>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}

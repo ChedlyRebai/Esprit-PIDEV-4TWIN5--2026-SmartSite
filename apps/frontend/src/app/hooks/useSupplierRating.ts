@@ -20,12 +20,35 @@ export const useSupplierRating = (userId: string) => {
 
   const checkSupplierRatingNeeded = async (materialId: string): Promise<SupplierRatingCheck> => {
     try {
-      const response = await axios.get(`/api/supplier-ratings/check/${materialId}`, {
-        params: { userId }
+      // Appeler le nouveau endpoint qui vérifie côté backend
+      const response = await axios.get(`/api/supplier-ratings/should-show/${materialId}`, {
+        params: { userId },
+        timeout: 5000 // Timeout de 5 secondes
       });
-      return response.data;
-    } catch (error) {
-      console.error('Error checking supplier rating:', error);
+      
+      const data = response.data;
+      
+      // Si le dialog doit être affiché, marquer comme affiché
+      if (data.shouldShow) {
+        await axios.post('/api/supplier-ratings/mark-shown', {
+          materialId,
+          userId
+        }).catch(err => console.warn('Error marking dialog as shown:', err));
+      }
+      
+      return {
+        needed: data.shouldShow,
+        consumptionPercentage: data.consumptionPercentage,
+        material: data.material,
+        alreadyRated: !data.shouldShow && data.reason?.includes('Déjà noté')
+      };
+    } catch (error: any) {
+      // Gérer l'erreur gracieusement sans bloquer l'application
+      if (error.response?.status === 500 || error.response?.status === 404) {
+        console.warn(`Supplier rating endpoint not available for material ${materialId}`);
+      } else {
+        console.error('Error checking supplier rating:', error);
+      }
       return { needed: false, consumptionPercentage: 0, alreadyRated: false };
     }
   };

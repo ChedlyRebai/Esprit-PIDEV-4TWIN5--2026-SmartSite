@@ -186,6 +186,10 @@ export class StockPredictionService {
         matchQuery.siteId = new Types.ObjectId(siteId);
       }
 
+      this.logger.log(
+        `📊 Recherche consommation pour matériau ${materialId} depuis ${thirtyDaysAgo.toISOString()}`,
+      );
+
       const outMovements = await this.flowLogModel.aggregate([
         { $match: matchQuery },
         {
@@ -193,6 +197,8 @@ export class StockPredictionService {
             _id: null,
             totalOut: { $sum: '$quantity' },
             count: { $sum: 1 },
+            firstDate: { $min: '$timestamp' },
+            lastDate: { $max: '$timestamp' },
           },
         },
       ]);
@@ -201,22 +207,28 @@ export class StockPredictionService {
         this.logger.log(
           `📊 Pas d'historique de consommation pour ${materialId}, utilisation taux par défaut`,
         );
-        return 2; // 2 unités par heure par défaut
+        return 1.5; // 1.5 unités par heure par défaut
       }
 
-      // Calculer le taux horaire
+      // Calculer le taux horaire basé sur la période réelle
       const totalOut = outMovements[0].totalOut;
-      const hoursIn30Days = 30 * 24; // 720 heures
-      const hourlyRate = totalOut / hoursIn30Days;
-
-      this.logger.log(
-        `📊 Taux calculé depuis historique: ${hourlyRate.toFixed(2)} unités/h (${totalOut} unités sur 30 jours)`,
+      const firstDate = new Date(outMovements[0].firstDate);
+      const lastDate = new Date(outMovements[0].lastDate);
+      const hoursDiff = Math.max(
+        1,
+        (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60),
       );
 
-      return Math.max(0.5, hourlyRate); // Minimum 0.5 unités/heure
+      const hourlyRate = totalOut / hoursDiff;
+
+      this.logger.log(
+        `📊 Taux calculé depuis historique: ${hourlyRate.toFixed(2)} unités/h (${totalOut} unités sur ${Math.floor(hoursDiff)}h, ${outMovements[0].count} mouvements)`,
+      );
+
+      return Math.max(0.1, hourlyRate); // Minimum 0.1 unités/heure
     } catch (error) {
       this.logger.error(`❌ Erreur calcul taux consommation: ${error.message}`);
-      return 2; // Fallback
+      return 1.5; // Fallback
     }
   }
 
@@ -305,9 +317,13 @@ export class StockPredictionService {
         siteId,
       );
 
-      // Si un taux est fourni et > 0, l'utiliser
+      // Si un taux est fourni et > 0, le combiner avec le taux historique
       if (consumptionRate > 0) {
-        effectiveRate = consumptionRate;
+        // Moyenne pondérée: 70% historique, 30% fourni
+        effectiveRate = effectiveRate * 0.7 + consumptionRate * 0.3;
+        this.logger.log(
+          `📊 Taux combiné (70% historique + 30% fourni): ${effectiveRate.toFixed(2)} unités/h`,
+        );
       }
 
       // Ajuster selon la météo
@@ -321,11 +337,11 @@ export class StockPredictionService {
       }
 
       this.logger.log(
-        `📊 Taux de consommation effectif: ${effectiveRate.toFixed(2)} unités/h`,
+        `📊 Taux de consommation effectif final: ${effectiveRate.toFixed(2)} unités/h`,
       );
 
-      // Ensure consumption rate is at least 0.5 (minimum 0.5 unit/hour)
-      effectiveRate = Math.max(0.5, effectiveRate);
+      // Ensure consumption rate is at least 0.1 (minimum 0.1 unit/hour)
+      effectiveRate = Math.max(0.1, effectiveRate);
 
       // Generate simulation data for visualization
       const simulationData: { hour: number; stock: number }[] = [];

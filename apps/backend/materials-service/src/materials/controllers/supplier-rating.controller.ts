@@ -52,4 +52,28 @@ export class SupplierRatingController {
   async getGlobalStats() {
     return this.supplierRatingService.getGlobalStats();
   }
+
+  @Get('should-show/:materialId')
+  async shouldShowDialog(
+    @Param('materialId') materialId: string,
+    @Query('userId') userId: string,
+  ) {
+    this.logger.log(
+      `🔍 Checking if dialog should show: material=${materialId}, user=${userId}`,
+    );
+    return this.supplierRatingService.shouldShowDialog(materialId, userId);
+  }
+
+  @Post('mark-shown')
+  async markDialogAsShown(
+    @Body() body: { materialId: string; userId: string },
+  ) {
+    this.logger.log(
+      `✅ Marking dialog as shown: material=${body.materialId}, user=${body.userId}`,
+    );
+    return this.supplierRatingService.markDialogAsShown(
+      body.materialId,
+      body.userId,
+    );
+  }
 }

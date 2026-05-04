@@ -17,7 +17,7 @@ function getCorsOrigins(): string[] {
     'http://localhost:5175',
     'http://localhost:3000',
     'http://localhost:3001',
-    'http://localhost:3002',
+    'http://localhost:3009',
   ];
   const raw = process.env.CORS_ORIGIN;
   if (!raw?.trim()) {

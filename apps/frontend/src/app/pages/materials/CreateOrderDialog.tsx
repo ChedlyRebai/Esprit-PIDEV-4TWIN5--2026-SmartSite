@@ -15,7 +15,7 @@ import { Label } from "../../components/ui/label";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { toast } from "sonner";
-import { MapPin, Package, Truck, Clock, Navigation, AlertTriangle, CheckCircle, Star, MessageCircle, ArrowRight } from "lucide-react";
+import { MapPin, Package, Truck, Clock, Navigation, AlertTriangle, CheckCircle, Star, MessageCircle, ArrowRight, Loader2, Brain } from "lucide-react";
 import orderService, { CreateOrderData } from "../../../services/orderService";
 import { siteService, fournisseurService, Site, Fournisseur } from "../../../services/siteFournisseurService";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
@@ -110,17 +110,25 @@ export default function CreateOrderDialog({
   const loadPrediction = async () => {
     setLoadingPrediction(true);
     try {
-      const response = await fetch(`http://localhost:3002/api/materials/${materialId}/prediction`);
+      const response = await fetch(`/api/materials/${materialId}/prediction`);
       if (response.ok) {
         const prediction = await response.json();
-        const recommended = prediction.recommendedOrderQuantity || 0;
+        const recommended = Math.ceil(prediction.recommendedOrderQuantity || 0);
         setRecommendedQuantity(recommended);
-        setMinQuantity(recommended);
-        setQuantity(recommended);
-        console.log(`📊 Prédiction chargée: Quantité recommandée = ${recommended}`);
+        setMinQuantity(recommended > 0 ? recommended : 1);
+        setQuantity(recommended > 0 ? recommended : 1);
+        console.log(`📊 Prediction loaded: Recommended quantity = ${recommended}`);
+      } else {
+        console.warn('Prediction not available, using default value');
+        setRecommendedQuantity(0);
+        setMinQuantity(1);
+        setQuantity(1);
       }
     } catch (error) {
-      console.error('Erreur chargement prédiction:', error);
+      console.error('Error loading prediction:', error);
+      setRecommendedQuantity(0);
+      setMinQuantity(1);
+      setQuantity(1);
     } finally {
       setLoadingPrediction(false);
     }
@@ -142,7 +150,7 @@ export default function CreateOrderDialog({
       } else if (materialSiteCoordinates) {
         setCurrentSite({
           _id: materialSiteId || 'temp',
-          nom: materialSiteName || 'Chantier',
+          nom: materialSiteName || 'Site',
           adresse: '',
           coordinates: materialSiteCoordinates,
           budget: 0,
@@ -157,7 +165,7 @@ export default function CreateOrderDialog({
       setFournisseurs(suppliersData);
     } catch (error) {
       console.error("Error loading data:", error);
-      toast.error("Erreur chargement des données");
+      toast.error("Error loading data");
     } finally {
       setLoadingData(false);
     }
@@ -221,44 +229,58 @@ export default function CreateOrderDialog({
 
   const handleCreateOrder = async () => {
     if (!currentSite || !selectedSupplier) {
-      toast.error("Veuillez sélectionner un fournisseur");
+      toast.error("Please select a supplier");
       return;
     }
 
-    // Validation de la quantité minimale
+    // Validate minimum quantity
     if (recommendedQuantity > 0 && quantity < recommendedQuantity) {
       toast.error(
-        `❌ Quantité insuffisante! Minimum recommandé: ${recommendedQuantity} unités. Vous avez saisi: ${quantity} unités.`,
-        { duration: 5000 }
+        `❌ Insufficient quantity!\n\nAI recommended minimum: ${recommendedQuantity} units\nYou entered: ${quantity} units\n\nPlease increase the quantity.`,
+        { duration: 6000 }
       );
       return;
     }
 
     setLoading(true);
     try {
+      const supplierData = recommendedSuppliers.find(f => f._id === selectedSupplier._id);
+      const estimatedTime = supplierData?.estimatedTime || 60;
+      
       const orderData: CreateOrderData = {
         materialId,
-        quantity,
+        quantity: Number(quantity) || 1,
         destinationSiteId: currentSite._id,
         supplierId: selectedSupplier._id,
-        estimatedDurationMinutes: recommendedSuppliers.find(f => f._id === selectedSupplier._id)?.estimatedTime || 60,
+        estimatedDurationMinutes: Number(estimatedTime) || 60,
       };
 
-      console.log("📤 Order data:", orderData);
+      console.log("📤 === FRONTEND CREATE ORDER ===");
+      console.log("📤 materialId:", materialId, "type:", typeof materialId);
+      console.log("📤 quantity:", quantity, "type:", typeof quantity);
+      console.log("📤 destinationSiteId:", currentSite._id, "type:", typeof currentSite._id);
+      console.log("📤 supplierId:", selectedSupplier._id, "type:", typeof selectedSupplier._id);
+      console.log("📤 estimatedDurationMinutes:", estimatedTime, "type:", typeof estimatedTime);
+      console.log("📤 Order data:", JSON.stringify(orderData, null, 2));
       
       const createdOrder = await orderService.createOrder(orderData);
       console.log("✅ Order created:", createdOrder);
       
       setCreatedOrderId(createdOrder._id);
-      toast.success("✅ Commande créée avec succès!");
+      toast.success("✅ Order created successfully!");
       onOrderCreated();
       
+      // Open chat dialog
       setShowChat(true);
       
     } catch (error: any) {
-      console.error("❌ Erreur création commande:", error);
-      console.error("Error details:", error.response?.data);
-      toast.error(error.message || "Erreur lors de la création");
+      console.error("❌ Error creating order:", error);
+      console.error("❌ Error response:", error.response);
+      console.error("❌ Error data:", error.response?.data);
+      console.error("❌ Error message:", error.response?.data?.message);
+      
+      const errorMsg = error.response?.data?.message || error.message || "Error creating order";
+      toast.error(`❌ ${errorMsg}`, { duration: 5000 });
     } finally {
       setLoading(false);
     }
@@ -278,11 +300,11 @@ export default function CreateOrderDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Package className="h-5 w-5 text-blue-600" />
-              Nouvelle commande
+              New Order
             </DialogTitle>
             <DialogDescription>
               {materialName} - Code: {materialCode}
-              {materialCategory && ` • Catégorie: ${materialCategory}`}
+              {materialCategory && ` • Category: ${materialCategory}`}
             </DialogDescription>
           </DialogHeader>
 
@@ -290,14 +312,14 @@ export default function CreateOrderDialog({
             {loadingData ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-gray-500">Chargement...</p>
+                <p className="mt-2 text-gray-500">Loading...</p>
               </div>
             ) : (
               <>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">1</div>
-                    <Label className="font-semibold">Chantier de livraison</Label>
+                    <Label className="font-semibold">Delivery Site</Label>
                   </div>
                   {currentSite ? (
                     <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -317,7 +339,7 @@ export default function CreateOrderDialog({
                   ) : (
                     <div className="p-3 bg-orange-50 rounded-lg text-orange-700 text-sm">
                       <AlertTriangle className="h-4 w-4 inline mr-2" />
-                      Aucun site assigné à ce matériau
+                      No site assigned to this material
                     </div>
                   )}
                 </div>
@@ -325,21 +347,33 @@ export default function CreateOrderDialog({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">2</div>
-                    <Label className="font-semibold">Quantité à commander</Label>
+                    <Label className="font-semibold">Quantity to order</Label>
                   </div>
                   {loadingPrediction ? (
-                    <div className="text-sm text-gray-500">Calcul de la quantité recommandée...</div>
-                  ) : recommendedQuantity > 0 ? (
                     <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 mb-2">
                       <div className="flex items-center gap-2 text-blue-800">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="font-semibold">Quantité recommandée par l'IA: {recommendedQuantity} unités</span>
-                      </div>
-                      <div className="text-xs text-blue-600 mt-1">
-                        ⚠️ Vous devez commander au minimum cette quantité
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Calculating AI-recommended quantity...</span>
                       </div>
                     </div>
-                  ) : null}
+                  ) : recommendedQuantity > 0 ? (
+                    <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300 mb-2">
+                      <div className="flex items-center gap-2 text-blue-900 mb-1">
+                        <Brain className="h-5 w-5 text-blue-600" />
+                        <span className="font-bold text-lg">AI recommends: {recommendedQuantity} units</span>
+                      </div>
+                      <div className="text-xs text-blue-700 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Minimum quantity calculated based on consumption and safety stock
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-200 mb-2">
+                      <div className="text-xs text-gray-600">
+                        ℹ️ No AI recommendation available - Enter quantity manually
+                      </div>
+                    </div>
+                  )}
                   <Input
                     type="number"
                     min={minQuantity}
@@ -350,7 +384,7 @@ export default function CreateOrderDialog({
                   {quantity < recommendedQuantity && recommendedQuantity > 0 && (
                     <div className="text-xs text-red-600 flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
-                      Quantité insuffisante! Minimum: {recommendedQuantity} unités
+                      Insufficient quantity! Minimum: {recommendedQuantity} units
                     </div>
                   )}
                 </div>
@@ -358,18 +392,18 @@ export default function CreateOrderDialog({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</div>
-                    <Label className="font-semibold">Sélectionner un fournisseur</Label>
+                    <Label className="font-semibold">Select a supplier</Label>
                   </div>
                   <p className="text-xs text-gray-500">
                     <Navigation className="h-3 w-3 inline mr-1" />
-                    Trié par proximité géographique
+                    Sorted by geographic proximity
                   </p>
 
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {recommendedSuppliers.length === 0 ? (
                       <div className="p-4 bg-yellow-50 rounded-lg text-center text-yellow-700">
                         <AlertTriangle className="h-4 w-4 inline mr-2" />
-                        Aucun fournisseur trouvé
+                        No suppliers found
                       </div>
                     ) : (
                       recommendedSuppliers.map((fournisseur, index) => (
@@ -390,7 +424,7 @@ export default function CreateOrderDialog({
                                   {index === 0 && fournisseur.hasCoordinates && (
                                     <Badge className="bg-green-500 text-white text-xs">
                                       <Star className="h-3 w-3 mr-1" />
-                                      Plus proche
+                                      Closest
                                     </Badge>
                                   )}
                                   {fournisseur.categories && fournisseur.categories.slice(0, 2).map((cat) => (
@@ -415,7 +449,7 @@ export default function CreateOrderDialog({
                                   </>
                                 ) : (
                                   <Badge variant="outline" className="text-orange-500 text-xs">
-                                    Sans GPS
+                                    No GPS
                                   </Badge>
                                 )}
                               </div>
@@ -423,7 +457,7 @@ export default function CreateOrderDialog({
                             {selectedSupplier?._id === fournisseur._id && (
                               <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-1 text-blue-600 text-sm">
                                 <CheckCircle className="h-4 w-4" />
-                                Fournisseur sélectionné
+                                Supplier selected
                               </div>
                             )}
                           </CardContent>
@@ -435,22 +469,22 @@ export default function CreateOrderDialog({
 
                 {selectedSupplier && currentSite && (
                   <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                    <div className="font-semibold text-green-800 mb-2">📋 Récapitulatif</div>
+                    <div className="font-semibold text-green-800 mb-2">📋 Summary</div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="text-gray-600">🏭 Fournisseur:</div>
+                      <div className="text-gray-600">🏭 Supplier:</div>
                       <div className="font-medium text-gray-800">{selectedSupplier.nom}</div>
-                      <div className="text-gray-600">🏗️ Chantier:</div>
+                      <div className="text-gray-600">🏗️ Site:</div>
                       <div className="font-medium text-gray-800">{currentSite.nom}</div>
                       {selectedSupplier.hasCoordinates && (
                         <>
                           <div className="text-gray-600">📏 Distance:</div>
                           <div className="font-medium text-gray-800">{formatDistance(recommendedSuppliers.find(f => f._id === selectedSupplier._id)?.distance || 0)}</div>
-                          <div className="text-gray-600">⏱️ Durée estimée:</div>
+                          <div className="text-gray-600">⏱️ Estimated time:</div>
                           <div className="font-medium text-gray-800">{recommendedSuppliers.find(f => f._id === selectedSupplier._id)?.estimatedTime || 60} minutes</div>
                         </>
                       )}
-                      <div className="text-gray-600">📦 Quantité:</div>
-                      <div className="font-medium text-gray-800">{quantity} {materialCategory === 'ciment' ? 'sacs' : 'unités'}</div>
+                      <div className="text-gray-600">📦 Quantity:</div>
+                      <div className="font-medium text-gray-800">{quantity} {materialCategory === 'ciment' ? 'bags' : 'units'}</div>
                     </div>
                   </div>
                 )}
@@ -460,7 +494,7 @@ export default function CreateOrderDialog({
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={onClose}>
-              Annuler
+              Cancel
             </Button>
             <Button 
               onClick={handleCreateOrder} 
@@ -470,12 +504,12 @@ export default function CreateOrderDialog({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                  Création...
+                  Creating...
                 </>
               ) : (
                 <>
                   <Truck className="h-4 w-4 mr-2" />
-                  Créer la commande
+                  Create order
                 </>
               )}
             </Button>
@@ -489,8 +523,8 @@ export default function CreateOrderDialog({
           onClose={handleCloseAll}
           orderId={createdOrderId}
           materialName={materialName}
-          supplierName={selectedSupplier?.nom || "Fournisseur"}
-          siteName={currentSite?.nom || "Chantier"}
+          supplierName={selectedSupplier?.nom || "Supplier"}
+          siteName={currentSite?.nom || "Site"}
           supplierCoordinates={selectedSupplier?.coordinates}
           siteCoordinates={currentSite?.coordinates}
           currentUser={currentUser}

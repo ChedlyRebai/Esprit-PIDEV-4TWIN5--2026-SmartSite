@@ -40,20 +40,39 @@ export class OrdersService {
   ): Promise<MaterialOrder> {
     this.logger.log('=== DEBUT createOrder ===');
     this.logger.log('Input:', JSON.stringify(createOrderDto));
+    this.logger.log('📊 Validation des IDs...');
+    this.logger.log(`  - materialId: "${createOrderDto.materialId}" (length: ${createOrderDto.materialId?.length})`);
+    this.logger.log(`  - destinationSiteId: "${createOrderDto.destinationSiteId}" (length: ${createOrderDto.destinationSiteId?.length})`);
+    this.logger.log(`  - supplierId: "${createOrderDto.supplierId}" (length: ${createOrderDto.supplierId?.length})`);
+    this.logger.log(`  - quantity: ${createOrderDto.quantity} (type: ${typeof createOrderDto.quantity})`);
+    this.logger.log(`  - estimatedDurationMinutes: ${createOrderDto.estimatedDurationMinutes} (type: ${typeof createOrderDto.estimatedDurationMinutes})`);
 
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const createObjectId = (id: string, fieldName: string): Types.ObjectId => {
-      if (
-        !id ||
-        typeof id !== 'string' ||
-        id.length !== 24 ||
-        !/^[0-9a-fA-F]{24}$/.test(id)
-      ) {
-        throw new Error(
-          `Invalid ${fieldName}: "${id}" (length: ${id?.length})`,
-        );
+      this.logger.log(`🔍 Validating ${fieldName}: "${id}"`);
+      
+      if (!id) {
+        this.logger.error(`❌ ${fieldName} is null or undefined`);
+        throw new BadRequestException(`${fieldName} est requis`);
       }
+      
+      if (typeof id !== 'string') {
+        this.logger.error(`❌ ${fieldName} is not a string: ${typeof id}`);
+        throw new BadRequestException(`${fieldName} doit être une chaîne de caractères`);
+      }
+      
+      if (id.length !== 24) {
+        this.logger.error(`❌ ${fieldName} length is ${id.length}, expected 24`);
+        throw new BadRequestException(`${fieldName} doit avoir 24 caractères (reçu: ${id.length})`);
+      }
+      
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        this.logger.error(`❌ ${fieldName} is not a valid hex string: "${id}"`);
+        throw new BadRequestException(`${fieldName} doit être un ObjectId MongoDB valide`);
+      }
+      
+      this.logger.log(`✅ ${fieldName} is valid`);
       return new Types.ObjectId(id);
     };
 
@@ -70,7 +89,7 @@ export class OrdersService {
       'supplierId',
     );
 
-    this.logger.log('IDs validated, fetching external data...');
+    this.logger.log('✅ All IDs validated, fetching external data...');
 
     // Récupérer les données du matériau pour validation
     let materialData: any;
@@ -84,7 +103,7 @@ export class OrdersService {
     // Récupérer la prédiction IA pour valider la quantité
     try {
       const predictionResponse = await this.httpService.axiosRef.get(
-        `http://localhost:3002/api/materials/${createOrderDto.materialId}/prediction`,
+        `http://localhost:3009/api/materials/${createOrderDto.materialId}/prediction`,
       );
 
       if (predictionResponse.data?.recommendedOrderQuantity) {
@@ -819,7 +838,7 @@ export class OrdersService {
   private async getMaterialUnitPrice(materialId: string): Promise<number> {
     try {
       const response = await this.httpService.axiosRef.get(
-        `http://localhost:3002/api/materials/${materialId}`,
+        `http://localhost:3009/api/materials/${materialId}`,
       );
       return response.data?.unitPrice || response.data?.price || 100;
     } catch (error) {
@@ -886,12 +905,15 @@ export class OrdersService {
 
   private async getMaterialData(materialId: string): Promise<any> {
     try {
+      this.logger.log(`🔍 Récupération matériau ${materialId} depuis l'API interne...`);
       const response = await this.httpService.axiosRef.get(
-        `http://localhost:3002/api/materials/${materialId}`,
+        `http://localhost:3009/api/materials/${materialId}`,
       );
+      this.logger.log(`✅ Matériau trouvé: ${response.data?.name} (code: ${response.data?.code})`);
       return response.data;
     } catch (error) {
-      this.logger.error(`❌ Erreur récupération matériau: ${error.message}`);
+      this.logger.error(`❌ Erreur récupération matériau ${materialId}: ${error.message}`);
+      this.logger.error(`❌ Status: ${error.response?.status}, Data: ${JSON.stringify(error.response?.data)}`);
       throw error;
     }
   }
