@@ -32,7 +32,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh 'npm test -- --run --coverage'
+                    sh 'npm test -- --coverage'
                     echo "✅ Tests unitaires terminés"
                 }
             }
