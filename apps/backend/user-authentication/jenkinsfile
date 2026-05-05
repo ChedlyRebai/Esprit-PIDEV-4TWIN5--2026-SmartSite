@@ -99,8 +99,12 @@ pipeline {
         stage('BUILD DOCKER IMAGE') {
             steps {
                 script {
-                    def imageTag = "${USER_AUTH_IMAGE}:${env.GIT_COMMIT_SHORT}"
-                    sh "docker build -t ${DOCKER_USERNAME}/${imageTag} ."
+                    def imageTag = "${USER_AUTH_IMAGE}:latest"
+                    dir('apps/backend/user-authentication') {
+                        sh "docker build -t ${imageTag} ."
+                    }
+                    u
+                    sh "docker build -t ${imageTag} ."
                     echo " Docker image built: ${imageTag}"
                 }
             }
@@ -114,7 +118,7 @@ pipeline {
                       url: 'https://index.docker.io/v1/'
                   ]) {
                         sh 'echo docker login successful'
-                        sh " docker push ${DOCKER_USERNAME}/${USER_AUTH_IMAGE}:latest"
+                        sh " docker push ${USER_AUTH_IMAGE}:latest"
                   }
                 }
             }

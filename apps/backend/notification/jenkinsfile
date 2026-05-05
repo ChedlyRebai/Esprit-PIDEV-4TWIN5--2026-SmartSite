@@ -89,20 +89,19 @@ pipeline {
             }
         }
 
-
         stage('BUILD DOCKER IMAGE') {
-    steps {
-        script {
-            def imageTag = "${NOTIFICATION_IMAGE}:latest"
+            steps {
+                script {
+                    def imageTag = "${NOTIFICATION_IMAGE}:latest"
 
-            dir('apps/backend/notification') {
-                sh "docker build -t ${imageTag} ."
+                    dir('apps/backend/notification') {
+                        sh "docker build -t ${imageTag} ."
+                    }
+
+                    echo "Docker image built: ${imageTag}"
+                }
             }
-
-            echo "Docker image built: ${imageTag}"
         }
-    }
-}
 
         stage('Push docker image') {
             steps {
