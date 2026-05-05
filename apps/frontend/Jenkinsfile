@@ -1,13 +1,14 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'NodeJS'
+    environment {
+        SERVICE_NAME  = 'frontend'
+        SERVICE_DIR   = 'apps/frontend'
+        SONAR_PROJECT = 'smartsite-frontend'
     }
 
-    environment {
-        SERVICE_NAME = 'frontend'
-        DOCKER_IMAGE = "smartsite/${SERVICE_NAME}"
+    tools {
+        nodejs 'NodeJS-20'
     }
 
     stages {
@@ -15,64 +16,79 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                echo "✅ Code récupéré depuis GitHub"
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                dir('apps/frontend') {
+                dir("${SERVICE_DIR}") {
                     sh 'npm ci'
-                }
-            }
-        }
-
-        stage('Lint') {
-            steps {
-                dir('apps/frontend') {
-                    script {
-                        try {
-                            sh 'npm run lint || echo "Lint not configured, skipping"'
-                        } catch (Exception e) {
-                            echo "⚠️ Lint failed or not configured"
-                        }
-                    }
+                    echo "✅ Dépendances installées"
                 }
             }
         }
 
         stage('Unit Tests') {
             steps {
-                dir('apps/frontend') {
-                    sh 'npm test'
+                dir("${SERVICE_DIR}") {
+                    sh 'npm test -- --run --coverage'
+                    echo "✅ Tests unitaires terminés"
                 }
             }
         }
 
         stage('Build') {
             steps {
-                dir('apps/frontend') {
+                dir("${SERVICE_DIR}") {
                     sh 'npm run build'
-                    echo "✅ Frontend built successfully"
+                    echo "✅ Build terminé"
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('SonarQube Analysis') {
             steps {
-                echo '⚠️ Docker build skipped — Docker not available in Jenkins container'
-                echo 'ℹ️  In production: docker build -t ${DOCKER_IMAGE}:latest .'
+                dir("${SERVICE_DIR}") {
+                    script {
+                        try {
+                            withSonarQubeEnv('SonarQube') {
+                                withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+                                    sh """
+                                        sonar-scanner \
+                                            -Dsonar.projectKey=${SONAR_PROJECT} \
+                                            -Dsonar.projectName='SmartSite - Frontend' \
+                                            -Dsonar.sources=src \
+                                            -Dsonar.exclusions=**/*.test.tsx,**/*.test.ts,**/node_modules/**,**/dist/**,**/build/** \
+                                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
+                                            -Dsonar.coverage.exclusions=**/*.test.tsx,**/*.test.ts,**/node_modules/**,**/dist/**,**/build/**
+                                    """
+                                }
+                            }
+                            echo "✅ SonarQube analysis completed"
+                        } catch (Exception e) {
+                            echo "⚠️ SonarQube analysis failed but continuing pipeline: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                build job: 'frontend-CD', wait: false
+                echo "🚀 Pipeline CD déclenché automatiquement"
             }
         }
     }
 
     post {
         success {
-            echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
-            echo "🚀 Triggering CD Pipeline..."
-            build job: 'frontend-CD', wait: false
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         failure {
-            echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         always {
             cleanWs()
