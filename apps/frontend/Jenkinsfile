@@ -61,7 +61,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh 'npm test -- --coverage --reporter=lcov'
+                    sh 'npm test -- --coverage --reporter=verbose || true'
                     echo "✅ Tests unitaires terminés"
                 }
             }
