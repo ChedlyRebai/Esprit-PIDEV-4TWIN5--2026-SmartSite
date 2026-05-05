@@ -137,17 +137,25 @@ export default function Sites() {
 
   useEffect(() => {
     if (isProjectContext && currentProjectId) {
-      const projectsUrl = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim() ?? 'http://localhost:9001/projects';
-      axios.get(`${projectsUrl}/projects/${currentProjectId}`)
+      // VITE_GESTION_PROJECTS_URL already ends with /projects (via gateway)
+      // so we just append /:id — avoid double /projects/projects
+      const raw = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim()
+        ?? 'http://localhost:9001/projects';
+      // Strip trailing slash then append the project id
+      const projectUrl = `${raw.replace(/\/$/, '')}/${currentProjectId}`;
+      axios.get(projectUrl)
         .then(res => {
-          if (res.data?.siteCount !== undefined) {
-            setProjectSiteLimit(res.data.siteCount);
+          const data = res.data;
+          // siteCount = max number of sites allowed for this project
+          if (data?.siteCount !== undefined && data.siteCount !== null) {
+            setProjectSiteLimit(Number(data.siteCount));
           }
-          if (res.data?.budget !== undefined) {
-            setProjectBudget(res.data.budget);
+          // budget = total project budget
+          if (data?.budget !== undefined && data.budget !== null) {
+            setProjectBudget(Number(data.budget));
           }
         })
-        .catch(err => console.error('Error fetching project:', err));
+        .catch(err => console.error('Error fetching project limits:', err));
     }
   }, [isProjectContext, currentProjectId]);
 
@@ -1076,6 +1084,39 @@ export default function Sites() {
           Back to Projects
         </Button>
       )}
+      {/* Site limit banner */}
+      {isProjectContext && isLimitReached && (
+        <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-orange-500" />
+          <div>
+            <span className="font-semibold">Site limit reached — </span>
+            This project is limited to <span className="font-semibold">{projectSiteLimit} site{projectSiteLimit !== 1 ? 's' : ''}</span>.
+            You already have {currentSiteCount} site{currentSiteCount !== 1 ? 's' : ''} created.
+            To add a new site, update the limit in the project settings.
+          </div>
+        </div>
+      )}
+
+      {/* Budget info banner */}
+      {isProjectContext && projectBudget !== null && !isLimitReached && (() => {
+        const used = sites.filter(s => s.projectId === currentProjectId).reduce((sum, s) => sum + (s.budget || 0), 0);
+        const remaining = projectBudget - used;
+        const pct = projectBudget > 0 ? Math.round((used / projectBudget) * 100) : 0;
+        if (pct < 80) return null; // only show when >= 80% used
+        return (
+          <div className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${pct >= 100 ? 'border-red-200 bg-red-50 text-red-800' : 'border-yellow-200 bg-yellow-50 text-yellow-800'}`}>
+            <AlertCircle className={`h-4 w-4 mt-0.5 shrink-0 ${pct >= 100 ? 'text-red-500' : 'text-yellow-500'}`} />
+            <div>
+              <span className="font-semibold">{pct >= 100 ? 'Budget exceeded — ' : 'Budget warning — '}</span>
+              {pct >= 100
+                ? `Sites budget (${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(used)}) exceeds project budget (${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(projectBudget)}).`
+                : `${pct}% of project budget used. Remaining: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining)}.`
+              }
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
