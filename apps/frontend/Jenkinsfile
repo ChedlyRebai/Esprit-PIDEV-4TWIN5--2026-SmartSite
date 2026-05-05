@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        timeout(time: 40, unit: 'MINUTES')
+    }
+
     tools {
         nodejs 'NodeJS'
     }
@@ -16,7 +20,17 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, shallow: true, timeout: 30],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                            [$class: 'SparseCheckoutPath', path: 'apps/frontend/']
+                        ]]
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
                 echo "✅ Code récupéré depuis GitHub"
             }
         }
@@ -92,15 +106,21 @@ pipeline {
 
     post {
         success {
-            echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "✅ CI Pipeline passed for frontend — build #${BUILD_NUMBER}"
             echo "🚀 Triggering CD Pipeline..."
             build job: 'frontend-CD', wait: false
         }
         failure {
-            echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "❌ CI Pipeline failed for frontend — build #${BUILD_NUMBER}"
         }
         always {
-            cleanWs()
+            script {
+                try {
+                    cleanWs()
+                } catch (Exception e) {
+                    echo "⚠️ cleanWs skipped: ${e.message}"
+                }
+            }
         }
     }
 }
