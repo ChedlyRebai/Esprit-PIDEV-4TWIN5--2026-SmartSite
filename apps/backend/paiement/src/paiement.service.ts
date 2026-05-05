@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { randomBytes } from 'crypto';
 import { Payment } from './entities/payment.entity';
 import { CreatePaymentDto, UpdatePaymentDto } from './dto';
 
@@ -16,8 +17,58 @@ export class PaiementService {
 
   private generateReference(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const random = randomBytes(3).toString('hex').toUpperCase();
     return `PAY-${timestamp}-${random}`;
+  }
+
+  private validateAndParseDate(dateStr: string): Date {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid paymentDate format');
+    }
+    if (date > new Date()) {
+      throw new BadRequestException('paymentDate cannot be in the future');
+    }
+    return date;
+  }
+
+  private normalizeStatus(status: string): string {
+    return status === 'paid' ? 'completed' : status;
+  }
+
+  private buildUpdateData(updatePaymentDto: UpdatePaymentDto, userId?: string): any {
+    const updateData: any = {};
+
+    if (updatePaymentDto.reference !== undefined) {
+      updateData.reference = this.sanitizeInput(updatePaymentDto.reference);
+    }
+    if (updatePaymentDto.amount !== undefined) {
+      updateData.amount = Math.round(updatePaymentDto.amount * 100) / 100;
+    }
+    if (updatePaymentDto.paymentMethod !== undefined) {
+      updateData.paymentMethod = this.sanitizeInput(updatePaymentDto.paymentMethod);
+    }
+    if (updatePaymentDto.description !== undefined) {
+      updateData.description = this.sanitizeInput(updatePaymentDto.description);
+    }
+    if (updatePaymentDto.paymentDate !== undefined) {
+      updateData.paymentDate = this.validateAndParseDate(updatePaymentDto.paymentDate);
+    }
+    if (updatePaymentDto.status !== undefined) {
+      updateData.status = this.normalizeStatus(updatePaymentDto.status);
+    }
+    if (updatePaymentDto.siteId) {
+      if (!Types.ObjectId.isValid(updatePaymentDto.siteId)) {
+        throw new BadRequestException('Invalid siteId format. Must be a valid MongoDB ObjectId');
+      }
+      updateData.siteId = new Types.ObjectId(updatePaymentDto.siteId);
+    }
+
+    updateData.updatedBy = userId && Types.ObjectId.isValid(userId)
+      ? new Types.ObjectId(userId)
+      : null;
+
+    return updateData;
   }
 
   async create(createPaymentDto: CreatePaymentDto, userId?: string): Promise<Payment> {
@@ -25,29 +76,18 @@ export class PaiementService {
       throw new BadRequestException('Invalid siteId format. Must be a valid MongoDB ObjectId');
     }
 
-    const reference = createPaymentDto.reference 
-      ? this.sanitizeInput(createPaymentDto.reference) 
+    const reference = createPaymentDto.reference
+      ? this.sanitizeInput(createPaymentDto.reference)
       : this.generateReference();
 
-    const paymentDate = createPaymentDto.paymentDate 
-      ? new Date(createPaymentDto.paymentDate) 
+    const paymentDate = createPaymentDto.paymentDate
+      ? this.validateAndParseDate(createPaymentDto.paymentDate)
       : new Date();
 
-    if (isNaN(paymentDate.getTime())) {
-      throw new BadRequestException('Invalid paymentDate format');
-    }
+    const status = this.normalizeStatus(createPaymentDto.status || 'pending');
 
-    if (paymentDate > new Date()) {
-      throw new BadRequestException('paymentDate cannot be in the future');
-    }
-
-    let status = createPaymentDto.status || 'pending';
-    if (status === 'paid') {
-      status = 'completed';
-    }
-
-    const description = createPaymentDto.description 
-      ? this.sanitizeInput(createPaymentDto.description) 
+    const description = createPaymentDto.description
+      ? this.sanitizeInput(createPaymentDto.description)
       : undefined;
 
     const createdPayment = new this.paymentModel({
@@ -101,52 +141,7 @@ export class PaiementService {
       throw new BadRequestException('Invalid payment ID format');
     }
 
-    const updateData: any = {};
-
-    if (updatePaymentDto.reference !== undefined) {
-      updateData.reference = this.sanitizeInput(updatePaymentDto.reference);
-    }
-
-    if (updatePaymentDto.amount !== undefined) {
-      updateData.amount = Math.round(updatePaymentDto.amount * 100) / 100;
-    }
-
-    if (updatePaymentDto.paymentMethod !== undefined) {
-      updateData.paymentMethod = this.sanitizeInput(updatePaymentDto.paymentMethod);
-    }
-
-    if (updatePaymentDto.description !== undefined) {
-      updateData.description = this.sanitizeInput(updatePaymentDto.description);
-    }
-
-    if (updatePaymentDto.paymentDate !== undefined) {
-      const paymentDate = new Date(updatePaymentDto.paymentDate);
-      if (isNaN(paymentDate.getTime())) {
-        throw new BadRequestException('Invalid paymentDate format');
-      }
-      if (paymentDate > new Date()) {
-        throw new BadRequestException('paymentDate cannot be in the future');
-      }
-      updateData.paymentDate = paymentDate;
-    }
-
-    if (updatePaymentDto.status !== undefined) {
-      if (updatePaymentDto.status === 'paid') {
-        updateData.status = 'completed';
-      } else {
-        updateData.status = updatePaymentDto.status;
-      }
-    }
-
-    updateData.updatedBy = userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null;
-
-    if (updatePaymentDto.siteId && !Types.ObjectId.isValid(updatePaymentDto.siteId)) {
-      throw new BadRequestException('Invalid siteId format. Must be a valid MongoDB ObjectId');
-    }
-
-    if (updatePaymentDto.siteId) {
-      updateData.siteId = new Types.ObjectId(updatePaymentDto.siteId);
-    }
+    const updateData = this.buildUpdateData(updatePaymentDto, userId);
 
     const payment = await this.paymentModel.findByIdAndUpdate(
       id,
@@ -167,16 +162,12 @@ export class PaiementService {
     }
 
     const result = await this.paymentModel.findByIdAndDelete(id);
-    
+
     if (!result) {
       throw new NotFoundException(`Payment with ID ${id} not found`);
     }
   }
 
-  /**
-   * Returns payment status for a site including total paid amount.
-   * Used to prevent double-charging and show remaining budget.
-   */
   async getPaymentStatus(siteId: string, siteBudget: number = 0): Promise<{
     hasPaid: boolean;
     totalPaid: number;

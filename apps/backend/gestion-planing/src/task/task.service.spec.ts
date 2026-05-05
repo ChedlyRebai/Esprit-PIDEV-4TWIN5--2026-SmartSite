@@ -138,4 +138,685 @@ describe('TaskService', () => {
     );
     expect(result).toBe(createdTask);
   });
+
+  describe('findAll', () => {
+    it('should return all tasks', async () => {
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Task 1',
+          priority: TaskPriorityEnum.HIGH,
+        },
+        {
+          _id: new Types.ObjectId(),
+          title: 'Task 2',
+          priority: TaskPriorityEnum.LOW,
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      const result = await service.findAll();
+
+      expect(taskModel.find).toHaveBeenCalled();
+      expect(result).toEqual(mockTasks);
+    });
+
+    it('should throw error on failure', async () => {
+      taskModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('DB error')),
+      });
+
+      await expect(service.findAll()).rejects.toThrow(
+        'Error fetching tasks: DB error',
+      );
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a single task', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const mockTask = {
+        _id: taskId,
+        title: 'Single Task',
+        priority: TaskPriorityEnum.MEDIUM,
+      };
+
+      taskModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTask),
+      });
+
+      const result = await service.findOne(taskId);
+
+      expect(taskModel.findById).toHaveBeenCalledWith(taskId);
+      expect(result).toEqual(mockTask);
+    });
+
+    it('should throw error when task not found', async () => {
+      taskModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Not found')),
+      });
+
+      await expect(service.findOne('invalid-id')).rejects.toThrow(
+        'Error fetching task: Not found',
+      );
+    });
+  });
+
+  describe('findUrgentForDashboard', () => {
+    it('should return urgent or soon-ending tasks', async () => {
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Critical Task',
+          priority: 'CRITICAL',
+          endDate: new Date(),
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      const result = await service.findUrgentForDashboard();
+
+      expect(taskModel.find).toHaveBeenCalled();
+      expect(result).toEqual(mockTasks);
+    });
+  });
+
+  describe('update', () => {
+    it('should update a task', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const updateDto: UpdateTaskDto = {
+        title: 'Updated Task',
+        priority: TaskPriorityEnum.LOW,
+      };
+
+      const updatedTask = {
+        _id: taskId,
+        ...updateDto,
+      };
+
+      taskModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(updatedTask),
+      });
+
+      const result = await service.update(taskId, updateDto);
+
+      expect(taskModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        taskId,
+        updateDto,
+        { new: true },
+      );
+      expect(result).toEqual(updatedTask);
+    });
+
+    it('should normalize assigned teams when updating', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const updateDto = {
+        title: 'Task',
+        assignedTeams: [' team-a ', 'team-b'],
+      };
+
+      taskModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest
+          .fn()
+          .mockResolvedValue({ _id: taskId, ...updateDto }),
+      });
+
+      await service.update(taskId, updateDto);
+
+      expect(taskModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        taskId,
+        expect.objectContaining({
+          assignedTeams: ['team-a', 'team-b'],
+        }),
+        { new: true },
+      );
+    });
+
+    it('should throw error when task not found', async () => {
+      taskModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.update('invalid-id', { title: 'Updated' }),
+      ).rejects.toThrow('Error updating task: Task with id invalid-id not found');
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete a task', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const taskStageId = new Types.ObjectId().toString();
+
+      const deletedTask = {
+        _id: taskId,
+        title: 'Task to delete',
+        status: taskStageId,
+      };
+
+      taskModel.findByIdAndDelete = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(deletedTask),
+      });
+
+      taskStageModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ acknowledged: true }),
+      });
+
+      const result = await service.remove(taskId);
+
+      expect(taskModel.findByIdAndDelete).toHaveBeenCalledWith(taskId);
+      expect(taskStageModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        taskStageId,
+        { $pull: { tasks: taskId } },
+      );
+      expect(result).toEqual(deletedTask);
+    });
+
+    it('should throw error when task not found', async () => {
+      taskModel.findByIdAndDelete = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(service.remove('invalid-id')).rejects.toThrow(
+        'Error removing task: Task with id invalid-id not found',
+      );
+    });
+  });
+
+  describe('getMyTask', () => {
+    it('should return empty array when userId is empty', async () => {
+      const result = await service.getMyTask('');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return tasks assigned to user', async () => {
+      const userId = 'user-123';
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'User Task 1',
+          assignedTeams: [userId],
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      const result = await service.getMyTask(userId);
+
+      expect(taskModel.find).toHaveBeenCalled();
+      expect(result).toEqual(mockTasks);
+    });
+  });
+
+  describe('getTaskByTeamid', () => {
+    it('should return tasks for a team', async () => {
+      const teamId = 'team-123';
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Team Task',
+          assignedTeams: [teamId],
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      const result = await service.getTaskByTeamid(teamId);
+
+      expect(taskModel.find).toHaveBeenCalled();
+      expect(result).toEqual(mockTasks);
+    });
+
+    it('should throw error on failure', async () => {
+      taskModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('DB error')),
+      });
+
+      await expect(service.getTaskByTeamid('team-123')).rejects.toThrow(
+        'Error fetching tasks for team team-123: DB error',
+      );
+    });
+  });
+
+  describe('getTasksForGantt', () => {
+    it('should return tasks formatted for Gantt', async () => {
+      const projectId = 'project-123';
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Gantt Task',
+          projectId,
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2024-01-31'),
+          progress: 50,
+          priority: 'HIGH',
+          type: 'task',
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      const result = await service.getTasksForGantt(projectId);
+
+      expect(taskModel.find).toHaveBeenCalledWith({ projectId });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveProperty('id');
+      expect(result[0]).toHaveProperty('text', 'Gantt Task');
+      expect(result[0]).toHaveProperty('progress', 50);
+    });
+
+    it('should throw error on failure', async () => {
+      taskModel.find = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockRejectedValue(new Error('DB error')),
+      });
+
+      await expect(service.getTasksForGantt('project-123')).rejects.toThrow(
+        'Error fetching tasks for Gantt: DB error',
+      );
+    });
+  });
+
+  describe('updateTaskDates', () => {
+    it('should update task dates', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-01-31');
+
+      const updatedTask = {
+        _id: taskId,
+        title: 'Task',
+        startDate,
+        endDate,
+      };
+
+      taskModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(updatedTask),
+      });
+
+      const result = await service.updateTaskDates(
+        taskId,
+        startDate,
+        endDate,
+      );
+
+      expect(taskModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        taskId,
+        { startDate, endDate },
+        { new: true },
+      );
+      expect(result).toEqual(updatedTask);
+    });
+
+    it('should throw error when task not found', async () => {
+      taskModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.updateTaskDates(
+          'invalid-id',
+          new Date(),
+          new Date(),
+        ),
+      ).rejects.toThrow('Error updating task dates: Task with id invalid-id not found');
+    });
+  });
+
+  describe('updateNew', () => {
+    it('should move task to a new stage', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const newStageId = new Types.ObjectId().toString();
+      const oldStageId = new Types.ObjectId().toString();
+
+      const task = {
+        _id: taskId,
+        title: 'Task',
+        status: oldStageId,
+      };
+
+      taskModel.findByIdAndUpdate = jest.fn().mockResolvedValue(task);
+
+      taskStageModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ acknowledged: true }),
+      });
+
+      const result = await service.updateNew(taskId, newStageId);
+
+      expect(taskModel.findByIdAndUpdate).toHaveBeenCalled();
+      expect(taskStageModel.findByIdAndUpdate).toHaveBeenCalledTimes(2);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('getMyTasks', () => {
+    it('should return empty array when userId is empty', async () => {
+      const result = await service.getMyTasks('');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should group tasks by status stage', async () => {
+      const userId = 'user-123';
+      const stageId = new Types.ObjectId().toString();
+
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Task 1',
+          status: stageId,
+          assignedTeams: [userId],
+        },
+        {
+          _id: new Types.ObjectId(),
+          title: 'Task 2',
+          status: stageId,
+          assignedTeams: [userId],
+        },
+      ];
+
+      const mockStages = [
+        {
+          _id: stageId,
+          name: 'To Do',
+          color: '#FF0000',
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      taskStageModel.find = jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockStages),
+      });
+
+      const result = await service.getMyTasks(userId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveProperty('id', stageId);
+      expect(result[0]).toHaveProperty('title', 'To Do');
+      expect(result[0].tasks).toHaveLength(2);
+    });
+
+    it('should handle tasks with no status', async () => {
+      const userId = 'user-123';
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Task without status',
+          status: null,
+          assignedTeams: [userId],
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      taskStageModel.find = jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await service.getMyTasks(userId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('no-status');
+    });
+
+    it('should throw error on database failure', async () => {
+      taskModel.find = jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockRejectedValue(new Error('DB error')),
+      });
+
+      await expect(service.getMyTasks('user-123')).rejects.toThrow(
+        'Error fetching tasks for user: DB error',
+      );
+    });
+  });
+
+  describe('getTasksBYMilestoneId', () => {
+    it('should return tasks grouped by status', async () => {
+      const milestoneId = new Types.ObjectId().toString();
+
+      const mockResult = [
+        {
+          title: 'status-1',
+          tasks: [
+            { _id: new Types.ObjectId(), title: 'Task 1' },
+          ],
+        },
+      ];
+
+      taskModel.aggregate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult),
+      });
+
+      const result = await service.getTasksBYMilestoneId(milestoneId);
+
+      expect(taskModel.aggregate).toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveProperty('id', 'status-1');
+      expect(result[0]).toHaveProperty('title', 'status-1');
+    });
+
+    it('should throw error on failure', async () => {
+      taskModel.aggregate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Aggregation error')),
+      });
+
+      await expect(
+        service.getTasksBYMilestoneId('milestone-123'),
+      ).rejects.toThrow('Error fetching tasks by milestone id: Aggregation error');
+    });
+  });
+
+  describe('getTAsksByTeamId', () => {
+    it('should return tasks for team', async () => {
+      const teamId = 'team-123';
+      const mockTasks = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Team Task',
+          assignedTeams: [teamId],
+        },
+      ];
+
+      taskModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTasks),
+      });
+
+      const result = await service.getTAsksByTeamId(teamId);
+
+      expect(taskModel.find).toHaveBeenCalledWith({
+        assignedTeams: { $in: [teamId] },
+      });
+      expect(result).toEqual(mockTasks);
+    });
+  });
+
+  describe('normalizeAssignedTeams', () => {
+    it('should normalize array with whitespace', async () => {
+      const createTaskDto: CreateTaskDto = {
+        title: 'Test Task',
+        assignedTeams: [' team-1 ', 'team-2', '  team-3  '],
+      };
+
+      const milestoneId = new Types.ObjectId().toString();
+      const taskStageId = new Types.ObjectId().toString();
+      const taskId = new Types.ObjectId();
+
+      const milestoneDocument = {
+        tasks: [] as Types.ObjectId[],
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      milestoneModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(milestoneDocument),
+      });
+
+      taskModel.create.mockResolvedValue({
+        _id: taskId,
+        ...createTaskDto,
+      });
+
+      taskStageModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ acknowledged: true }),
+      });
+
+      notificationClient.emit.mockReturnValue(of(undefined));
+
+      await service.create(createTaskDto, milestoneId, taskStageId);
+
+      expect(taskModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assignedTeams: ['team-1', 'team-2', 'team-3'],
+        }),
+      );
+    });
+
+    it('should handle string payload with brackets', async () => {
+      const createTaskDto: CreateTaskDto = {
+        title: 'Test Task',
+        assignedTeams: "[ [ '507f1f77bcf86cd799439011' ] ]" as any,
+      };
+
+      const milestoneId = new Types.ObjectId().toString();
+      const taskStageId = new Types.ObjectId().toString();
+      const taskId = new Types.ObjectId();
+
+      const milestoneDocument = {
+        tasks: [] as Types.ObjectId[],
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      milestoneModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(milestoneDocument),
+      });
+
+      taskModel.create.mockResolvedValue({
+        _id: taskId,
+        ...createTaskDto,
+      });
+
+      taskStageModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ acknowledged: true }),
+      });
+
+      notificationClient.emit.mockReturnValue(of(undefined));
+
+      await service.create(createTaskDto, milestoneId, taskStageId);
+
+      expect(taskModel.create).toHaveBeenCalled();
+    });
+
+    it('should handle null assigned teams', async () => {
+      const createTaskDto: CreateTaskDto = {
+        title: 'Test Task',
+        assignedTeams: null as any,
+      };
+
+      const milestoneId = new Types.ObjectId().toString();
+      const taskStageId = new Types.ObjectId().toString();
+      const taskId = new Types.ObjectId();
+
+      const milestoneDocument = {
+        tasks: [] as Types.ObjectId[],
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      milestoneModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(milestoneDocument),
+      });
+
+      taskModel.create.mockResolvedValue({
+        _id: taskId,
+        ...createTaskDto,
+      });
+
+      taskStageModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ acknowledged: true }),
+      });
+
+      notificationClient.emit.mockReturnValue(of(undefined));
+
+      await service.create(createTaskDto, milestoneId, taskStageId);
+
+      expect(taskModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assignedTeams: [],
+        }),
+      );
+    });
+
+    it('should handle empty string', async () => {
+      const createTaskDto: CreateTaskDto = {
+        title: 'Test Task',
+        assignedTeams: '' as any,
+      };
+
+      const milestoneId = new Types.ObjectId().toString();
+      const taskStageId = new Types.ObjectId().toString();
+      const taskId = new Types.ObjectId();
+
+      const milestoneDocument = {
+        tasks: [] as Types.ObjectId[],
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      milestoneModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(milestoneDocument),
+      });
+
+      taskModel.create.mockResolvedValue({
+        _id: taskId,
+        ...createTaskDto,
+      });
+
+      taskStageModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ acknowledged: true }),
+      });
+
+      notificationClient.emit.mockReturnValue(of(undefined));
+
+      await service.create(createTaskDto, milestoneId, taskStageId);
+
+      expect(taskModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assignedTeams: [],
+        }),
+      );
+    });
+  });
+
+  describe('service initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
 });

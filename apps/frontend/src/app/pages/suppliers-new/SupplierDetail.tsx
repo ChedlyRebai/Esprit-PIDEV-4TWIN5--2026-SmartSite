@@ -162,8 +162,9 @@ export default function SupplierDetail() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex justify-center py-20" role="status" aria-label="Loading supplier details">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" aria-hidden="true" />
+        <span className="sr-only">Loading supplier details, please wait...</span>
       </div>
     );
   }
@@ -180,8 +181,8 @@ export default function SupplierDetail() {
     <div className="max-w-3xl mx-auto p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/suppliers')} className="rounded-full">
-          <ArrowLeft className="w-5 h-5" />
+        <Button variant="ghost" size="icon" onClick={() => navigate('/suppliers')} className="rounded-full" aria-label="Back to suppliers list">
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -205,43 +206,69 @@ export default function SupplierDetail() {
           </div>
         </div>
         {canRate && (
-          <Button onClick={() => setShowRateModal(true)} className="gap-2">
-            <Star className="w-4 h-4" />
+          <Button onClick={() => setShowRateModal(true)} className="gap-2" aria-label={`Rate supplier ${supplier.name}`}>
+            <Star className="w-4 h-4" aria-hidden="true" />
             Rate
           </Button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b">
-        <Button
-          variant={activeTab === 'infos' ? 'default' : 'ghost'}
+      <div role="tablist" aria-label="Supplier details sections" className="flex gap-2 mb-6 border-b">
+        <button
+          role="tab"
+          id="tab-infos"
+          aria-selected={activeTab === 'infos'}
+          aria-controls="panel-infos"
           onClick={() => setActiveTab('infos')}
-          className="rounded-b-none"
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-md text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            activeTab === 'infos'
+              ? 'border-blue-600 text-blue-600 bg-blue-50'
+              : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
         >
-          <Building2 className="w-4 h-4 mr-2" />
+          <Building2 className="w-4 h-4" aria-hidden="true" />
           Infos
-        </Button>
-        <Button
-          variant={activeTab === 'documents' ? 'default' : 'ghost'}
+        </button>
+        <button
+          role="tab"
+          id="tab-documents"
+          aria-selected={activeTab === 'documents'}
+          aria-controls="panel-documents"
           onClick={() => setActiveTab('documents')}
-          className="rounded-b-none"
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-md text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            activeTab === 'documents'
+              ? 'border-blue-600 text-blue-600 bg-blue-50'
+              : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
         >
-          <FileText className="w-4 h-4 mr-2" />
+          <FileText className="w-4 h-4" aria-hidden="true" />
           Documents
-        </Button>
-        <Button
-          variant={activeTab === 'prediction' ? 'default' : 'ghost'}
+        </button>
+        <button
+          role="tab"
+          id="tab-prediction"
+          aria-selected={activeTab === 'prediction'}
+          aria-controls="panel-prediction"
           onClick={() => setActiveTab('prediction')}
-          className="rounded-b-none"
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-md text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            activeTab === 'prediction'
+              ? 'border-blue-600 text-blue-600 bg-blue-50'
+              : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
         >
-          <TrendingUp className="w-4 h-4 mr-2" />
-          📊 Prédiction
-        </Button>
+          <TrendingUp className="w-4 h-4" aria-hidden="true" />
+          Prédiction
+        </button>
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'infos' && (
+      <div
+        role="tabpanel"
+        id="panel-infos"
+        aria-labelledby="tab-infos"
+        hidden={activeTab !== 'infos'}
+      >
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -252,44 +279,44 @@ export default function SupplierDetail() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="flex items-start gap-2">
-                <Mail className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <Mail className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-gray-400">Email</p>
+                  <p className="text-xs text-gray-600">Email</p>
                   <p className="font-medium">{supplier.email}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-gray-400">Phone</p>
+                  <p className="text-xs text-gray-600">Phone</p>
                   <p className="font-medium">{supplier.phone}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-gray-400">Address</p>
+                  <p className="text-xs text-gray-600">Address</p>
                   <p className="font-medium">{supplier.address}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-gray-400">SIRET</p>
+                  <p className="text-xs text-gray-600">SIRET</p>
                   <p className="font-mono font-medium">{supplier.siret}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-gray-400">Created by</p>
+                  <p className="text-xs text-gray-600">Created by</p>
                   <p className="font-medium">{supplier.createdByName}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-gray-400">Created at</p>
+                  <p className="text-xs text-gray-600">Created at</p>
                   <p className="font-medium">{new Date(supplier.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -310,9 +337,14 @@ export default function SupplierDetail() {
             )}
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {activeTab === 'documents' && (
+      <div
+        role="tabpanel"
+        id="panel-documents"
+        aria-labelledby="tab-documents"
+        hidden={activeTab !== 'documents'}
+      >
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -325,43 +357,47 @@ export default function SupplierDetail() {
               <div className="flex flex-wrap gap-3">
                 {/* Contract */}
                 <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-4 py-3">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                  <FileText className="w-5 h-5 text-blue-600" aria-hidden="true" />
                   <span className="text-sm font-medium text-gray-700">Contract</span>
                   <a
                     href={`${FILES_URL}${supplier.contractUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
+                    aria-label="View contract document (opens in new tab)"
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
-                    <Eye className="w-3.5 h-3.5" /> View
+                    <Eye className="w-3.5 h-3.5" aria-hidden="true" /> View
                   </a>
                   <a
                     href={`${FILES_URL}${supplier.contractUrl}`}
                     download
-                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1"
+                    aria-label="Download contract document"
+                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
                   >
-                    <Download className="w-3.5 h-3.5" /> Download
+                    <Download className="w-3.5 h-3.5" aria-hidden="true" /> Download
                   </a>
                 </div>
 
                 {/* Insurance Document */}
                 <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-4 py-3">
-                  <Shield className="w-5 h-5 text-blue-600" />
+                  <Shield className="w-5 h-5 text-blue-600" aria-hidden="true" />
                   <span className="text-sm font-medium text-gray-700">Insurance Document</span>
                   <a
                     href={`${FILES_URL}${supplier.insuranceDocumentUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
+                    aria-label="View insurance document (opens in new tab)"
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
-                    <Eye className="w-3.5 h-3.5" /> View
+                    <Eye className="w-3.5 h-3.5" aria-hidden="true" /> View
                   </a>
                   <a
                     href={`${FILES_URL}${supplier.insuranceDocumentUrl}`}
                     download
-                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1"
+                    aria-label="Download insurance document"
+                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
                   >
-                    <Download className="w-3.5 h-3.5" /> Download
+                    <Download className="w-3.5 h-3.5" aria-hidden="true" /> Download
                   </a>
                 </div>
               </div>
@@ -402,14 +438,21 @@ export default function SupplierDetail() {
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {activeTab === 'prediction' && supplier && (supplier._id || (supplier as any).id) && (
-        <DelayPrediction
-          key={String(supplier._id || (supplier as any).id)}
-          supplierId={String(supplier._id || (supplier as any).id)}
-        />
-      )}
+      <div
+        role="tabpanel"
+        id="panel-prediction"
+        aria-labelledby="tab-prediction"
+        hidden={activeTab !== 'prediction'}
+      >
+        {supplier && (supplier._id || (supplier as any).id) && (
+          <DelayPrediction
+            key={String(supplier._id || (supplier as any).id)}
+            supplierId={String(supplier._id || (supplier as any).id)}
+          />
+        )}
+      </div>
 
       {/* Approve Modal */}
       <Dialog open={showApprove} onOpenChange={setShowApprove}>
@@ -462,13 +505,17 @@ export default function SupplierDetail() {
                 placeholder="e.g. Missing insurance validity date, SIRET not verified..."
                 rows={4}
                 value={rejectReason}
+                required
+                aria-required="true"
+                aria-invalid={!!rejectError}
+                aria-describedby={rejectError ? "reject-reason-error" : undefined}
                 onChange={(e) => {
                   setRejectReason(e.target.value);
                   if (rejectError) setRejectError('');
                 }}
                 className={rejectError ? 'border-red-500' : ''}
               />
-              {rejectError && <p className="text-xs text-red-500">{rejectError}</p>}
+              {rejectError && <p id="reject-reason-error" role="alert" className="text-xs text-red-500">{rejectError}</p>}
             </div>
           </div>
           <DialogFooter className="gap-2">

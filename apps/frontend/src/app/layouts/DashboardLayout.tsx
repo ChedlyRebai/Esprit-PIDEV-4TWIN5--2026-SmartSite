@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-
+import { lazy, Suspense, useState, useEffect } from "react";
 
 import {
   Link,
@@ -18,6 +17,7 @@ import {
   Type,
   Plus,
   Minus,
+  MessageCircle,
 } from "lucide-react";
 import {
   Popover,
@@ -32,9 +32,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getMynavigationAccess } from "../action/permission.action";
 import { Permission } from "../types";
 import { getUnreadNotificationCount } from "../action/notification.action";
-import ChatbotWidget from "../components/Chatbot";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "../action/auth.action";
+
+const ChatbotWidget = lazy(() => import("../components/Chatbot"));
 
 import { ThemeButton } from "../components/ThemeButton";
 import { LanguageSelector } from "../components/LanguageSelector";
@@ -56,6 +57,7 @@ export default function DashboardLayout() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('fontSize') || '100'));
+  const [showChatbot, setShowChatbot] = useState(false);
 
   const toggleModuleExpanded = (moduleKey: string) => {
     const newExpanded = new Set(expandedModules);
@@ -290,7 +292,7 @@ export default function DashboardLayout() {
                   aria-label={t("accessibility.fontSize", "Taille du texte")}
                   title="Taille du texte"
                 >
-                  <Type className="h-5 w-5" />
+                  <Type className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-56 p-4">
@@ -301,9 +303,10 @@ export default function DashboardLayout() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      aria-label={t("accessibility.decreaseFontSize", "Decrease font size")}
                       onClick={() => setFontSize(prev => Math.max(80, prev - 10))}
                     >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Slider
                       min={80}
@@ -317,12 +320,18 @@ export default function DashboardLayout() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      aria-label={t("accessibility.increaseFontSize", "Increase font size")}
                       onClick={() => setFontSize(prev => Math.min(140, prev + 10))}
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
-                  <div className="text-center text-xs text-muted-foreground">
+                  <div
+                    className="text-center text-xs text-muted-foreground"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    aria-label={`Current font size: ${fontSize}%`}
+                  >
                     {fontSize}%
                   </div>
                   <Button
@@ -476,7 +485,7 @@ export default function DashboardLayout() {
               "accessibility.closeSidebarOverlay",
               "Close sidebar overlay",
             )}
-            className="fixed inset-0  bg-opacity-10 z-20 lg:hidden"
+            className="fixed inset-0 bg-black/20 z-20 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -494,7 +503,21 @@ export default function DashboardLayout() {
         </main>
       </div>
 
-      <ChatbotWidget />
+      {!showChatbot ? (
+        <button
+          type="button"
+          className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-transform hover:scale-[1.02] hover:bg-blue-700"
+          onClick={() => setShowChatbot(true)}
+          aria-label="Open SmartSite AI assistant"
+        >
+          <MessageCircle className="h-4 w-4" />
+          AI assistant
+        </button>
+      ) : (
+        <Suspense fallback={null}>
+          <ChatbotWidget />
+        </Suspense>
+      )}
     </div>
   );
 }

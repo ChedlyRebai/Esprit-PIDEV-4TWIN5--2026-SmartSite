@@ -56,10 +56,12 @@ async function bootstrap() {
   for (let attempt = 1; attempt <= maxKafkaStartAttempts; attempt += 1) {
     try {
       await app.startAllMicroservices();
+      logger.log('✅ Kafka microservice started successfully');
       break;
     } catch (error) {
       if (attempt === maxKafkaStartAttempts) {
-        throw error;
+        logger.warn('⚠️ Kafka unavailable — starting HTTP server without Kafka');
+        break; // Ne pas throw — continuer sans Kafka
       }
 
       logger.warn(

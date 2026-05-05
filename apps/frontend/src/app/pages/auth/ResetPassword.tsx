@@ -104,9 +104,10 @@ export default function ResetPassword() {
           <div>
             <button
               onClick={() => navigate("/forgot-password")}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-6"
+              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+              aria-label="Retour à la page mot de passe oublié"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               Retour
             </button>
             <img
@@ -182,29 +183,33 @@ export default function ResetPassword() {
                         Nouveau mot de passe
                       </FieldLabel>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                         <Input
                           {...field}
                           id="newPassword"
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
                           className="pl-10 pr-10"
+                          aria-required="true"
+                          aria-describedby={fieldState.invalid ? "newPassword-error" : undefined}
                           disabled={isLoading}
                         />
                         <button
                           type="button"
+                          aria-label={showPassword ? "Masquer le nouveau mot de passe" : "Afficher le nouveau mot de passe"}
+                          aria-controls="newPassword"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
                         >
                           {showPassword ? (
-                            <EyeOff className="h-5 w-5" />
+                            <EyeOff className="h-5 w-5" aria-hidden="true" />
                           ) : (
-                            <Eye className="h-5 w-5" />
+                            <Eye className="h-5 w-5" aria-hidden="true" />
                           )}
                         </button>
                       </div>
                       {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
+                        <FieldError id="newPassword-error" errors={[fieldState.error]} />
                       )}
                     </Field>
                   )}
@@ -221,31 +226,35 @@ export default function ResetPassword() {
                         Confirmer le mot de passe
                       </FieldLabel>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                         <Input
                           {...field}
                           id="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           placeholder="••••••••"
                           className="pl-10 pr-10"
+                          aria-required="true"
+                          aria-describedby={fieldState.invalid ? "confirmPassword-error" : undefined}
                           disabled={isLoading}
                         />
                         <button
                           type="button"
+                          aria-label={showConfirmPassword ? "Masquer la confirmation du mot de passe" : "Afficher la confirmation du mot de passe"}
+                          aria-controls="confirmPassword"
                           onClick={() =>
                             setShowConfirmPassword(!showConfirmPassword)
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
                         >
                           {showConfirmPassword ? (
-                            <EyeOff className="h-5 w-5" />
+                            <EyeOff className="h-5 w-5" aria-hidden="true" />
                           ) : (
-                            <Eye className="h-5 w-5" />
+                            <Eye className="h-5 w-5" aria-hidden="true" />
                           )}
                         </button>
                       </div>
                       {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
+                        <FieldError id="confirmPassword-error" errors={[fieldState.error]} />
                       )}
                     </Field>
                   )}
@@ -269,12 +278,22 @@ export default function ResetPassword() {
                 <button
                   onClick={handleResendCode}
                   disabled={resendCountdown > 0 || isLoading}
-                  className="text-indigo-600 hover:text-indigo-700 font-semibold disabled:text-gray-400"
+                  aria-disabled={resendCountdown > 0 || isLoading}
+                  aria-describedby="resend-countdown"
+                  className="text-indigo-600 hover:text-indigo-700 font-semibold disabled:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
                 >
-                  {resendCountdown > 0
-                    ? `Renvoyer dans ${resendCountdown}s`
-                    : "Renvoyer"}
+                  Renvoyer
                 </button>
+                {resendCountdown > 0 && (
+                  <span
+                    id="resend-countdown"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    className="ml-1 text-gray-400"
+                  >
+                    (dans {resendCountdown}s)
+                  </span>
+                )}
               </p>
             </div>
           </div>

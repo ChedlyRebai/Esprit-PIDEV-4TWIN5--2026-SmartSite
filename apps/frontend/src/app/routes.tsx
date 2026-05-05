@@ -1,81 +1,93 @@
 import { createBrowserRouter, Navigate } from "react-router";
+import { lazy } from "react";
 import DashboardLayout from "./layouts/DashboardLayout";
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
-import ChangePasswordFirstLogin from "./pages/auth/ChangePasswordFirstLogin";
-import Dashboard from "./pages/dashboards/Dashboard";
-import ProjectManagerDashboard from "./pages/dashboard/ProjectManagerDashboard";
-import SuperAdminProjectsDashboard from "./pages/dashboard/SuperAdminProjectsDashboard";
-import Sites from "./pages/sites/Sites";
-import SitesTable from "./pages/sites/SitesTable";
-import Projects from "./pages/projects/Projects";
-import Planning from "./pages/planning/MyTask";
-import Team from "./pages/team/Team";
-import MyTeamMembers from "./pages/team/MyTeamMembers";
-import Clients from "./pages/clients/Clients";
-import Finance from "./pages/finance/Finance";
-import Payments from "./pages/payments/Payments";
-import QHSE from "./pages/qhse/QHSE";
-import Incidents from "./pages/incidents/Incidents";
-import Reports from "./pages/reports/Reports";
-import Analytics from "./pages/analytics/Analytics";
-import Map from "./pages/map/Map";
-import Notifications from "./pages/notifications/Notifications";
-import UserManagement from "./pages/users/UserManagement";
-import RolesPage from "./pages/admin/RolesPage";
-import PermissionsPage from "./pages/admin/PermissionsPage";
-import PendingUsers from "./pages/admin/PendingUsers";
-import SystemLogs from "./pages/admin/SystemLogs";
-import Profile from "./pages/profile/Profile";
-import Home2 from "./pages/Home/Home2";
-import Pricing from "./pages/pricing/Pricing";
-import ClientsNew from "./pages/clients/ClientsNew";
-import UserGuide from "./pages/guide/UserGuide";
-import {
-  AnomaliesAlertsPage,
-  AutoOrdersPage,
-  FlowLogPage,
-  MLTrainingPage,
-  OrderTrackingMapPage,
-  SiteConsumptionPage,
-  StockPredictionsPage,
-} from "./pages/materials/MaterialsFeaturePages";
-import ExpiringMaterials from "../components/ExpiringMaterials";
-
-import AddSupplierNew from "./pages/suppliers-new/AddSupplier";
-import SuppliersListNew from "./pages/suppliers-new/SuppliersList";
-import QhseSupplierValidation from "./pages/suppliers-new/QhseSupplierValidation";
-import SupplierDetail from "./pages/suppliers-new/SupplierDetail";
-import EditSupplier from "./pages/suppliers-new/EditSupplier";
-
-import Catalog from "./pages/catalog/Catalog";
-import CatalogList from "./pages/catalog/CatalogList";
-import AddCatalogItem from "./pages/catalog/AddCatalogItem";
-import EditCatalogItem from "./pages/catalog/EditCatalogItem";
-import CatalogDetails from "./pages/catalog/CatalogDetails";
-import CheckoutSimulator from "./pages/CheckoutSimulator";
-
-import PLaningProjects from "./pages/planning/PLaningProjects";
-import ProjectMilestone from "./pages/planning/ProjectMilestone";
-import MyTask from "./pages/planning/MyTask";
-import MilestoneTaskss from "./pages/planning/MilestoneTaskss";
-import NotFound from "./pages/Error/NotFound";
-import Forbidden from "./pages/Error/Forbidden";
-import MyAffectedSite from "./pages/planning/MyAffectedSite";
-import MySItes from "./pages/planning/Mysites";
-import MyMilestones from "./pages/planning/MyMilstone";
-import NotificationsPage from "./pages/videoCall/NotificationsPage";
-import HomePage from "./pages/videoCall/HomePage";
-import CallPage from "./pages/videoCall/CallPage";
-import ChatPage from "./pages/videoCall/ChatPage";
-import GroupChatPage from "./pages/videoCall/GroupChatPage";
-import ResourceOptimizationDashboard from "@/features/resource-optimization/pages/ResourceOptimizationDashboard";
-import AccountBanned from "./pages/AccountBanned";
 import { useAuthStore } from "./store/authStore";
-import RoutePermissionGuard from "./components/shared/RoutePermissionGuard";
-import Materials from "./pages/materials/Materials";
+import QhseSupplierValidation from "./pages/suppliers-new/QhseSupplierValidation";
+
+const Login = lazy(() => import("./pages/auth/Login"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const ChangePasswordFirstLogin = lazy(() => import("./pages/auth/ChangePasswordFirstLogin"));
+const Dashboard = lazy(() => import("./pages/dashboards/Dashboard"));
+const ProjectManagerDashboard = lazy(() => import("./pages/dashboard/ProjectManagerDashboard"));
+const SuperAdminProjectsDashboard = lazy(() => import("./pages/dashboard/SuperAdminProjectsDashboard"));
+const Sites = lazy(() => import("./pages/sites/Sites"));
+const SitesTable = lazy(() => import("./pages/sites/SitesTable"));
+const Projects = lazy(() => import("./pages/projects/Projects"));
+const Team = lazy(() => import("./pages/team/Team"));
+const MyTeamMembers = lazy(() => import("./pages/team/MyTeamMembers"));
+const Clients = lazy(() => import("./pages/clients/Clients"));
+const Finance = lazy(() => import("./pages/finance/Finance"));
+const Payments = lazy(() => import("./pages/payments/Payments"));
+const QHSE = lazy(() => import("./pages/qhse/QHSE"));
+const Incidents = lazy(() => import("./pages/incidents/Incidents"));
+const Reports = lazy(() => import("./pages/reports/Reports"));
+const Analytics = lazy(() => import("./pages/analytics/Analytics"));
+const Map = lazy(() => import("./pages/map/Map"));
+const Notifications = lazy(() => import("./pages/notifications/Notifications"));
+const UserManagement = lazy(() => import("./pages/users/UserManagement"));
+const RolesPage = lazy(() => import("./pages/admin/RolesPage"));
+const PermissionsPage = lazy(() => import("./pages/admin/PermissionsPage"));
+const PendingUsers = lazy(() => import("./pages/admin/PendingUsers"));
+const SystemLogs = lazy(() => import("./pages/admin/SystemLogs"));
+const Profile = lazy(() => import("./pages/profile/Profile"));
+const Home2 = lazy(() => import("./pages/Home/Home2"));
+const Pricing = lazy(() => import("./pages/pricing/Pricing"));
+const ClientsNew = lazy(() => import("./pages/clients/ClientsNew"));
+const UserGuide = lazy(() => import("./pages/guide/UserGuide"));
+const AnomaliesAlertsPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.AnomaliesAlertsPage })),
+);
+const AutoOrdersPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.AutoOrdersPage })),
+);
+const FlowLogPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.FlowLogPage })),
+);
+const MLTrainingPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.MLTrainingPage })),
+);
+const OrderTrackingMapPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.OrderTrackingMapPage })),
+);
+const SiteConsumptionPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.SiteConsumptionPage })),
+);
+const StockPredictionsPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.StockPredictionsPage })),
+);
+const ExpiringMaterials = lazy(() => import("../components/ExpiringMaterials"));
+
+const AddSupplierNew = lazy(() => import("./pages/suppliers-new/AddSupplier"));
+const SuppliersListNew = lazy(() => import("./pages/suppliers-new/SuppliersList"));
+const SupplierDetail = lazy(() => import("./pages/suppliers-new/SupplierDetail"));
+const EditSupplier = lazy(() => import("./pages/suppliers-new/EditSupplier"));
+
+const Catalog = lazy(() => import("./pages/catalog/Catalog"));
+const CatalogList = lazy(() => import("./pages/catalog/CatalogList"));
+const AddCatalogItem = lazy(() => import("./pages/catalog/AddCatalogItem"));
+const EditCatalogItem = lazy(() => import("./pages/catalog/EditCatalogItem"));
+const CatalogDetails = lazy(() => import("./pages/catalog/CatalogDetails"));
+const CheckoutSimulator = lazy(() => import("./pages/CheckoutSimulator"));
+
+const PLaningProjects = lazy(() => import("./pages/planning/PLaningProjects"));
+const ProjectMilestone = lazy(() => import("./pages/planning/ProjectMilestone"));
+const MyTask = lazy(() => import("./pages/planning/MyTask"));
+const MilestoneTaskss = lazy(() => import("./pages/planning/MilestoneTaskss"));
+const NotFound = lazy(() => import("./pages/Error/NotFound"));
+const Forbidden = lazy(() => import("./pages/Error/Forbidden"));
+const MyAffectedSite = lazy(() => import("./pages/planning/MyAffectedSite"));
+const MySItes = lazy(() => import("./pages/planning/Mysites"));
+const MyMilestones = lazy(() => import("./pages/planning/MyMilstone"));
+const NotificationsPage = lazy(() => import("./pages/videoCall/NotificationsPage"));
+const HomePage = lazy(() => import("./pages/videoCall/HomePage"));
+const CallPage = lazy(() => import("./pages/videoCall/CallPage"));
+const ChatPage = lazy(() => import("./pages/videoCall/ChatPage"));
+const GroupChatPage = lazy(() => import("./pages/videoCall/GroupChatPage"));
+const ResourceOptimizationDashboard = lazy(() => import("@/features/resource-optimization/pages/ResourceOptimizationDashboard"));
+const AccountBanned = lazy(() => import("./pages/AccountBanned"));
+const Materials = lazy(() => import("./pages/materials/Materials"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);

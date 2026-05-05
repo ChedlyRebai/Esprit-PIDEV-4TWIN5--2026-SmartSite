@@ -333,198 +333,9 @@ export class IncidentsService {
             { $group: { _id: "$type", value: { $sum: 1 } } },
           ])
           .exec(),
-        this.incidentModel
-          .aggregate([
-            { $match: baseMatch },
-            {
-              $addFields: {
-                entityKey: { $ifNull: ["$assignedToCin", "unassigned"] },
-              },
-            },
-            {
-              $group: {
-                _id: "$entityKey",
-                total: { $sum: 1 },
-                open: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.OPEN, IncidentStatus.INVESTIGATING],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                critical: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$severity",
-                          [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                resolved: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.RESOLVED, IncidentStatus.CLOSED],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-              },
-            },
-            { $sort: { total: -1 } },
-            { $limit: 8 },
-          ])
-          .exec(),
-        this.incidentModel
-          .aggregate([
-            { $match: baseMatch },
-            {
-              $addFields: {
-                entityKey: {
-                  $cond: [
-                    { $ifNull: ["$project", false] },
-                    { $toString: "$project" },
-                    "no-project",
-                  ],
-                },
-              },
-            },
-            {
-              $group: {
-                _id: "$entityKey",
-                total: { $sum: 1 },
-                open: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.OPEN, IncidentStatus.INVESTIGATING],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                critical: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$severity",
-                          [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                resolved: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.RESOLVED, IncidentStatus.CLOSED],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-              },
-            },
-            { $sort: { total: -1 } },
-            { $limit: 8 },
-          ])
-          .exec(),
-        this.incidentModel
-          .aggregate([
-            { $match: baseMatch },
-            {
-              $addFields: {
-                entityKey: {
-                  $cond: [
-                    { $ifNull: ["$site", false] },
-                    { $toString: "$site" },
-                    "no-site",
-                  ],
-                },
-              },
-            },
-            {
-              $group: {
-                _id: "$entityKey",
-                total: { $sum: 1 },
-                open: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.OPEN, IncidentStatus.INVESTIGATING],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                critical: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$severity",
-                          [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                resolved: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.RESOLVED, IncidentStatus.CLOSED],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-              },
-            },
-            { $sort: { total: -1 } },
-            { $limit: 8 },
-          ])
-          .exec(),
+        this.buildEntityStatsAggregate(baseMatch, "assignedToCin"),
+        this.buildEntityStatsAggregate(baseMatch, "project"),
+        this.buildEntityStatsAggregate(baseMatch, "site"),
         this.incidentModel
           .aggregate([
             {
@@ -538,37 +349,22 @@ export class IncidentsService {
             {
               $group: {
                 _id: {
-                  $dateToString: {
-                    format: "%Y-%m-%d",
-                    date: "$createdAt",
-                  },
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
                 },
                 total: { $sum: 1 },
                 resolved: {
                   $sum: {
                     $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          [IncidentStatus.RESOLVED, IncidentStatus.CLOSED],
-                        ],
-                      },
-                      1,
-                      0,
+                      { $in: ["$status", [IncidentStatus.RESOLVED, IncidentStatus.CLOSED]] },
+                      1, 0,
                     ],
                   },
                 },
                 critical: {
                   $sum: {
                     $cond: [
-                      {
-                        $in: [
-                          "$severity",
-                          [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH],
-                        ],
-                      },
-                      1,
-                      0,
+                      { $in: ["$severity", [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH]] },
+                      1, 0,
                     ],
                   },
                 },
@@ -583,13 +379,7 @@ export class IncidentsService {
       rows.map((r) => ({ label: r._id || "unknown", value: r.value }));
 
     const toEntityBuckets = (
-      rows: Array<{
-        _id: string;
-        total: number;
-        open: number;
-        critical: number;
-        resolved: number;
-      }>,
+      rows: Array<{ _id: string; total: number; open: number; critical: number; resolved: number }>,
     ) =>
       rows.map((r) => ({
         label: r._id || "unknown",
@@ -615,5 +405,55 @@ export class IncidentsService {
       })),
       updatedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Construit un pipeline d'agrégation réutilisable pour les stats par entité
+   * (byUser, byProject, bySite) — élimine la duplication des 3 pipelines identiques.
+   */
+  private buildEntityStatsAggregate(baseMatch: any, entityField: string) {
+    const isObjectIdField = entityField === "project" || entityField === "site";
+    const entityKey = isObjectIdField
+      ? { $cond: [{ $ifNull: [`$${entityField}`, false] }, { $toString: `$${entityField}` }, `no-${entityField}`] }
+      : { $ifNull: [`$${entityField}`, "unassigned"] };
+
+    return this.incidentModel
+      .aggregate([
+        { $match: baseMatch },
+        { $addFields: { entityKey } },
+        {
+          $group: {
+            _id: "$entityKey",
+            total: { $sum: 1 },
+            open: {
+              $sum: {
+                $cond: [
+                  { $in: ["$status", [IncidentStatus.OPEN, IncidentStatus.INVESTIGATING]] },
+                  1, 0,
+                ],
+              },
+            },
+            critical: {
+              $sum: {
+                $cond: [
+                  { $in: ["$severity", [IncidentSeverity.CRITICAL, IncidentSeverity.HIGH]] },
+                  1, 0,
+                ],
+              },
+            },
+            resolved: {
+              $sum: {
+                $cond: [
+                  { $in: ["$status", [IncidentStatus.RESOLVED, IncidentStatus.CLOSED]] },
+                  1, 0,
+                ],
+              },
+            },
+          },
+        },
+        { $sort: { total: -1 } },
+        { $limit: 8 },
+      ])
+      .exec();
   }
 }

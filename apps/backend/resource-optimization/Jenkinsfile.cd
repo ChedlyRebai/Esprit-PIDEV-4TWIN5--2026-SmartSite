@@ -1,10 +1,17 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'CI_BUILD_NUMBER', defaultValue: '', description: 'Numéro du build CI qui a déclenché ce CD')
+    }
+
     environment {
-        SERVICE_NAME  = 'resource-optimization'
-        SERVICE_DIR   = 'apps/backend/resource-optimization'
-        DOCKER_IMAGE  = 'smart-site-resource-optimization'
+        SERVICE_NAME   = 'resource-optimization'
+        SERVICE_DIR    = 'apps/backend/resource-optimization'
+        DOCKERHUB_USER = 'mahmoud340'
+        DOCKER_IMAGE   = "${DOCKERHUB_USER}/smart-site-resource-optimization"
+        CONTAINER_NAME = 'resource-optimization'
+        APP_PORT       = '3006'
     }
 
     stages {
@@ -13,87 +20,112 @@ pipeline {
             steps {
                 checkout scm
                 echo "✅ Code récupéré depuis GitHub"
+                script {
+                    if (params.CI_BUILD_NUMBER) {
+                        echo "🔗 Déclenché par CI build #${params.CI_BUILD_NUMBER}"
+                    }
+                }
             }
         }
 
         stage('Docker Build') {
             steps {
-                echo "🐳 Construction image ${DOCKER_IMAGE}..."
+                echo "🐳 Construction image ${DOCKER_IMAGE}:${BUILD_NUMBER}..."
                 dir("${SERVICE_DIR}") {
-                    sh '''
+                    sh """
                         docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
                         docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
-                        echo "✅ Image Docker construite"
-                    '''
+                    """
                 }
+                echo "✅ Image Docker construite"
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Trivy Image Scan') {
             steps {
-                echo "☸️ Déploiement ${SERVICE_NAME} sur Kubernetes..."
-                sh '''
-                    kubectl create namespace smart-site 2>/dev/null || true
+                sh """
+                    if command -v trivy &> /dev/null; then
+                        trivy image \
+                            --exit-code 0 \
+                            --severity HIGH,CRITICAL \
+                            --ignore-unfixed \
+                            --format table \
+                            ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    else
+                        echo "⚠️ Trivy non installé — scan image ignoré"
+                    fi
+                """
+                echo "✅ Trivy image scan terminé"
+            }
+        }
 
-                    kubectl apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: resource-optimization
-  namespace: smart-site
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: resource-optimization
-  template:
-    metadata:
-      labels:
-        app: resource-optimization
-    spec:
-      containers:
-      - name: resource-optimization
-        image: ${DOCKER_IMAGE}:${BUILD_NUMBER}
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 3010
-        env:
-        - name: PORT
-          value: "3010"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3010
-          initialDelaySeconds: 30
-          periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: resource-optimization
-  namespace: smart-site
-spec:
-  selector:
-    app: resource-optimization
-  ports:
-    - port: 80
-      targetPort: 3010
-      protocol: TCP
-  type: ClusterIP
-EOF
+        stage('Docker Push') {
+            steps {
+                echo "� Push vers Docker Hub (${DOCKER_IMAGE})..."
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo "\${DOCKER_PASS}" | docker login -u "\${DOCKER_USER}" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    """
+                }
+                echo "✅ Image poussée sur Docker Hub"
+            }
+        }
 
-                    echo "✅ Déploiement resource-optimization terminé"
-                '''
+        stage('Deploy Container') {
+            steps {
+                echo "🚀 Déploiement du conteneur ${CONTAINER_NAME}..."
+                sh """
+                    docker stop ${CONTAINER_NAME} 2>/dev/null || true
+                    docker rm   ${CONTAINER_NAME} 2>/dev/null || true
+
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --restart unless-stopped \
+                        -p ${APP_PORT}:${APP_PORT} \
+                        -e PORT=${APP_PORT} \
+                        -e NODE_ENV=production \
+                        ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                """
+                echo "✅ Conteneur ${CONTAINER_NAME} démarré sur le port ${APP_PORT}"
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo "🏥 Vérification santé du service..."
+                sh """
+                    sleep 10
+                    docker ps --filter name=${CONTAINER_NAME} --format '{{.Status}}' | grep -q 'Up' \
+                        && echo "✅ Conteneur en cours d'exécution" \
+                        || (echo "❌ Conteneur non démarré" && docker logs ${CONTAINER_NAME} && exit 1)
+                """
+            }
+        }
+
+        stage('Cleanup Old Images') {
+            steps {
+                sh "docker image prune -f || true"
+                echo "✅ Nettoyage terminé"
             }
         }
     }
 
     post {
         success {
-            echo "🎉 CD réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🎉 CD réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}${params.CI_BUILD_NUMBER ? ' (depuis CI #' + params.CI_BUILD_NUMBER + ')' : ''}"
+            echo "🐳 Image disponible : https://hub.docker.com/r/${DOCKER_IMAGE}"
+            echo "🌐 Service disponible sur http://localhost:${APP_PORT}"
         }
         failure {
             echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            sh "docker logs ${CONTAINER_NAME} 2>/dev/null || true"
         }
         always {
             cleanWs()

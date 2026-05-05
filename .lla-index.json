@@ -8836,5 +8836,141 @@
     "imports": [
       "axios"
     ]
+  },
+  "apps\\backend\\incident-management\\src\\chat\\chat.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\incident-management\\src\\chat\\chat.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/config"
+    ]
+  },
+  "apps\\backend\\incident-management\\src\\incidents\\incidents-events.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\ai\\ai-recommendation.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\chat\\chat.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\chat\\chat.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/config"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\alert\\alert.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\alert\\alert.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\data-collection\\data-collection.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\data-collection\\data-collection.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\external-data\\external-data.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\external-data\\external-data.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/config",
+      "@nestjs/axios",
+      "rxjs"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\power-bi\\power-bi.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\power-bi\\power-bi.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\reporting\\reporting.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\reporting\\reporting.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\resource-analysis\\resource-analysis.controller.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing"
+    ]
+  },
+  "apps\\backend\\resource-optimization\\src\\modules\\resource-analysis\\resource-analysis.service.spec.ts": {
+    "purpose": "unknown",
+    "exports": [],
+    "imports": [
+      "@nestjs/testing",
+      "@nestjs/mongoose"
+    ]
   }
 }

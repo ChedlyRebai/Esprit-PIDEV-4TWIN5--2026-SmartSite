@@ -1,0 +1,88 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'paiement'
+        SERVICE_DIR   = 'apps/backend/paiement'
+        DOCKER_IMAGE  = "asmaamh/smartsite-paiement"
+        PORT          = '3008'
+        DOCKER_HOST   = 'unix:///var/run/docker.sock'
+    }
+
+    tools {
+        nodejs 'NodeJS-20'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh "docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
+                    echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-credentials',
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
+                )]) {
+                    sh """
+                        echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                    """
+                    echo "✅ Image Docker poussée sur Docker Hub"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI'),
+                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
+                ]) {
+                    sh """
+                        docker stop ${SERVICE_NAME} || true
+                        docker rm ${SERVICE_NAME} || true
+                        docker run -d \
+                            --name ${SERVICE_NAME} \
+                            --restart unless-stopped \
+                            -p ${PORT}:${PORT} \
+                            -e PORT=${PORT} \
+                            -e NODE_ENV=production \
+                            -e MONGODB_URI="\${MONGODB_URI}" \
+                            -e GROQ_API_KEY="\${GROQ_API_KEY}" \
+                            -e GROQ_MODEL=llama-3.3-70b-versatile \
+                            ${DOCKER_IMAGE}:latest
+                    """
+                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CD réussi — ${SERVICE_NAME} déployé (build #${BUILD_NUMBER})"
+        }
+        failure {
+            echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

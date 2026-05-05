@@ -207,19 +207,21 @@ export default function Login() {
                         control={form.control}
                         render={({ field, fieldState }) => (
                           <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="form-rhf-demo-title" className="text-gray-800 font-bold text-base mb-3 block">
+                            <FieldLabel htmlFor="form-rhf-demo-cin" className="text-gray-800 font-bold text-base mb-3 block">
                               CIN
                             </FieldLabel>
                             <Input
                               {...field}
                               id="form-rhf-demo-cin"
                               aria-invalid={fieldState.invalid}
+                              aria-describedby={fieldState.invalid ? "cin-error" : undefined}
+                              aria-required="true"
                               placeholder="CIN"
-                              autoComplete="off"
+                              autoComplete="username"
                               className="w-full px-5 py-4 text-base rounded-xl border-2 border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-300 transition-all bg-gray-50 focus:bg-white font-medium"
                             />
                             {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
+                              <FieldError id="cin-error" errors={[fieldState.error]} />
                             )}
                           </Field>
                         )}
@@ -238,24 +240,28 @@ export default function Login() {
                                 type={showPassword ? "text" : "password"}
                                 id="form-rhf-demo-password"
                                 aria-invalid={fieldState.invalid}
+                                aria-describedby={fieldState.invalid ? "password-error" : undefined}
+                                aria-required="true"
                                 placeholder={t("auth.login.password")}
-                                autoComplete="off"
+                                autoComplete="current-password"
                                 className="w-full px-5 py-4 text-base rounded-xl border-2 border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-300 transition-all bg-gray-50 focus:bg-white pr-14 font-medium"
                               />
                               <button
                                 type="button"
+                                aria-label={showPassword ? t("auth.login.hidePassword", "Hide password") : t("auth.login.showPassword", "Show password")}
+                                aria-controls="form-rhf-demo-password"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                               >
                                 {showPassword ? (
-                                  <EyeOff size={24} />
+                                  <EyeOff size={24} aria-hidden="true" />
                                 ) : (
-                                  <Eye size={24} />
+                                  <Eye size={24} aria-hidden="true" />
                                 )}
                               </button>
                             </div>
                             {fieldState.invalid && (
-                              <FieldError errors={[fieldState.error]} />
+                              <FieldError id="password-error" errors={[fieldState.error]} />
                             )}
                           </Field>
                         )}
@@ -271,7 +277,8 @@ export default function Login() {
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-3">
-                        <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                        <span className="sr-only">Loading...</span>
                         {t("auth.login.signIn")}
                       </span>
                     ) : (

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Route, RouterProvider, Routes } from "react-router";
 import { Toaster } from "react-hot-toast";
 import { router } from "./routes";
@@ -22,7 +23,15 @@ export default function App() {
         <LanguageProvider>
           <QueryClientProvider client={queryClient}>
             <ThemeSync />
-            <RouterProvider router={router} />
+            <Suspense
+              fallback={
+                <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
+                </div>
+              }
+            >
+              <RouterProvider router={router} />
+            </Suspense>
 
             <ModalProvider />
             <Toaster position="top-right" />

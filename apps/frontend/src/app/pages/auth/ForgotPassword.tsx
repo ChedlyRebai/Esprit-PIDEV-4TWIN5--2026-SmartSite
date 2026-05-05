@@ -59,9 +59,10 @@ export default function ForgotPassword() {
           <div>
             <button
               onClick={() => navigate("/login")}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-6"
+              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+              aria-label="Retour à la page de connexion"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               Retour à la connexion
             </button>
             <img
@@ -88,18 +89,20 @@ export default function ForgotPassword() {
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="email">Email</FieldLabel>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                         <Input
                           {...field}
                           id="email"
                           type="email"
                           placeholder="vous@example.com"
                           className="pl-10"
+                          aria-required="true"
+                          aria-describedby={fieldState.invalid ? "email-error" : undefined}
                           disabled={isLoading}
                         />
                       </div>
                       {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
+                        <FieldError id="email-error" errors={[fieldState.error]} />
                       )}
                     </Field>
                   )}

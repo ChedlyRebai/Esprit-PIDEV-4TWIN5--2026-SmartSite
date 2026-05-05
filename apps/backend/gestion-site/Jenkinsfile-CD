@@ -5,7 +5,11 @@ pipeline {
         SERVICE_DIR   = 'apps/backend/gestion-site'
         DOCKER_IMAGE  = "asmaamh/smartsite-gestion-site"
         PORT          = '3001'
+<<<<<<< HEAD
         DOCKER_HOST   = 'unix:///var/run/docker.sock'  // ✅ corrigé
+=======
+      DOCKER_HOST   = 'unix:///var/run/docker.sock'
+>>>>>>> 9320e27b9bc4ee873115ad40f8f9ca4cabd05025
     }
     tools {
         nodejs 'NodeJS-20'

@@ -139,23 +139,33 @@ export default function RateSupplierModal({
               {criteria.map((criterion) => (
                 <div key={criterion} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label>{criterion}</Label>
-                    <span className="text-sm font-medium text-blue-600">
+                    <Label htmlFor={`rating-${criterion}`}>{criterion}</Label>
+                    <span
+                      className="text-sm font-medium text-blue-600"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
                       {ratings[criterion]?.toFixed(1) || '0.0'}/10
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-500 w-12">Poor</span>
+                    <span className="text-xs text-gray-500 w-12" aria-hidden="true">Poor</span>
                     <input
                       type="range"
+                      id={`rating-${criterion}`}
                       min="0"
                       max="10"
                       step="0.5"
                       value={ratings[criterion] || 0}
+                      aria-label={`${criterion} rating`}
+                      aria-valuemin={0}
+                      aria-valuemax={10}
+                      aria-valuenow={ratings[criterion] || 0}
+                      aria-valuetext={`${ratings[criterion]?.toFixed(1) || '0.0'} out of 10`}
                       onChange={(e) => handleRatingChange(criterion, parseFloat(e.target.value))}
                       className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
-                    <span className="text-xs text-gray-500 w-16 text-right">Excellent</span>
+                    <span className="text-xs text-gray-500 w-16 text-right" aria-hidden="true">Excellent</span>
                   </div>
                 </div>
               ))}

@@ -1,0 +1,141 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'CI_BUILD_NUMBER', defaultValue: '', description: 'Numéro du build CI qui a déclenché ce CD')
+    }
+
+    environment {
+        SERVICE_NAME   = 'api-gateway'
+        SERVICE_DIR    = 'apps/backend/api-gateway'
+        DOCKERHUB_USER = 'mahmoud340'
+        DOCKER_IMAGE   = "${DOCKERHUB_USER}/smart-site-api-gateway"
+        CONTAINER_NAME = 'api-gateway'
+        APP_PORT       = '9001'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+                script {
+                    if (params.CI_BUILD_NUMBER) {
+                        echo "🔗 Déclenché par CI build #${params.CI_BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo "🐳 Construction image ${DOCKER_IMAGE}:${BUILD_NUMBER}..."
+                dir("${SERVICE_DIR}") {
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                        docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    """
+                }
+                echo "✅ Image Docker construite"
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh """
+                    if command -v trivy &> /dev/null; then
+                        trivy image \
+                            --exit-code 0 \
+                            --severity HIGH,CRITICAL \
+                            --ignore-unfixed \
+                            --format table \
+                            ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    else
+                        echo "⚠️ Trivy non installé — scan image ignoré"
+                    fi
+                """
+                echo "✅ Trivy image scan terminé"
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                echo "📤 Push vers Docker Hub (${DOCKER_IMAGE})..."
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo "\${DOCKER_PASS}" | docker login -u "\${DOCKER_USER}" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    """
+                }
+                echo "✅ Image poussée sur Docker Hub"
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                echo "🚀 Déploiement du conteneur ${CONTAINER_NAME}..."
+                sh """
+                    docker stop ${CONTAINER_NAME} 2>/dev/null || true
+                    docker rm   ${CONTAINER_NAME} 2>/dev/null || true
+
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --restart unless-stopped \
+                        -p ${APP_PORT}:${APP_PORT} \
+                        -e PORT=${APP_PORT} \
+                        -e NODE_ENV=production \
+                        -e GESTION_PLANING_URL=http://gestion-planing:3002 \
+                        -e GESTION_SITE_URL=http://gestion-site:3001 \
+                        -e GESTION_PROJECTS_URL=http://gestion-projects:3010 \
+                        -e RESOURCE_OPTIMIZATION_URL=http://resource-optimization:3007 \
+                        -e INCIDENT_URL=http://incident-management:3003 \
+                        -e NOTIFICATION_SERVICE_URL=http://notification:3004 \
+                        -e VIDEOCALL_SERVICE_URL=http://videocall:9000 \
+                        ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                """
+                echo "✅ Conteneur ${CONTAINER_NAME} démarré sur le port ${APP_PORT}"
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo "🏥 Vérification santé du service..."
+                sh """
+                    sleep 10
+                    docker ps --filter name=${CONTAINER_NAME} --format '{{.Status}}' | grep -q 'Up' \
+                        && echo "✅ Conteneur en cours d'exécution" \
+                        || (echo "❌ Conteneur non démarré" && docker logs ${CONTAINER_NAME} && exit 1)
+                """
+            }
+        }
+
+        stage('Cleanup Old Images') {
+            steps {
+                sh "docker image prune -f || true"
+                echo "✅ Nettoyage terminé"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CD réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}${params.CI_BUILD_NUMBER ? ' (depuis CI #' + params.CI_BUILD_NUMBER + ')' : ''}"
+            echo "🐳 Image disponible : https://hub.docker.com/r/${DOCKER_IMAGE}"
+            echo "🌐 API Gateway disponible sur http://localhost:${APP_PORT}"
+        }
+        failure {
+            echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            sh "docker logs ${CONTAINER_NAME} 2>/dev/null || true"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

@@ -133,18 +133,24 @@ export default function DelayPrediction({ supplierId }: DelayPredictionProps) {
             </div>
             <Button type="submit" className="w-full gap-2" disabled={loading}>
               {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  <span className="sr-only">Analyse en cours...</span>
+                  Analyser le risque
+                </>
               ) : (
-                <AlertTriangle className="w-4 h-4" />
+                <>
+                  <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+                  Analyser le risque
+                </>
               )}
-              Analyser le risque
             </Button>
           </form>
         </CardContent>
       </Card>
 
       {error && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50" role="alert">
           <CardContent className="pt-6">
             <p className="text-sm text-red-700">{error}</p>
           </CardContent>
@@ -158,6 +164,7 @@ export default function DelayPrediction({ supplierId }: DelayPredictionProps) {
               <div
                 className="text-6xl font-bold mb-2"
                 style={{ color: getRiskColor(result.risk_color) }}
+                aria-label={`Delay risk: ${result.risk_percentage}%, level: ${getRiskLevelDisplay(result.risk_level)}`}
               >
                 {result.risk_percentage}%
               </div>
@@ -165,14 +172,14 @@ export default function DelayPrediction({ supplierId }: DelayPredictionProps) {
                 variant={getBadgeVariant(result.risk_level)}
                 className="text-sm px-3 py-1"
               >
-                {(result.risk_level.toLowerCase() === 'high' || result.risk_level === 'Élevé') && <AlertTriangle className="w-3.5 h-3.5 mr-1" />}
-                {(result.risk_level.toLowerCase() === 'low' || result.risk_level === 'Faible') && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+                {(result.risk_level.toLowerCase() === 'high' || result.risk_level === 'Élevé') && <AlertTriangle className="w-3.5 h-3.5 mr-1" aria-hidden="true" />}
+                {(result.risk_level.toLowerCase() === 'low' || result.risk_level === 'Faible') && <CheckCircle2 className="w-3.5 h-3.5 mr-1" aria-hidden="true" />}
                 Risque {getRiskLevelDisplay(result.risk_level)}
               </Badge>
             </div>
 
             {result.recommendation && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg" role="note">
                 <p className="text-sm text-blue-800">
                   <strong>Recommandation :</strong> {result.recommendation}
                 </p>
@@ -181,11 +188,11 @@ export default function DelayPrediction({ supplierId }: DelayPredictionProps) {
 
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-400">Fournisseur</p>
+                <p className="text-xs text-gray-600">Fournisseur</p>
                 <p className="font-medium">{result.supplierName}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-400">Note moyenne</p>
+                <p className="text-xs text-gray-600">Note moyenne</p>
                 <p className="font-medium">{result.averageRating.toFixed(1)}/10</p>
               </div>
             </div>

@@ -151,7 +151,7 @@ export class AppService {
   ) {}
 
   getHello(): string {
-    return 'Hello World!s';
+    return 'Hello World!';
   }
 
   async getAllProjectsForSuperAdmin() {

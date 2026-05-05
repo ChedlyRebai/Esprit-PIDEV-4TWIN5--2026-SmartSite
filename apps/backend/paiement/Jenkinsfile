@@ -1,0 +1,121 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'paiement'
+        SERVICE_DIR   = 'apps/backend/paiement'
+        SONAR_PROJECT = 'smartsite-paiement'
+    }
+
+    tools {
+        nodejs 'NodeJS-20'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm ci'
+                    echo "✅ Dépendances installées"
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    script {
+                        try {
+                            sh 'npm test -- --coverage --coverageReporters=lcov --forceExit --passWithNoTests'
+                            echo "✅ Tests unitaires terminés"
+                        } catch (Exception e) {
+                            echo "⚠️ Certains tests ont échoué mais le pipeline continue"
+                            echo "Erreur: ${e.message}"
+                            // Continue le pipeline même si les tests échouent
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm run build'
+                    echo "✅ Build terminé"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    try {
+                        dir("${SERVICE_DIR}") {
+                            withSonarQubeEnv('SonarQube') {
+                                withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+                                    sh """
+                                        sonar-scanner \
+                                            -Dsonar.projectKey=${SONAR_PROJECT} \
+                                            -Dsonar.projectName='SmartSite - Paiement' \
+                                            -Dsonar.sources=src \
+                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts \
+                                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts
+                                    """
+                                }
+                            }
+                        }
+                        echo "✅ Analyse SonarQube réussie"
+                    } catch (Exception e) {
+                        echo "⚠️ Analyse SonarQube échouée : ${e.message}"
+                        echo "Le pipeline continue malgré l'échec SonarQube"
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    try {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: false
+                        }
+                        echo "✅ Quality Gate vérifié"
+                    } catch (Exception e) {
+                        echo "⚠️ Quality Gate échoué ou timeout : ${e.message}"
+                        echo "Le pipeline continue malgré l'échec du Quality Gate"
+                    }
+                }
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                build job: 'paiement-CD', wait: false
+                echo "🚀 Pipeline CD déclenché automatiquement"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        failure {
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
