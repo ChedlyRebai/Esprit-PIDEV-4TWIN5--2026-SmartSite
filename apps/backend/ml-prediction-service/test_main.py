@@ -2,7 +2,7 @@
 Tests unitaires pour le ML Prediction Service
 """
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 import asyncio
 
 # Import de l'app FastAPI
@@ -18,7 +18,8 @@ except Exception as e:
 @pytest.mark.asyncio
 async def test_read_root():
     """Test de l'endpoint racine"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/")
         assert response.status_code == 200
         data = response.json()
@@ -29,7 +30,8 @@ async def test_read_root():
 @pytest.mark.asyncio
 async def test_health_check():
     """Test du health check"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Essayer différents endpoints possibles
         endpoints = ["/health", "/api/health", "/"]
         
@@ -47,7 +49,8 @@ async def test_health_check():
 @pytest.mark.asyncio
 async def test_prediction_endpoint_exists():
     """Test que l'endpoint de prédiction existe"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Tester si l'endpoint de prédiction existe (même s'il retourne une erreur)
         endpoints = ["/predict", "/api/predict", "/prediction"]
         
