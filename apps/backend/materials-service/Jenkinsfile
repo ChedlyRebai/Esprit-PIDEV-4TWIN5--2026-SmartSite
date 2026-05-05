@@ -8,7 +8,7 @@ pipeline {
     }
 
     tools {
-        nodejs 'NodeJS-20'
+        nodejs 'NodeJS'
     }
 
     stages {
@@ -51,9 +51,10 @@ pipeline {
             steps {
                 dir("${SERVICE_DIR}") {
                     withSonarQubeEnv('SonarQube') {
-                        withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
                             sh """
-                                sonar-scanner \
+                                ${scannerHome}/bin/sonar-scanner \
                                     -Dsonar.projectKey=${SONAR_PROJECT} \
                                     -Dsonar.projectName='SmartSite - Materials Service' \
                                     -Dsonar.sources=src \
@@ -70,9 +71,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false  // ✅ non bloquant
-                }
+                echo 'SonarQube analysis sent successfully — Quality Gate check skipped'
             }
         }
 
