@@ -16,7 +16,17 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, shallow: true, timeout: 30],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                            [$class: 'SparseCheckoutPath', path: 'apps/frontend/']
+                        ]]
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
                 echo "✅ Code récupéré depuis GitHub"
             }
         }
