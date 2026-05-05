@@ -16,9 +16,17 @@ import { canEdit } from "../../utils/permissions";
 import { toast } from "sonner";
 import { getSyncedProjectsWithDetails, type SyncedProject } from "../../action/synced-project.action";
 
-const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL
-  ? (import.meta as any).env.VITE_GESTION_PROJECTS_URL.replace(/\/projects\/?$/, '')
-  : "https://smartsite-api-gateway.onrender.com";
+// API_URL for projects — use gateway /projects route
+// VITE_GESTION_PROJECTS_URL = https://gateway.onrender.com/projects
+// We need the base without /projects for POST/GET /projects
+const _rawProjectsUrl = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL?.trim()
+  ?? 'https://smartsite-api-gateway.onrender.com/projects';
+
+// If the URL already ends with /projects, use it directly as the projects endpoint
+// Otherwise append /projects
+const API_URL = _rawProjectsUrl.endsWith('/projects')
+  ? _rawProjectsUrl.replace(/\/projects$/, '')   // strip so we can do ${API_URL}/projects
+  : _rawProjectsUrl;
 
 
 export default function Projects() {
