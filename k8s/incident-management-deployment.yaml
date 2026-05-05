@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: incident-management
-          image: chedlyrebai/incident-management-api:latest
+          image: mahmoud340/incident-management:latest
           ports:
             - containerPort: 3006
           env:

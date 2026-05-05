@@ -17,17 +17,15 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: chedlyrebai/api-gateway:latest
+          image: mahmoud/api-gateway:latest
           ports:
             - containerPort: 3007
           env:
             - name: PORT
               value: "3007"
-            - name: MONGODB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: api-gateway-secret
-                  key: MONGODB_URI
+          envFrom:
+            - configMapRef:
+                name: smartsite-config
 
 
 ---

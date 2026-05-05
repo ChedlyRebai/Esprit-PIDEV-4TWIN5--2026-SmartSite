@@ -45,6 +45,7 @@ spec:
     - metadata:
         name: mongodb-data
       spec:
+        storageClassName: local-storage
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:

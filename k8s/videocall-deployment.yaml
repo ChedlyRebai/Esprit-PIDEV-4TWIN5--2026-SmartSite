@@ -28,6 +28,11 @@ spec:
                 secretKeyRef:
                   name: videocall-secret
                   key: MONGO_URI
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: videocall-secret
+                  key: JWT_SECRET_KEY
 
 ---
 apiVersion: v1

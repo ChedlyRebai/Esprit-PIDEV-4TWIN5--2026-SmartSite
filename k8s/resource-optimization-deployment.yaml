@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: resource-optimization
-          image: chedlyrebai/resource-optimization-api:latest
+          image: mahmoud340/smart-site-resource-optimization
           ports:
             - containerPort: 3007
           env:
