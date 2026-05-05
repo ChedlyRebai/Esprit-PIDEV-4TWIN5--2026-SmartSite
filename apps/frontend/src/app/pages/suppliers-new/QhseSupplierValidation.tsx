@@ -343,7 +343,6 @@ export default function QhseSupplierValidation() {
                             </div>
                           </div>
                         </div>
-                      </div>
 
                       {/* Actions */}
                       <div className="flex gap-3 pt-2">

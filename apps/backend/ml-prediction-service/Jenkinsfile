@@ -19,8 +19,13 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh 'python3 -m pip install --break-system-packages -r requirements.txt'
-                    echo "✅ Dépendances Python installées"
+                    sh '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    '''
+                    echo "✅ Dépendances Python installées dans venv"
                 }
             }
         }
@@ -28,7 +33,10 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh 'python3 -m pytest test_main.py -v --junitxml=test-results.xml'
+                    sh '''
+                        . venv/bin/activate
+                        pytest test_main.py -v --junitxml=test-results.xml
+                    '''
                     echo "✅ Tests unitaires terminés"
                 }
             }
