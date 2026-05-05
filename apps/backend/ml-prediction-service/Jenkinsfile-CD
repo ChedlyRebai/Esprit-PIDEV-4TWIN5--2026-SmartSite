@@ -1,0 +1,96 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'ml-prediction-service'
+        SERVICE_DIR   = 'apps/backend/ml-prediction-service'
+        DOCKER_IMAGE  = "ghada/smartsite-ml-prediction-service"
+        PORT          = '8000'
+        DOCKER_HOST   = 'unix:///var/run/docker.sock'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh "docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
+                    echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-credentials',
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
+                )]) {
+                    sh """
+                        echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                    """
+                    echo "✅ Image Docker poussée sur Docker Hub"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                    docker stop ${SERVICE_NAME} || true
+                    docker rm ${SERVICE_NAME} || true
+                    docker run -d \
+                        --name ${SERVICE_NAME} \
+                        --restart unless-stopped \
+                        -p ${PORT}:${PORT} \
+                        -e PORT=${PORT} \
+                        ${DOCKER_IMAGE}:latest
+                """
+                echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    sleep(time: 10, unit: 'SECONDS')
+                    def response = sh(
+                        script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:${PORT}/ || echo '000'",
+                        returnStdout: true
+                    ).trim()
+                    
+                    if (response == '200') {
+                        echo "✅ Health check réussi - Service opérationnel"
+                    } else {
+                        echo "⚠️ Health check échoué - Code HTTP: ${response}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CD réussi — ${SERVICE_NAME} déployé (build #${BUILD_NUMBER})"
+            echo "🌐 Service accessible sur: http://localhost:${PORT}"
+        }
+        failure {
+            echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            sh "docker start ${SERVICE_NAME} || true"
+        }
+        always {
+            sh "docker image prune -f || true"
+            cleanWs()
+        }
+    }
+}

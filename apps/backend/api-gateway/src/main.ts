@@ -23,5 +23,6 @@ async function bootstrap() {
   console.log(`   /incidents   → incident-management   (${process.env.INCIDENT_URL ?? 'http://localhost:3003'})`);
   console.log(`   /notification → notification         (${process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004'})`);
   console.log(`   /videocall   → videocall              (${process.env.VIDEOCALL_SERVICE_URL ?? 'http://localhost:9000'})`);
+  console.log(`   /materials   → materials-service      (${process.env.MATERIALS_SERVICE_URL ?? 'http://localhost:3002'})`);
 }
 bootstrap();

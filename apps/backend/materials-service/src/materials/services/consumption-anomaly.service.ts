@@ -311,7 +311,7 @@ export class ConsumptionAnomalyService {
     try {
       const response = await firstValueFrom(
         this.httpService.get(
-          `http://localhost:3002/api/materials/${materialId}`,
+          `http://localhost:3009/api/materials/${materialId}`,
         ),
       );
       return response.data;

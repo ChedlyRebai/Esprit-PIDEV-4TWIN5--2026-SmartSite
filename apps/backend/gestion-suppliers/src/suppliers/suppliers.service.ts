@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import * as path from 'path';
 import { Supplier, SupplierDocument, SupplierStatus } from './entities/supplier.entity';
 import { SupplierRating, SupplierRatingDocument } from './entities/supplier-rating.entity';
 import { CreateSupplierDto } from './dto/create-supplier.dto';

@@ -31,7 +31,7 @@ export class CreateSupplierDto {
   email: string;
 
   @IsString()
-  @Matches(/^[0-9+\s]{10,}$/)
+  @Matches(/^[\d+\s]{10,}$/)
   phone: string;
 
   @IsString()
@@ -40,7 +40,7 @@ export class CreateSupplierDto {
   address: string;
 
   @IsString()
-  @Matches(/^[0-9]{14}$/)
+  @Matches(/^\d{14}$/)
   siret: string;
 
   @IsString()

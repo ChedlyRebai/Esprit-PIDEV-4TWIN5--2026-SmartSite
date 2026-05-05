@@ -2,7 +2,6 @@ import { createBrowserRouter, Navigate } from "react-router";
 import { lazy } from "react";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { useAuthStore } from "./store/authStore";
-import QhseSupplierValidation from "./pages/suppliers-new/QhseSupplierValidation";
 
 const Login = lazy(() => import("./pages/auth/Login"));
 const Register = lazy(() => import("./pages/auth/Register"));
@@ -45,6 +44,9 @@ const AutoOrdersPage = lazy(() =>
 const FlowLogPage = lazy(() =>
   import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.FlowLogPage })),
 );
+const FlowAnomalyAnalysisPage = lazy(() =>
+  import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.FlowAnomalyAnalysisPage })),
+);
 const MLTrainingPage = lazy(() =>
   import("./pages/materials/MaterialsFeaturePages").then((module) => ({ default: module.MLTrainingPage })),
 );
@@ -61,6 +63,7 @@ const ExpiringMaterials = lazy(() => import("../components/ExpiringMaterials"));
 
 const AddSupplierNew = lazy(() => import("./pages/suppliers-new/AddSupplier"));
 const SuppliersListNew = lazy(() => import("./pages/suppliers-new/SuppliersList"));
+const QhseSupplierValidation = lazy(() => import("./pages/suppliers-new/QhseSupplierValidation"));
 const SupplierDetail = lazy(() => import("./pages/suppliers-new/SupplierDetail"));
 const EditSupplier = lazy(() => import("./pages/suppliers-new/EditSupplier"));
 
@@ -268,6 +271,10 @@ export const router = createBrowserRouter([
         element: <EditSupplier />,
       },
       {
+        path: "suppliers/qhse-validation",
+        element: <QhseSupplierValidation />,
+      },
+      {
         path: "catalog",
         element: <Catalog />,
       },
@@ -322,6 +329,10 @@ export const router = createBrowserRouter([
       {
         path: "flow-log",
         element: <FlowLogPage />,
+      },
+      {
+        path: "flow-anomaly-analysis",
+        element: <FlowAnomalyAnalysisPage />,
       },
       {
         path: "ml-training",

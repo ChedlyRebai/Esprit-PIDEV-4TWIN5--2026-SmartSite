@@ -33,6 +33,7 @@ import { MLTrainingEnhancedService } from './services/ml-training-enhanced.servi
 import { OrdersTrackingService } from './services/orders-tracking.service';
 import { StockPredictionService } from './services/stock-prediction.service';
 import { MLTrainingService } from './services/ml-training.service';
+import { AutoMLPredictionService } from './services/auto-ml-prediction.service';
 import { SupplierRatingService } from './services/supplier-rating.service';
 import { IntelligentRecommendationService } from './services/intelligent-recommendation.service';
 import { SitesService } from '../sites/sites.service';
@@ -68,6 +69,7 @@ import { WebSocketService } from './services/websocket.service';
 import { AnomalyEmailService } from '../common/email/anomaly-email.service';
 import { DailyReportService } from './services/daily-report.service';
 import { WeatherService } from './services/weather.service';
+import { MLPredictionClientService } from './services/ml-prediction-client.service';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -157,12 +159,14 @@ import * as fs from 'fs';
     SupplierRatingService,
     StockPredictionService,
     MLTrainingService,
+    AutoMLPredictionService,
     IntelligentRecommendationService,
     SitesService,
     WebSocketService,
     AnomalyEmailService,
     DailyReportService,
     WeatherService,
+    MLPredictionClientService,
   ],
   exports: [
     MaterialsService,
@@ -179,12 +183,21 @@ import * as fs from 'fs';
     SupplierRatingService,
     StockPredictionService,
     MLTrainingService,
+    AutoMLPredictionService,
     IntelligentRecommendationService,
     SitesService,
     WebSocketService,
     AnomalyEmailService,
     DailyReportService,
     WeatherService,
+    MLPredictionClientService,
   ],
 })
-export class MaterialsModule {}
+export class MaterialsModule {
+  constructor(private readonly autoMLService: AutoMLPredictionService) {
+    // Entraîner automatiquement au démarrage
+    this.autoMLService.autoTrainOnStartup().catch((error) => {
+      console.error('❌ Erreur entraînement automatique:', error);
+    });
+  }
+}

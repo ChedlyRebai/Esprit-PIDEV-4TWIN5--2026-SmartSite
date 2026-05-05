@@ -22,14 +22,12 @@ import {
 import { toast } from 'sonner';
 import {
   Package,
-  TrendingUp,
   AlertTriangle,
   Plus,
   RefreshCw,
   Edit,
   Trash2,
   Building2,
-  BarChart3,
   CheckCircle,
   Clock,
   History,
@@ -92,7 +90,7 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
         setSelectedSiteName(sitesData[0].nom);
       }
     } catch (error) {
-      console.error('Erreur chargement sites:', error);
+      console.error('Error loading sites:', error);
     }
   };
 
@@ -102,8 +100,14 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
       const materialsList = Array.isArray(materialsData) ? materialsData : materialsData.data || [];
       setMaterials(materialsList);
     } catch (error) {
-      console.error('Erreur chargement materiaux:', error);
+      console.error('Error loading materials:', error);
     }
+  };
+
+  // ✅ Filtrer les matériaux par site sélectionné
+  const getFilteredMaterials = () => {
+    if (!selectedSiteId) return materials;
+    return materials.filter(m => m.siteId === selectedSiteId);
   };
 
   const loadRequirements = async () => {
@@ -113,7 +117,7 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
       const data = await consumptionService.getRequirementsBySite(selectedSiteId);
       setRequirements(data);
     } catch (error) {
-      console.error('Erreur chargement exigences:', error);
+      console.error('Error loading requirements:', error);
     } finally {
       setLoading(false);
     }
@@ -125,26 +129,26 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
       const data = await consumptionService.getSiteStats(selectedSiteId, selectedSiteName);
       setStats(data);
     } catch (error) {
-      console.error('Erreur chargement stats:', error);
+      console.error('Error loading stats:', error);
     }
   };
 
   const handleAddRequirement = async () => {
     if (!formData.materialId) {
-      toast.error('Veuillez selectionner un materiau');
+      toast.error('Please select a material');
       return;
     }
     if (formData.initialQuantity <= 0) {
-      toast.error('La quantite initiale doit etre superieure a 0');
+      toast.error('Initial quantity must be greater than 0');
       return;
     }
     if (!selectedSiteId) {
-      toast.error('Aucun chantier selectionne');
+      toast.error('No site selected');
       return;
     }
 
     try {
-      console.log('📤 Envoi de la requête createRequirement:', {
+      console.log('📤 Sending createRequirement request:', {
         siteId: selectedSiteId,
         materialId: formData.materialId,
         initialQuantity: formData.initialQuantity,
@@ -157,21 +161,21 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
         initialQuantity: formData.initialQuantity,
         notes: formData.notes,
       });
-      toast.success('Exigence ajoutee avec succes');
+      toast.success('Requirement added successfully');
       setShowAddDialog(false);
       setFormData({ materialId: '', initialQuantity: 0, notes: '' });
       loadRequirements();
       loadStats();
-      setHistoryRefreshKey(prev => prev + 1); // Rafraîchir l'historique
+      setHistoryRefreshKey(prev => prev + 1); // Refresh history
     } catch (error: any) {
-      console.error('❌ Erreur createRequirement:', error.response?.data);
+      console.error('❌ Error createRequirement:', error.response?.data);
       
-      // Afficher le message d'erreur détaillé du backend
-      const errorMessage = error.response?.data?.message || error.message || "Erreur lors de l'ajout";
+      // Display detailed error message from backend
+      const errorMessage = error.response?.data?.message || error.message || "Error adding requirement";
       
-      // Si c'est une erreur de validation
+      // If it's a validation error
       if (Array.isArray(error.response?.data?.message)) {
-        toast.error(`Erreur de validation: ${error.response.data.message.join(', ')}`);
+        toast.error(`Validation error: ${error.response.data.message.join(', ')}`);
       } else {
         toast.error(errorMessage);
       }
@@ -181,12 +185,12 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
   const handleUpdateConsumption = async () => {
     if (!selectedRequirement) return;
     if (updateQuantity < 0 || updateQuantity > selectedRequirement.initialQuantity) {
-      toast.error(`La consommation doit etre entre 0 et ${selectedRequirement.initialQuantity}`);
+      toast.error(`Consumption must be between 0 and ${selectedRequirement.initialQuantity}`);
       return;
     }
 
     try {
-      // 🔥 FIX: Extraire l'ID si materialId est un objet
+      // 🔥 FIX: Extract ID if materialId is an object
       const materialId = typeof selectedRequirement.materialId === 'object' 
         ? (selectedRequirement.materialId as any)._id 
         : selectedRequirement.materialId;
@@ -195,62 +199,62 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
         consumedQuantity: updateQuantity,
         notes: updateNotes,
       });
-      toast.success('Consommation mise a jour');
+      toast.success('Consumption updated');
       setShowUpdateDialog(false);
       setSelectedRequirement(null);
       setUpdateQuantity(0);
       setUpdateNotes('');
       loadRequirements();
       loadStats();
-      setHistoryRefreshKey(prev => prev + 1); // Rafraîchir l'historique
+      setHistoryRefreshKey(prev => prev + 1); // Refresh history
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la mise a jour');
+      toast.error(error.response?.data?.message || 'Error updating consumption');
     }
   };
 
   const handleAddConsumption = async (requirement: MaterialRequirement, quantity: number) => {
     if (quantity <= 0) {
-      toast.error('La quantite doit etre superieure a 0');
+      toast.error('Quantity must be greater than 0');
       return;
     }
     if (requirement.consumedQuantity + quantity > requirement.initialQuantity) {
-      toast.error(`La consommation totale ne peut pas depasser ${requirement.initialQuantity}`);
+      toast.error(`Total consumption cannot exceed ${requirement.initialQuantity}`);
       return;
     }
 
     try {
-      // 🔥 FIX: Extraire l'ID si materialId est un objet
+      // 🔥 FIX: Extract ID if materialId is an object
       const materialId = typeof requirement.materialId === 'object' 
         ? (requirement.materialId as any)._id 
         : requirement.materialId;
       
       await consumptionService.addConsumption(selectedSiteId, materialId, quantity);
-      toast.success(`${quantity} ${requirement.materialUnit} consomme(s)`);
+      toast.success(`${quantity} ${requirement.materialUnit} consumed`);
       setAddQuantityByRequirement((prev) => ({ ...prev, [requirement._id]: 0 }));
       loadRequirements();
       loadStats();
-      setHistoryRefreshKey(prev => prev + 1); // Rafraîchir l'historique
+      setHistoryRefreshKey(prev => prev + 1); // Refresh history
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erreur lors de l'ajout");
+      toast.error(error.response?.data?.message || "Error adding consumption");
     }
   };
 
   const handleDeleteRequirement = async (requirement: MaterialRequirement) => {
-    if (!window.confirm(`Supprimer l'exigence pour ${requirement.materialName} ?`)) return;
+    if (!window.confirm(`Delete requirement for ${requirement.materialName}?`)) return;
 
     try {
-      // 🔥 FIX: Extraire l'ID si materialId est un objet
+      // 🔥 FIX: Extract ID if materialId is an object
       const materialId = typeof requirement.materialId === 'object' 
         ? (requirement.materialId as any)._id 
         : requirement.materialId;
       
       await consumptionService.deleteRequirement(selectedSiteId, materialId);
-      toast.success('Exigence supprimee');
+      toast.success('Requirement deleted');
       loadRequirements();
       loadStats();
-      setHistoryRefreshKey(prev => prev + 1); // Rafraîchir l'historique
+      setHistoryRefreshKey(prev => prev + 1); // Refresh history
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
+      toast.error(error.response?.data?.message || 'Error deleting requirement');
     }
   };
 
@@ -273,8 +277,8 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
         <div className="flex items-center gap-4">
           <Building2 className="h-6 w-6 text-blue-600" />
           <div>
-            <h2 className="text-xl font-bold">Suivi de consommation par chantier</h2>
-            <p className="text-sm text-gray-500">Gestion intelligente des materiaux par chantier</p>
+            <h2 className="text-xl font-bold">Site Consumption Tracking</h2>
+            <p className="text-sm text-gray-500">Intelligent material management by site</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -283,7 +287,7 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
             setSelectedSiteName(sites.find(s => s._id === value)?.nom || '');
           }}>
             <SelectTrigger className="w-64">
-              <SelectValue placeholder="Selectionner un chantier" />
+              <SelectValue placeholder="Select a site" />
             </SelectTrigger>
             <SelectContent>
               {sites.map((site) => (
@@ -295,7 +299,7 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
           </Select>
           <Button variant="outline" onClick={loadRequirements} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
+            Refresh
           </Button>
           <Button 
             variant="outline" 
@@ -303,30 +307,40 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
             onClick={() => {
               if (requirements.length > 0) {
                 const firstReq = requirements[0];
-                const materialId = typeof firstReq.materialId === 'object' 
-                  ? (firstReq.materialId as any)._id 
-                  : firstReq.materialId;
+                // ✅ FIX: Vérifier que materialId existe avant d'accéder à _id
+                let materialId: string;
+                if (typeof firstReq.materialId === 'object' && firstReq.materialId !== null) {
+                  materialId = (firstReq.materialId as any)._id || '';
+                } else {
+                  materialId = firstReq.materialId || '';
+                }
+                
+                if (!materialId) {
+                  toast.error('Material ID not found');
+                  return;
+                }
+                
                 setSelectedMaterialForReport({
                   materialId,
                   materialName: firstReq.materialName
                 });
                 setShowAIReport(true);
               } else {
-                toast.error('Aucun matériau disponible pour le rapport');
+                toast.error('No material available for report');
               }
             }}
             disabled={requirements.length === 0}
           >
             <Brain className="h-4 w-4 mr-2" />
-            Rapport IA
+            AI Report
           </Button>
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Ajouter un materiau
+            Add Material
           </Button>
           {onClose && (
             <Button variant="ghost" onClick={onClose}>
-              Fermer
+              Close
             </Button>
           )}
         </div>
@@ -334,10 +348,10 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
 
       {stats && stats.materialsCount > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Quantite totale</p><p className="text-2xl font-bold">{stats.totalInitialQuantity.toLocaleString()}</p><p className="text-xs text-gray-400">prevue</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Consomme</p><p className="text-2xl font-bold text-green-600">{stats.totalConsumedQuantity.toLocaleString()}</p><p className="text-xs text-gray-400">{stats.totalInitialQuantity > 0 ? ((stats.totalConsumedQuantity / stats.totalInitialQuantity) * 100).toFixed(1) : '0.0'}%</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Restant</p><p className="text-2xl font-bold text-yellow-600">{stats.totalRemainingQuantity.toLocaleString()}</p><p className="text-xs text-gray-400">a consommer</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Progression globale</p><p className="text-2xl font-bold">{stats.overallProgress.toFixed(1)}%</p><p className="text-xs text-gray-400">{stats.materialsCount} materiaux</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Total Quantity</p><p className="text-2xl font-bold">{stats.totalInitialQuantity.toLocaleString()}</p><p className="text-xs text-gray-400">planned</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Consumed</p><p className="text-2xl font-bold text-green-600">{stats.totalConsumedQuantity.toLocaleString()}</p><p className="text-xs text-gray-400">{stats.totalInitialQuantity > 0 ? ((stats.totalConsumedQuantity / stats.totalInitialQuantity) * 100).toFixed(1) : '0.0'}%</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Remaining</p><p className="text-2xl font-bold text-yellow-600">{stats.totalRemainingQuantity.toLocaleString()}</p><p className="text-xs text-gray-400">to consume</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-sm text-gray-500">Overall Progress</p><p className="text-2xl font-bold">{stats.overallProgress.toFixed(1)}%</p><p className="text-xs text-gray-400">{stats.materialsCount} materials</p></CardContent></Card>
         </div>
       )}
 
@@ -345,11 +359,11 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="consumption" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Consommation
+            Consumption
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
-            Historique
+            History
           </TabsTrigger>
         </TabsList>
 
@@ -358,19 +372,19 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Materiaux du chantier {selectedSiteName && `- ${selectedSiteName}`}
+                Site Materials {selectedSiteName && `- ${selectedSiteName}`}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="text-center py-12">
                   <RefreshCw className="h-8 w-8 animate-spin mx-auto" />
-                  <p className="mt-2 text-gray-500">Chargement...</p>
+                  <p className="mt-2 text-gray-500">Loading...</p>
                 </div>
               ) : requirements.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p>Aucun materiau defini pour ce chantier</p>
+                  <p>No materials defined for this site</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -393,68 +407,68 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
                           </Button>
                           <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteRequirement(req)}>
                             <Trash2 className="h-4 w-4" />
-                      </Button>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <div><p className="text-xs text-gray-500">Planned Quantity</p><p className="font-medium">{req.initialQuantity} {req.materialUnit}</p></div>
+                        <div><p className="text-xs text-gray-500">Consumed</p><p className="font-medium text-green-600">{req.consumedQuantity} {req.materialUnit}</p></div>
+                        <div><p className="text-xs text-gray-500">Remaining</p><p className="font-medium text-yellow-600">{req.remainingQuantity} {req.materialUnit}</p></div>
+                      </div>
+
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                          <span>Progress</span>
+                          <span>{req.progressPercentage.toFixed(1)}%</span>
+                        </div>
+                        <Progress value={req.progressPercentage} />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Consumed quantity"
+                          className="w-40 text-sm"
+                          min={0}
+                          max={req.remainingQuantity}
+                          value={addQuantityByRequirement[req._id] || ''}
+                          onChange={(e) =>
+                            setAddQuantityByRequirement((prev) => ({
+                              ...prev,
+                              [req._id]: parseInt(e.target.value, 10) || 0,
+                            }))
+                          }
+                        />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleAddConsumption(req, addQuantityByRequirement[req._id] || 0)}
+                          disabled={(addQuantityByRequirement[req._id] || 0) <= 0}
+                        >
+                          Add Consumption
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                    <div><p className="text-xs text-gray-500">Quantite prevue</p><p className="font-medium">{req.initialQuantity} {req.materialUnit}</p></div>
-                    <div><p className="text-xs text-gray-500">Consomme</p><p className="font-medium text-green-600">{req.consumedQuantity} {req.materialUnit}</p></div>
-                    <div><p className="text-xs text-gray-500">Restant</p><p className="font-medium text-yellow-600">{req.remainingQuantity} {req.materialUnit}</p></div>
-                  </div>
-
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Progression</span>
-                      <span>{req.progressPercentage.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={req.progressPercentage} />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      placeholder="Quantite consommee"
-                      className="w-40 text-sm"
-                      min={0}
-                      max={req.remainingQuantity}
-                      value={addQuantityByRequirement[req._id] || ''}
-                      onChange={(e) =>
-                        setAddQuantityByRequirement((prev) => ({
-                          ...prev,
-                          [req._id]: parseInt(e.target.value, 10) || 0,
-                        }))
-                      }
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleAddConsumption(req, addQuantityByRequirement[req._id] || 0)}
-                      disabled={(addQuantityByRequirement[req._id] || 0) <= 0}
-                    >
-                      Ajouter consommation
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </TabsContent>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-    <TabsContent value="history">
-      <ConsumptionHistory key={historyRefreshKey} siteId={selectedSiteId} />
-    </TabsContent>
-  </Tabs>
+        <TabsContent value="history">
+          <ConsumptionHistory key={historyRefreshKey} siteId={selectedSiteId} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter un materiau au chantier</DialogTitle>
+            <DialogTitle>Add Material to Site</DialogTitle>
           </DialogHeader>
           <MaterialRequirementForm
-            materials={materials}
+            materials={getFilteredMaterials()}
             materialId={formData.materialId}
             initialQuantity={formData.initialQuantity}
             notes={formData.notes}
@@ -471,18 +485,18 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Mettre a jour la consommation - {selectedRequirement?.materialName}
+              Update Consumption - {selectedRequirement?.materialName}
             </DialogTitle>
           </DialogHeader>
           {selectedRequirement && (
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="p-2 bg-gray-50 rounded"><p className="text-xs text-gray-500">Prevu</p><p className="font-medium">{selectedRequirement.initialQuantity} {selectedRequirement.materialUnit}</p></div>
-                <div className="p-2 bg-green-50 rounded"><p className="text-xs text-gray-500">Consomme</p><p className="font-medium text-green-600">{updateQuantity} / {selectedRequirement.initialQuantity}</p></div>
-                <div className="p-2 bg-yellow-50 rounded"><p className="text-xs text-gray-500">Restant</p><p className="font-medium text-yellow-600">{selectedRequirement.initialQuantity - updateQuantity}</p></div>
+                <div className="p-2 bg-gray-50 rounded"><p className="text-xs text-gray-500">Planned</p><p className="font-medium">{selectedRequirement.initialQuantity} {selectedRequirement.materialUnit}</p></div>
+                <div className="p-2 bg-green-50 rounded"><p className="text-xs text-gray-500">Consumed</p><p className="font-medium text-green-600">{updateQuantity} / {selectedRequirement.initialQuantity}</p></div>
+                <div className="p-2 bg-yellow-50 rounded"><p className="text-xs text-gray-500">Remaining</p><p className="font-medium text-yellow-600">{selectedRequirement.initialQuantity - updateQuantity}</p></div>
               </div>
               <div>
-                <Label>Nouvelle quantite consommee</Label>
+                <Label>New Consumed Quantity</Label>
                 <Input
                   type="number"
                   min={0}
@@ -496,19 +510,19 @@ export default function SiteConsumptionTracker({ siteId: initialSiteId, siteName
                 <Input
                   value={updateNotes}
                   onChange={(e) => setUpdateNotes(e.target.value)}
-                  placeholder="Raison de la mise a jour..."
+                  placeholder="Reason for update..."
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowUpdateDialog(false)}>Annuler</Button>
-                <Button onClick={handleUpdateConsumption}>Mettre a jour</Button>
+                <Button variant="outline" onClick={() => setShowUpdateDialog(false)}>Cancel</Button>
+                <Button onClick={handleUpdateConsumption}>Update</Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Rapport IA */}
+      {/* AI Report Dialog */}
       {showAIReport && selectedMaterialForReport && (
         <ConsumptionAIReport
           materialId={selectedMaterialForReport.materialId}

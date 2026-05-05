@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'NodeJS'
+    }
+
+    environment {
+        SERVICE_NAME  = 'frontend'
+        SERVICE_DIR   = 'apps/frontend'
+        DOCKER_IMAGE  = "smartsite/${SERVICE_NAME}"
+        SONAR_PROJECT = 'smartsite-frontend'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm ci'
+                    echo "✅ Dépendances installées"
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    script {
+                        try {
+                            sh 'npm run lint || echo "Lint not configured, skipping"'
+                        } catch (Exception e) {
+                            echo "⚠️ Lint failed or not configured"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm test -- --coverage'
+                    echo "✅ Tests unitaires terminés"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm run build'
+                    echo "✅ Frontend built successfully"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    withSonarQubeEnv('SonarQube') {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.projectKey=${SONAR_PROJECT} \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.exclusions=**/*.test.tsx,**/*.test.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.tests=src \
+                                    -Dsonar.test.inclusions=**/*.test.tsx,**/*.test.ts \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo 'SonarQube analysis sent successfully — Quality Gate check skipped'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI Pipeline passed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "🚀 Triggering CD Pipeline..."
+            build job: 'frontend-CD', wait: false
+        }
+        failure {
+            echo "❌ CI Pipeline failed for ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

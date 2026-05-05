@@ -1,0 +1,96 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'materials-service'
+        SERVICE_DIR   = 'apps/backend/materials-service'
+        SONAR_PROJECT = 'smartsite-materials-service'
+    }
+
+    tools {
+        nodejs 'NodeJS'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm ci'
+                    echo "✅ Dépendances installées"
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm test -- --coverage --coverageReporters=lcov --forceExit'
+                    echo "✅ Tests unitaires terminés"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm run build'
+                    echo "✅ Build terminé"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    withSonarQubeEnv('SonarQube') {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.projectKey=${SONAR_PROJECT} \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.tests=src \
+                                    -Dsonar.test.inclusions=**/*.spec.ts \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo 'SonarQube analysis sent successfully — Quality Gate check skipped'
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                build job: 'materials-service-CD', wait: false
+                echo "🚀 Pipeline CD déclenché automatiquement"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        failure {
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

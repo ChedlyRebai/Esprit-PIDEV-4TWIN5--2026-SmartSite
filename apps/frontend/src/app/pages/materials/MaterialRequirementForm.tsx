@@ -36,22 +36,22 @@ export default function MaterialRequirementForm({
   return (
     <div className="space-y-4">
       <div>
-        <Label>Materiau</Label>
+        <Label>Material</Label>
         <Select value={materialId} onValueChange={onMaterialIdChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Selectionner un materiau" />
+            <SelectValue placeholder="Select a material" />
           </SelectTrigger>
           <SelectContent>
             {materials.map((m) => (
               <SelectItem key={m._id} value={m._id}>
-                {m.name} ({m.code}) - {m.quantity} {m.unit} en stock
+                {m.name} ({m.code}) - {m.quantity} {m.unit} in stock
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div>
-        <Label>Quantite prevue pour le chantier</Label>
+        <Label>Planned quantity for the site</Label>
         <Input
           type="number"
           min={0}
@@ -61,16 +61,16 @@ export default function MaterialRequirementForm({
         />
       </div>
       <div>
-        <Label>Notes (optionnel)</Label>
+        <Label>Notes (optional)</Label>
         <Input
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
-          placeholder="Informations supplementaires..."
+          placeholder="Additional information..."
         />
       </div>
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>Annuler</Button>
-        <Button onClick={onSubmit}>Ajouter</Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button onClick={onSubmit}>Add</Button>
       </div>
     </div>
   );

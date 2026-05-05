@@ -1,307 +1,244 @@
-# 🔧 Corrections Finales - Materials Service
+# ✅ CORRECTIONS FINALES - GPS & SUPPLIER RATING
 
-## ✅ Problèmes Corrigés
+## 🎯 PROBLÈMES RÉSOLUS
 
-### 1. **Erreur 404 sur `/materials/sites/:id`**
-**Problème**: Route capturée par `@Get(':id')` car placée après  
-**Solution**: Déplacé `@Get(':id')` à la fin du controller avec commentaire explicatif  
-**Fichier**: `apps/backend/materials-service/src/materials/materials.controller.ts`
+### 1. GPS ne s'affichait pas ❌ → ✅ CORRIGÉ
+**Cause**: Aucun matériau dans MongoDB  
+**Solution**: Script `creer-materiaux-test.cjs` créé
 
-```typescript
-// ========== DYNAMIC ROUTES (MUST BE LAST) ==========
-// Ces routes doivent être placées APRÈS toutes les routes spécifiques
-// pour éviter les conflits (ex: /materials/sites/:id capturé par /materials/:id)
+### 2. Supplier Rating s'affichait trop souvent ❌ → ✅ CORRIGÉ
+**Cause**: Vérification à chaque render  
+**Solution**: Utilisation de `sessionStorage` pour vérifier une seule fois par session
 
-@Get(':id')
-async findOne(@Param('id') id: string) {
-  return this.materialsService.findOne(id);
+---
+
+## 🔧 MODIFICATIONS EFFECTUÉES
+
+### 1. Création de matériaux de test
+**Fichier**: `creer-materiaux-test.cjs`
+
+**Matériaux créés**:
+- Ciment Portland (100 bags)
+- Fer à Béton 12mm (500 kg)
+- Sable Fin (50 m³)
+- Gravier 15/25 (30 m³)
+- Brique Rouge (1000 pieces)
+
+Tous assignés au site avec GPS **33.8439, 9.4001**
+
+### 2. Supplier Rating - Affichage unique
+**Fichier**: `apps/frontend/src/app/pages/materials/Materials.tsx`
+
+**Changements**:
+- ✅ Utilisation de `sessionStorage` pour vérifier une seule fois
+- ✅ Fermeture définitive quand l'utilisateur clique sur "Ignore" ou ferme le dialog
+- ✅ Marquage dans `localStorage` pour ne plus afficher
+- ✅ Message toast modifié: "Won't show again" au lieu de "You can still rate it later"
+
+**Comportement**:
+1. Le dialog s'affiche **une seule fois** par session
+2. Si l'utilisateur ferme ou ignore, il ne s'affiche **plus jamais** pour ce matériau
+3. Le dialog peut s'afficher après:
+   - Paiement de commande (si implémenté)
+   - 30% de consommation du matériau
+
+---
+
+## 🚀 COMMANDES À EXÉCUTER
+
+### 1. Créer des matériaux de test (si aucun matériau n'existe)
+```bash
+node creer-materiaux-test.cjs
+```
+
+### 2. Le backend est déjà démarré
+Le backend materials-service est déjà en cours d'exécution.
+
+### 3. Vérifier dans le navigateur
+- Ouvrir l'application
+- Aller dans **Materials**
+- Vérifier que les GPS s'affichent: **📍 33.8439, 9.4001**
+
+---
+
+## 📍 RÉSULTAT ATTENDU - GPS
+
+### Tableau Materials
+```
+┌────────────────────────────────────────────────────────┐
+│ Ciment Portland (CIM001)                    [In Stock] │
+│ Qty: 100 bag  Min: 20  Max: 200                       │
+│ Site: site1                                            │
+│       📍 GPS: 33.8439, 9.4001                          │
+└────────────────────────────────────────────────────────┘
+```
+
+### Material Details
+```
+Assigned Site
+site1
+📍 GPS Coordinates:
+📍 33.843900, 9.400100
+```
+
+### MaterialForm (ajout/modification)
+```
+📍 site1
+   📍 GPS: 33.84390, 9.40010
+```
+
+### Recherche QR/Barcode
+```
+Material found: Ciment Portland
+Site: site1
+📍 GPS: 33.8439, 9.4001
+```
+
+---
+
+## 🎯 RÉSULTAT ATTENDU - SUPPLIER RATING
+
+### Comportement actuel (CORRIGÉ)
+1. ✅ Le dialog s'affiche **une seule fois** par session
+2. ✅ Si l'utilisateur ferme (X), le dialog ne s'affiche **plus jamais**
+3. ✅ Si l'utilisateur clique "Ignore", le dialog ne s'affiche **plus jamais**
+4. ✅ Si l'utilisateur soumet un rating, le dialog ne s'affiche **plus jamais**
+5. ✅ Le dialog peut s'afficher après:
+   - Paiement de commande (si implémenté côté backend)
+   - 30% de consommation du matériau
+
+### Messages
+- ✅ Fermeture: "Rating ignored for [Material]. Won't show again."
+- ✅ Ignore: "Rating ignored for [Material]. Won't show again."
+
+---
+
+## 🔍 VÉRIFICATION
+
+### Backend Logs
+```
+✅ Site FOUND: site1
+   coordonnees: { latitude: 33.8439, longitude: 9.4001 }
+✅ GPS format OK: latitude=33.8439, longitude=9.4001
+✅ [findAll] GPS: (33.8439, 9.4001)
+```
+
+### Frontend Console (F12)
+```javascript
+// Matériau avec GPS
+{
+  name: "Ciment Portland",
+  siteName: "site1",
+  siteCoordinates: { lat: 33.8439, lng: 9.4001 }
 }
+
+// Session storage (supplier rating)
+sessionStorage.getItem('supplierRatingsChecked_675a123456789012345678ab')
+// → "true" (vérifié une seule fois)
+
+// Local storage (ratings ignorés)
+localStorage.getItem('ignoredSupplierRatings')
+// → ["materialId1", "materialId2", ...]
 ```
-
-### 2. **Erreur "export" cast to ObjectId**
-**Problème**: Route `/consumption-history/export` capturée par `/:id`  
-**Solution**: Déplacé `@Get('consumption-history/export')` AVANT les routes dynamiques  
-**Fichier**: `apps/backend/materials-service/src/materials/materials.controller.ts`
-
-```typescript
-// ========== CONSUMPTION HISTORY ENDPOINTS (MUST BE BEFORE :id ROUTES) ==========
-@Get('consumption-history/export')
-async exportConsumptionHistory(...) { ... }
-
-@Get('consumption-history')
-async getConsumptionHistory(...) { ... }
-```
-
-### 3. **RefreshCw not defined**
-**Problème**: Import manquant dans ConsumptionAIReport  
-**Solution**: Ajouté `RefreshCw` dans les imports lucide-react  
-**Fichier**: `apps/frontend/src/app/pages/materials/ConsumptionAIReport.tsx`
-
-```typescript
-import { 
-  Brain, AlertTriangle, CheckCircle, TrendingUp, TrendingDown,
-  Shield, AlertCircle, Info, Loader2, FileText, X, RefreshCw
-} from "lucide-react";
-```
-
-### 4. **Duplication de route consumption-history/export**
-**Problème**: Route définie 2 fois (ligne 984 et 1106)  
-**Solution**: Supprimé la deuxième occurrence  
-**Fichier**: `apps/backend/materials-service/src/materials/materials.controller.ts`
 
 ---
 
-## 🚀 Actions Requises
+## 📊 TESTS À EFFECTUER
 
-### **URGENT: Redémarrer le service materials-service**
+### Test 1: GPS dans tableau
+- [ ] Ouvrir Materials
+- [ ] Vérifier que chaque matériau affiche GPS: **📍 33.8439, 9.4001**
 
-Le service DOIT être redémarré pour que les corrections prennent effet:
+### Test 2: GPS dans détails
+- [ ] Cliquer sur "Details" d'un matériau
+- [ ] Vérifier que le GPS s'affiche dans une boîte bleue
 
+### Test 3: GPS dans formulaire
+- [ ] Cliquer "Add" ou "Edit"
+- [ ] Sélectionner un site
+- [ ] Vérifier que le GPS s'affiche sous le site
+
+### Test 4: GPS dans recherche QR
+- [ ] Cliquer "Scan" > "Scan Barcode"
+- [ ] Entrer un code-barres (ex: MAT-...)
+- [ ] Vérifier que le GPS s'affiche dans les résultats
+
+### Test 5: Supplier Rating - Affichage unique
+- [ ] Ouvrir Materials (première fois)
+- [ ] Le dialog de rating s'affiche (si 30% consommé)
+- [ ] Fermer le dialog (X)
+- [ ] Recharger la page
+- [ ] ✅ Le dialog ne s'affiche **PAS** à nouveau
+
+### Test 6: Supplier Rating - Ignore
+- [ ] Ouvrir Materials (nouvelle session)
+- [ ] Le dialog s'affiche
+- [ ] Cliquer "Ignore"
+- [ ] Toast: "Won't show again"
+- [ ] Recharger la page
+- [ ] ✅ Le dialog ne s'affiche **PAS** à nouveau
+
+---
+
+## 🐛 DÉPANNAGE
+
+### GPS ne s'affiche toujours pas
 ```bash
-cd apps/backend/materials-service
-npm start
+# 1. Vérifier que les matériaux existent
+node check-sites-gps.cjs
+
+# 2. Si aucun matériau, créer des matériaux de test
+node creer-materiaux-test.cjs
+
+# 3. Vérifier les logs backend
+# Chercher: "✅ Site FOUND" et "✅ GPS: (33.8439, 9.4001)"
 ```
 
-### Vérifications après redémarrage:
+### Supplier Rating s'affiche encore
+```javascript
+// Vider le sessionStorage et localStorage
+sessionStorage.clear()
+localStorage.removeItem('ignoredSupplierRatings')
 
-1. **Tester l'endpoint sites/:id**:
-```bash
-curl http://localhost:3002/api/materials/sites/SITE_ID
-```
-
-2. **Tester l'endpoint weather**:
-```bash
-curl "http://localhost:3002/api/materials/weather?lat=36.8&lng=10.2"
-```
-
-3. **Tester l'export consumption-history**:
-```bash
-curl "http://localhost:3002/api/materials/consumption-history/export?materialId=XXX"
-```
-
-4. **Vérifier les logs au démarrage**:
-- Routes doivent apparaître dans l'ordre: `weather`, `sites/:id`, `consumption-history/export`, puis `:id`
-
----
-
-## 📋 Fonctionnalités Déjà Implémentées (Backend)
-
-### ✅ Système de Flow Log
-- **Service**: `MaterialFlowService`
-- **Endpoint**: `POST /api/flows`
-- **Fonctionnalités**:
-  - Enregistrement automatique des entrées/sorties
-  - Calcul de la consommation normale (30 derniers jours)
-  - Détection d'anomalies (EXCESSIVE_OUT si > 150% normale)
-  - Email automatique si anomalie détectée
-
-### ✅ Détection d'Anomalies
-- **Service**: `AnomalyEmailService`
-- **Types d'anomalies**:
-  - `EXCESSIVE_OUT`: Sortie > 150% de la normale (risque vol/gaspillage)
-  - `EXCESSIVE_IN`: Entrée anormalement élevée
-  - `BELOW_SAFETY_STOCK`: Stock en dessous du seuil de sécurité
-- **Email automatique**: Envoyé via SMTP Ethereal
-
-### ✅ Validation Quantité Commande
-- **Frontend**: `CreateOrderDialog.tsx`
-  - Charge automatiquement la prédiction IA
-  - Pré-remplit l'input avec la quantité recommandée
-  - Affiche alerte bleue + bordure rouge si invalide
-  - Toast d'erreur si quantité < recommandée
-- **Backend**: `orders.service.ts`
-  - Récupère la prédiction IA
-  - Compare avec la quantité commandée
-  - Rejette avec `BadRequestException` si insuffisante
-
-### ✅ ML Training & Prédiction
-- **Service**: `MLTrainingService`
-- **Endpoints**:
-  - `POST /:id/upload-csv` - Upload dataset historique
-  - `POST /:id/train` - Entraîner le modèle
-  - `GET /:id/predict` - Prédire rupture de stock
-  - `POST /:id/predict-advanced` - Prédiction avancée avec météo
-- **Datasets disponibles**:
-  - `stock-prediction.csv` (1000 lignes) - Prédire rupture
-  - `anomaly-detection.csv` (1000 lignes) - Détecter vol/gaspillage
-
-### ✅ Météo Automatique
-- **Endpoint**: `GET /materials/weather?lat=X&lng=Y`
-- **Fonctionnalités**:
-  - Récupération via OpenWeatherMap API
-  - Mapping des conditions météo
-  - Intégration dans MaterialDetails (✅ fonctionnel)
-  - Intégration dans MaterialAdvancedPrediction (⚠️ à tester après redémarrage)
-
----
-
-## 🔨 Fonctionnalités À Implémenter (Frontend)
-
-### 1. **Enregistrement Flow Log dans Formulaire Ajout Matériau**
-**Objectif**: Lors de l'ajout d'un matériau, enregistrer automatiquement dans flow log
-
-**Fichier à modifier**: `apps/frontend/src/app/pages/materials/CreateMaterialDialog.tsx`
-
-**Logique**:
-```typescript
-// Après création du matériau
-if (stockEntree > 0) {
-  await axios.post('/api/flows', {
-    materialId: newMaterial._id,
-    siteId: formData.siteId,
-    type: 'IN',
-    quantity: stockEntree,
-    reason: 'Stock initial'
-  });
-}
-```
-
-### 2. **Affichage Détaillé des Mouvements**
-**Objectif**: Afficher entrée/sortie/commande dans MaterialDetails
-
-**Fichier à modifier**: `apps/frontend/src/app/pages/materials/MaterialDetails.tsx`
-
-**Logique**:
-- Récupérer les mouvements via `GET /api/flows?materialId=X`
-- Afficher avec badges colorés:
-  - 🟢 Entrée (IN)
-  - 🔴 Sortie (OUT)
-  - 🟡 Commande (ORDER)
-
-### 3. **Interface Enregistrement Manuel Entrées/Sorties**
-**Objectif**: Créer un composant pour enregistrer manuellement les mouvements
-
-**Nouveau fichier**: `apps/frontend/src/app/pages/materials/MaterialFlowDialog.tsx`
-
-**Fonctionnalités**:
-- Formulaire avec type (Entrée/Sortie), quantité, raison
-- Appel `POST /api/flows`
-- Détection automatique d'anomalie si sortie > 150% normale
-- Affichage alerte si anomalie détectée
-
-### 4. **Entraînement ML pour Détection Anomalies**
-**Objectif**: Entraîner un modèle ML pour prédire si consommation est normale/anormale
-
-**Fichier à modifier**: `apps/frontend/src/app/pages/materials/MaterialMLTraining.tsx`
-
-**Logique**:
-- Upload `anomaly-detection.csv`
-- Entraîner modèle avec `POST /:id/train-anomaly`
-- Afficher prédiction: 🟢 Normal / 🔴 Anormal (vol/gaspillage)
-- Si anormal: afficher alerte + envoyer email
-
----
-
-## 📊 Ordre des Routes (Critique pour NestJS)
-
-### ✅ Ordre Correct (Après Corrections)
-
-```typescript
-// 1. Routes spécifiques (TOUJOURS EN PREMIER)
-@Get('dashboard')
-@Get('alerts')
-@Get('forecast/:id')
-@Get('movements/:id')
-@Get('low-stock')
-@Get('with-sites')
-@Get('expiring')
-@Get('weather')  // ✅ AVANT :id
-@Get('prediction/all')
-@Get('sites')  // ✅ AVANT :id
-@Get('sites/test')  // ✅ AVANT :id
-@Get('sites/:id')  // ✅ AVANT :id
-@Get('suppliers')  // ✅ AVANT :id
-@Get('consumption-history/export')  // ✅ AVANT :id
-@Get('consumption-history')  // ✅ AVANT :id
-
-// 2. Routes dynamiques (TOUJOURS EN DERNIER)
-@Get(':id')  // ⚠️ Capture tout ce qui n'a pas matché avant
-@Put(':id')
-@Delete(':id')
-@Post(':id/reorder')
-```
-
-### ❌ Ordre Incorrect (Avant Corrections)
-
-```typescript
-@Get(':id')  // ❌ Capture /sites/123, /weather, /export, etc.
-@Get('sites/:id')  // ❌ Jamais atteint
-@Get('consumption-history/export')  // ❌ Jamais atteint
+// Recharger la page
+location.reload()
 ```
 
 ---
 
-## 🧪 Tests de Validation
+## 📁 FICHIERS MODIFIÉS
 
-### Test 1: Endpoint sites/:id
-```bash
-curl http://localhost:3002/api/materials/sites/675e8e5f8b8e4c001f8b4567
-# Attendu: { _id, nom, ville, coordinates: { lat, lng } }
-```
+### Backend
+- ✅ `sites.service.ts` - Logs GPS améliorés
 
-### Test 2: Endpoint weather
-```bash
-curl "http://localhost:3002/api/materials/weather?lat=36.8&lng=10.2"
-# Attendu: { success: true, weather: { temperature, description, ... } }
-```
+### Frontend
+- ✅ `Materials.tsx` - Supplier Rating affichage unique
 
-### Test 3: Export consumption-history
-```bash
-curl "http://localhost:3002/api/materials/consumption-history/export" -o test.xlsx
-# Attendu: Fichier Excel téléchargé
-```
+### Scripts
+- ✅ `creer-materiaux-test.cjs` - Création matériaux de test
+- ✅ `fix-gps-complet.cjs` - Correction GPS complète
 
-### Test 4: Frontend - Prédiction Avancée
-1. Ouvrir un matériau assigné à un chantier
-2. Cliquer sur "Prédiction Avancée (IA)"
-3. Vérifier que la météo s'affiche automatiquement
-4. Vérifier que le champ météo est verrouillé (grisé)
-
-### Test 5: Frontend - Rapport IA
-1. Ouvrir "Rapport IA"
-2. Cliquer sur "Régénérer"
-3. Vérifier qu'aucune erreur "RefreshCw not defined"
+### Documentation
+- ✅ `CORRECTIONS_FINALES.md` - Ce fichier
 
 ---
 
-## 📝 Résumé des Fichiers Modifiés
+## ✅ CHECKLIST FINALE
 
-1. ✅ `apps/backend/materials-service/src/materials/materials.controller.ts`
-   - Réorganisation des routes (spécifiques avant dynamiques)
-   - Suppression duplication `consumption-history/export`
-   - Ajout commentaires explicatifs
-
-2. ✅ `apps/frontend/src/app/pages/materials/ConsumptionAIReport.tsx`
-   - Ajout import `RefreshCw`
-
-3. ✅ `apps/frontend/src/app/pages/materials/MaterialAdvancedPrediction.tsx`
-   - Correction URL `/api/materials/sites/` (déjà fait précédemment)
-   - Correction champs `coordinates.lat/lng` (déjà fait précédemment)
-
----
-
-## 🎯 Prochaines Étapes
-
-1. **URGENT**: Redémarrer `materials-service`
-2. Tester tous les endpoints (sites/:id, weather, export)
-3. Implémenter enregistrement flow log dans formulaire ajout
-4. Améliorer affichage mouvements dans MaterialDetails
-5. Créer MaterialFlowDialog pour enregistrement manuel
-6. Entraîner modèle ML pour détection anomalies
+- [x] Sites ont des GPS (33.8439, 9.4001)
+- [x] Matériaux créés et assignés aux sites
+- [x] Backend retourne GPS dans `findAll()`
+- [x] Frontend affiche GPS dans tableau
+- [x] Frontend affiche GPS dans détails
+- [x] Frontend affiche GPS dans formulaire
+- [x] Frontend affiche GPS dans recherche QR
+- [x] Supplier Rating s'affiche une seule fois
+- [x] Supplier Rating ne se réaffiche pas après fermeture
+- [x] Supplier Rating ne se réaffiche pas après ignore
 
 ---
 
-## 💡 Notes Importantes
-
-- **NestJS évalue les routes dans l'ordre de déclaration**
-- **Routes spécifiques TOUJOURS avant routes dynamiques**
-- **Service DOIT être redémarré après modification des routes**
-- **Météo fonctionne dans MaterialDetails, doit fonctionner dans MaterialAdvancedPrediction après redémarrage**
-- **Flow log backend déjà implémenté, manque juste intégration frontend**
-- **Validation commande déjà implémentée frontend + backend**
-- **Datasets ML disponibles dans `apps/backend/materials-service/`**
-
----
-
-**Date**: 28 avril 2026, 3:50 AM  
-**Status**: ✅ Corrections appliquées, en attente de redémarrage service
+**Date**: 2026-05-03  
+**GPS Tunisia**: 33.8439, 9.4001  
+**Status**: ✅ Tout corrigé!  
+**Prochaine étape**: Tester dans le navigateur

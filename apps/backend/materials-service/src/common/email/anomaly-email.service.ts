@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 import { AnomalyType } from '../../materials/entities/material-flow-log.entity';
+
+// Import nodemailer type for TypeScript
+import type nodemailer from 'nodemailer';
 
 interface AnomalyAlertData {
   toEmail: string;
@@ -27,6 +29,8 @@ export class AnomalyEmailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private configService: ConfigService) {
+    const nodemailer = require('nodemailer');
+    
     const smtpUser =
       this.configService.get<string>('SMTP_USER') ||
       this.configService.get<string>('EMAIL_USER') ||

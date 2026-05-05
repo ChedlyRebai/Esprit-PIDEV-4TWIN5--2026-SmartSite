@@ -72,7 +72,7 @@ export default function MaterialMLTraining({
     if (!file) return;
 
     if (!file.name.endsWith('.csv')) {
-      toast.error('Veuillez sélectionner un fichier CSV');
+      toast.error('Please select a CSV file');
       return;
     }
 
@@ -82,7 +82,7 @@ export default function MaterialMLTraining({
       toast.success(result.message);
       await checkModelInfo();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'upload');
+      toast.error(error.response?.data?.message || 'Error uploading file');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -98,7 +98,7 @@ export default function MaterialMLTraining({
       toast.success(result.message);
       await checkModelInfo();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'entraînement');
+      toast.error(error.response?.data?.message || 'Error training model');
     } finally {
       setTraining(false);
     }
@@ -116,7 +116,7 @@ export default function MaterialMLTraining({
         toast.warning(result.message);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la prédiction');
+      toast.error(error.response?.data?.message || 'Error making prediction');
     } finally {
       setPredicting(false);
     }
@@ -133,10 +133,10 @@ export default function MaterialMLTraining({
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'safe': return 'Sécurisé';
-      case 'warning': return 'Attention';
-      case 'critical': return 'Critique';
-      default: return 'Inconnu';
+      case 'safe': return 'Safe';
+      case 'warning': return 'Warning';
+      case 'critical': return 'Critical';
+      default: return 'Unknown';
     }
   };
 
@@ -145,7 +145,7 @@ export default function MaterialMLTraining({
       <CardHeader className="pb-3 bg-purple-50">
         <CardTitle className="flex items-center gap-2 text-lg text-purple-700">
           <Brain className="h-5 w-5" />
-          Prédiction IA
+          AI Prediction
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -171,11 +171,11 @@ export default function MaterialMLTraining({
               ) : (
                 <Upload className="h-4 w-4 mr-2" />
               )}
-              Historique
+              History
             </Button>
             {modelInfo?.hasHistoricalData && (
               <p className="text-xs text-center text-green-600 mt-1">
-                ✓ {modelInfo?.sampleSize || 0} données
+                ✓ {modelInfo?.sampleSize || 0} records
               </p>
             )}
           </div>
@@ -193,11 +193,11 @@ export default function MaterialMLTraining({
               ) : (
                 <Brain className="h-4 w-4 mr-2" />
               )}
-              Entraîner
+              Train
             </Button>
             {modelInfo?.modelTrained && (
               <p className="text-xs text-center text-green-600 mt-1">
-                ✓ Modèle prêt
+                ✓ Model ready
               </p>
             )}
           </div>
@@ -215,7 +215,7 @@ export default function MaterialMLTraining({
               ) : (
                 <TrendingUp className="h-4 w-4 mr-2" />
               )}
-              Prédire
+              Predict
             </Button>
           </div>
         </div>
@@ -224,23 +224,23 @@ export default function MaterialMLTraining({
         {prediction && (
           <div className="p-3 bg-gray-50 rounded-lg space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Rupture de stock dans:</span>
+              <span className="text-gray-500">Out of stock in:</span>
               <span className={`font-bold ${prediction.hoursToOutOfStock < 24 ? 'text-red-600' : prediction.hoursToOutOfStock < 72 ? 'text-yellow-600' : 'text-green-600'}`}>
-                {prediction.hoursToOutOfStock}h
+                {Math.floor(prediction.hoursToOutOfStock)}h
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Consommation:</span>
+              <span className="text-gray-500">Consumption Rate:</span>
               <span className="font-medium">{prediction.consumptionRate}/h</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Stock prédit (24h):</span>
-              <span className="font-medium">{prediction.predictedStock} unités</span>
+              <span className="text-gray-500">Predicted Stock (24h):</span>
+              <span className="font-medium">{prediction.predictedStock} units</span>
             </div>
             {prediction.hoursToOutOfStock < 24 && (
               <div className="flex items-center gap-2 text-red-600 text-sm mt-2 p-2 bg-red-50 rounded">
                 <AlertCircle className="h-4 w-4" />
-                <span>Attention: Rupture imminente!</span>
+                <span>Warning: Imminent stockout!</span>
               </div>
             )}
           </div>

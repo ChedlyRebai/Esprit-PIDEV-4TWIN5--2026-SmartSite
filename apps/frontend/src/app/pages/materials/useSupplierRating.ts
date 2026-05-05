@@ -34,7 +34,7 @@ export function useSupplierRating({ materialId, userId, enabled = true }: UseSup
 
       setRatingData(data);
 
-      // Afficher le dialog si rating nécessaire
+      // Show dialog if rating is needed
       if (data.needed) {
         setShowDialog(true);
       }

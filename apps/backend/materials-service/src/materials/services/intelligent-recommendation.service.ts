@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Material } from '../entities/material.entity';
 import { MLTrainingService } from './ml-training.service';
+import { StockPredictionService } from './stock-prediction.service';
 import { ConfigService } from '@nestjs/config';
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -76,6 +77,7 @@ export class IntelligentRecommendationService {
   constructor(
     @InjectModel(Material.name) private materialModel: Model<Material>,
     private readonly mlTrainingService: MLTrainingService,
+    private readonly predictionService: StockPredictionService,
     private configService: ConfigService,
   ) {
     this.initializeSupplierConnection();
@@ -109,21 +111,23 @@ export class IntelligentRecommendationService {
     let consumptionRate = material.consumptionRate || 1;
     let predictedHoursToOutOfStock = 999;
 
-    if (this.mlTrainingService.hasModel(materialId)) {
-      try {
-        const prediction = await this.mlTrainingService.predictStock(
-          materialId,
-          24,
-          material.quantity,
-          material.stockMinimum,
-        );
-        predictedHoursToOutOfStock = prediction.hoursToOutOfStock;
-        consumptionRate = prediction.consumptionRate;
-      } catch {
-        this.logger.warn(
-          `ML prediction failed for ${materialId}, using fallback`,
-        );
-      }
+    // Utiliser le service de prédiction standard
+    try {
+      const prediction = await this.predictionService.predictStockDepletion(
+        materialId,
+        material.name,
+        material.quantity,
+        material.minimumStock,
+        material.maximumStock,
+        material.stockMinimum,
+        consumptionRate,
+      );
+      predictedHoursToOutOfStock = prediction.hoursToOutOfStock;
+      consumptionRate = prediction.consumptionRate;
+    } catch (error) {
+      this.logger.warn(
+        `Prediction failed for ${materialId}, using fallback`,
+      );
     }
 
     if (predictedHoursToOutOfStock === 999) {

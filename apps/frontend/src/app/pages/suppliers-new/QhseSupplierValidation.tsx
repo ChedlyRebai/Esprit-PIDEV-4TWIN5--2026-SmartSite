@@ -292,55 +292,54 @@ export default function QhseSupplierValidation() {
                         </div>
                       </div>
 
-                        {/* Documents */}
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-gray-700">Documents</p>
-                          <div className="flex flex-wrap gap-2">
-                            {/* Contract */}
-                            <div className="flex items-center gap-2 bg-gray-50 border rounded-lg px-3 py-2">
-                              <FileText className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm text-gray-700">Contract</span>
-                              <a
-                                href={getFileUrl(supplier.contractUrl)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
-                                title="View"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </a>
-                              <a
-                                href={getFileUrl(supplier.contractUrl)}
-                                download
-                                className="text-green-600 hover:text-green-800"
-                                title="Download"
-                              >
-                                <Download className="w-4 h-4" />
-                              </a>
-                            </div>
+                      {/* Documents */}
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-gray-700">Documents</p>
+                        <div className="flex flex-wrap gap-2">
+                          {/* Contract */}
+                          <div className="flex items-center gap-2 bg-gray-50 border rounded-lg px-3 py-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-700">Contract</span>
+                            <a
+                              href={getFileUrl(supplier.contractUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </a>
+                            <a
+                              href={getFileUrl(supplier.contractUrl)}
+                              download
+                              className="text-green-600 hover:text-green-800"
+                              title="Download"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                          </div>
 
-                            {/* Insurance Document */}
-                            <div className="flex items-center gap-2 bg-gray-50 border rounded-lg px-3 py-2">
-                              <Shield className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm text-gray-700">Insurance Document</span>
-                              <a
-                                href={getFileUrl(supplier.insuranceDocumentUrl)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
-                                title="View"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </a>
-                              <a
-                                href={getFileUrl(supplier.insuranceDocumentUrl)}
-                                download
-                                className="text-green-600 hover:text-green-800"
-                                title="Download"
-                              >
-                                <Download className="w-4 h-4" />
-                              </a>
-                            </div>
+                          {/* Insurance Document */}
+                          <div className="flex items-center gap-2 bg-gray-50 border rounded-lg px-3 py-2">
+                            <Shield className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-700">Insurance Document</span>
+                            <a
+                              href={getFileUrl(supplier.insuranceDocumentUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </a>
+                            <a
+                              href={getFileUrl(supplier.insuranceDocumentUrl)}
+                              download
+                              className="text-green-600 hover:text-green-800"
+                              title="Download"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
                           </div>
                         </div>
                       </div>

@@ -38,7 +38,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
 
   const loadWeather = async () => {
     if (!orderId && !coordinates) {
-      setError("Aucune localisation disponible");
+      setError("No location available");
       return;
     }
 
@@ -49,14 +49,14 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
       let weatherData: WeatherData | null = null;
 
       if (orderId) {
-        // Charger la météo via l'ID de commande
+        // Load weather via order ID
         const { data } = await axios.get(`/api/chat/weather/${orderId}`);
         if (data.success && data.weather) {
           weatherData = data.weather;
         }
       } else if (coordinates) {
-        // Charger la météo via les coordonnées GPS
-        const { data } = await axios.get('/api/materials/weather', {
+        // Load weather via GPS coordinates
+        const { data } = await axios.get('/api/weather', {
           params: {
             lat: coordinates.lat,
             lng: coordinates.lng
@@ -72,12 +72,12 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
         setLastUpdate(new Date());
         setError(null);
       } else {
-        setError("Données météo non disponibles");
+        setError("Weather data not available");
       }
     } catch (err: any) {
       console.error('Error loading weather:', err);
-      setError(err.response?.data?.message || "Erreur chargement météo");
-      toast.error("Impossible de charger la météo");
+      setError(err.response?.data?.message || "Weather loading error");
+      toast.error("Unable to load weather");
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
   useEffect(() => {
     loadWeather();
     
-    // Actualiser toutes les 30 minutes
+    // Refresh every 30 minutes
     const interval = setInterval(() => {
       loadWeather();
     }, 30 * 60 * 1000);
@@ -115,12 +115,12 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
 
   const getConditionLabel = (condition: string) => {
     const labels: Record<string, string> = {
-      sunny: 'Ensoleillé',
-      cloudy: 'Nuageux',
-      rainy: 'Pluvieux',
-      stormy: 'Orageux',
-      snowy: 'Neigeux',
-      windy: 'Venteux'
+      sunny: 'Sunny',
+      cloudy: 'Cloudy',
+      rainy: 'Rainy',
+      stormy: 'Stormy',
+      snowy: 'Snowy',
+      windy: 'Windy'
     };
     return labels[condition] || condition;
   };
@@ -142,10 +142,10 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
     const now = new Date();
     const diff = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000 / 60);
     
-    if (diff < 1) return 'À l\'instant';
-    if (diff < 60) return `Il y a ${diff} min`;
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff} min ago`;
     const hours = Math.floor(diff / 60);
-    return `Il y a ${hours}h`;
+    return `${hours}h ago`;
   };
 
   if (loading && !weather) {
@@ -154,7 +154,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-500">Chargement météo...</span>
+            <span className="ml-2 text-gray-500">Loading weather...</span>
           </div>
         </CardContent>
       </Card>
@@ -175,7 +175,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
               className="mt-3"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer
+              Retry
             </Button>
           </div>
         </CardContent>
@@ -202,7 +202,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
               size="sm" 
               onClick={loadWeather} 
               disabled={loading}
-              title="Actualiser"
+              title="Refresh"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -217,7 +217,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
                   {weather.temperature}°C
                 </div>
                 <div className="text-sm text-gray-500">
-                  Ressenti {weather.feelsLike}°C
+                  Feels like {weather.feelsLike}°C
                 </div>
               </div>
             </div>
@@ -237,7 +237,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
             <div className="flex items-center gap-2">
               <Droplets className="h-5 w-5 text-blue-500" />
               <div>
-                <p className="text-xs text-gray-500">Humidité</p>
+                <p className="text-xs text-gray-500">Humidity</p>
                 <p className="text-sm font-semibold">{weather.humidity}%</p>
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
             <div className="flex items-center gap-2">
               <Wind className="h-5 w-5 text-teal-500" />
               <div>
-                <p className="text-xs text-gray-500">Vent</p>
+                <p className="text-xs text-gray-500">Wind</p>
                 <p className="text-sm font-semibold">{weather.windSpeed} km/h</p>
               </div>
             </div>
@@ -255,7 +255,7 @@ export default function WeatherWidget({ orderId, coordinates, className = "" }: 
           {lastUpdate && (
             <div className="flex items-center justify-center gap-1 text-xs text-gray-400 pt-2 border-t">
               <Clock className="h-3 w-3" />
-              <span>Mis à jour {formatLastUpdate()}</span>
+              <span>Updated {formatLastUpdate()}</span>
             </div>
           )}
 
