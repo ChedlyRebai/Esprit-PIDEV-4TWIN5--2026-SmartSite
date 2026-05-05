@@ -1,4 +1,4 @@
- pouimport axios from "axios";
+import axios from "axios";
 import { GESTION_SITE_API_URL } from "../../lib/gestion-site-api-url";
 import { PLANNING_API_URL } from "../../lib/planning-api-url";
 import { AUTH_API_URL } from "../../lib/auth-api-url";
