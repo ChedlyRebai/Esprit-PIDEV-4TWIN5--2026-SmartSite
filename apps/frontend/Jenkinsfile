@@ -6,8 +6,10 @@ pipeline {
     }
 
     environment {
-        SERVICE_NAME = 'frontend'
-        DOCKER_IMAGE = "smartsite/${SERVICE_NAME}"
+        SERVICE_NAME  = 'frontend'
+        SERVICE_DIR   = 'apps/frontend'
+        DOCKER_IMAGE  = "smartsite/${SERVICE_NAME}"
+        SONAR_PROJECT = 'smartsite-frontend'
     }
 
     stages {
@@ -15,20 +17,22 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                echo "✅ Code récupéré depuis GitHub"
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                dir('apps/frontend') {
+                dir("${SERVICE_DIR}") {
                     sh 'npm ci'
+                    echo "✅ Dépendances installées"
                 }
             }
         }
 
         stage('Lint') {
             steps {
-                dir('apps/frontend') {
+                dir("${SERVICE_DIR}") {
                     script {
                         try {
                             sh 'npm run lint || echo "Lint not configured, skipping"'
@@ -42,25 +46,46 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                dir('apps/frontend') {
-                    sh 'npm test'
+                dir("${SERVICE_DIR}") {
+                    sh 'npm test -- --coverage --reporter=lcov'
+                    echo "✅ Tests unitaires terminés"
                 }
             }
         }
 
         stage('Build') {
             steps {
-                dir('apps/frontend') {
+                dir("${SERVICE_DIR}") {
                     sh 'npm run build'
                     echo "✅ Frontend built successfully"
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('SonarQube Analysis') {
             steps {
-                echo '⚠️ Docker build skipped — Docker not available in Jenkins container'
-                echo 'ℹ️  In production: docker build -t ${DOCKER_IMAGE}:latest .'
+                dir("${SERVICE_DIR}") {
+                    withSonarQubeEnv('SonarQube') {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.projectKey=${SONAR_PROJECT} \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.exclusions=**/*.test.tsx,**/*.test.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.tests=src \
+                                    -Dsonar.test.inclusions=**/*.test.tsx,**/*.test.ts \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo 'SonarQube analysis sent successfully — Quality Gate check skipped'
             }
         }
     }
