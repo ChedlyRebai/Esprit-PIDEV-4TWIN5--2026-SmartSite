@@ -16,16 +16,11 @@ import { canEdit } from "../../utils/permissions";
 import { toast } from "sonner";
 import { getSyncedProjectsWithDetails, type SyncedProject } from "../../action/synced-project.action";
 
-// API_URL for projects
-// Try direct service URL first, fallback to gateway
-// VITE_GESTION_PROJECTS_URL = https://gateway.onrender.com/projects
-// Strip /projects suffix to get base, then all calls do ${API_URL}/projects/...
-const _rawProjectsUrl = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL?.trim()
+// API_URL = base URL ending with /projects
+// e.g. https://smartsite-api-gateway.onrender.com/projects
+// All calls: ${API_URL}/:id, ${API_URL}?params, etc. (no extra /projects)
+const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL?.trim()
   ?? 'https://smartsite-api-gateway.onrender.com/projects';
-
-const API_URL = _rawProjectsUrl.endsWith('/projects')
-  ? _rawProjectsUrl.replace(/\/projects$/, '')
-  : _rawProjectsUrl;
 
 
 export default function Projects() {
@@ -66,7 +61,7 @@ export default function Projects() {
       if (searchName.trim()) params.search = searchName.trim();
       if (dateFrom) params.startDateFrom = dateFrom;
       if (dateTo) params.startDateTo = dateTo;
-      const response = await axios.get(`${API_URL}/projects`, { params });
+      const response = await axios.get(`${API_URL}`, { params });
       setProjects(response.data.projects || []);
       setTotalPages((response.data.totalPages ?? Math.ceil((response.data.total || 0) / PAGE_SIZE)) || 1);
       setTotalProjects(response.data.total || 0);
@@ -99,7 +94,7 @@ export default function Projects() {
       setCreateError("End date must be after start date."); return;
     }
     try {
-      await axios.post(`${API_URL}/projects`, {
+      await axios.post(`${API_URL}`, {
         name: newProject.name, budget: parseFloat(newProject.budget),
         siteCount: newProject.siteCount, sites: selectedSites, status: "planning", priority: "medium",
         startDate: newProject.startDate || undefined, endDate: newProject.endDate || undefined,
@@ -185,7 +180,7 @@ export default function Projects() {
   const handleDeleteProject = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
     try {
-      await axios.delete(`${API_URL}/projects/${id}`);
+      await axios.delete(`${API_URL}/${id}`);
       const newPage = projects.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       setCurrentPage(newPage);
       await loadProjects(newPage);

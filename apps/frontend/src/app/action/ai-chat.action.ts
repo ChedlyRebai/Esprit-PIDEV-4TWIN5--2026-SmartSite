@@ -13,8 +13,8 @@ const SERVICES = {
     keywords: ['user', 'team', 'role', 'permission', 'auth', 'login', 'worker', 'équipe', 'utilisateur'],
   },
   'gestion-site': {
-    url: (import.meta.env.VITE_GESTION_SITE_URL?.trim() || 'https://smartsite-api-gateway.onrender.com/sites').replace('/sites', ''),
-    endpoint: '/sites/chat/message',
+    url: (import.meta.env.VITE_GESTION_SITE_URL?.trim() || 'https://smartsite-gestion-site.onrender.com/api').replace(/\/api\/?$/, ''),
+    endpoint: '/api/chat/message',
     useAuthEndpoint: false,
     label: 'Gestion des Sites',
     keywords: ['site', 'chantier', 'construction', 'localisation', 'budget', 'terrain'],

@@ -90,7 +90,7 @@ const incidentsApi = axios.create({
 
 // API pour les projets
 const projectsApi = axios.create({
-  baseURL: (import.meta.env.VITE_GESTION_PROJECTS_URL || "https://smartsite-api-gateway.onrender.com/projects").replace(/\/projects$/, ""),
+  baseURL: (import.meta.env.VITE_GESTION_PROJECTS_URL || "https://smartsite-gestion-projects-latest.onrender.com/projects").replace(/\/projects$/, ""),
   timeout: 10000,
 });
 
