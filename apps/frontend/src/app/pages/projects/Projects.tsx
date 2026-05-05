@@ -16,7 +16,10 @@ import { canEdit } from "../../utils/permissions";
 import { toast } from "sonner";
 import { getSyncedProjectsWithDetails, type SyncedProject } from "../../action/synced-project.action";
 
-const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL ?? "http://localhost:3010/api";
+const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL
+  ? (import.meta as any).env.VITE_GESTION_PROJECTS_URL.replace(/\/projects\/?$/, '')
+  : "http://localhost:3010";
+
 
 export default function Projects() {
   const navigate = useNavigate();
