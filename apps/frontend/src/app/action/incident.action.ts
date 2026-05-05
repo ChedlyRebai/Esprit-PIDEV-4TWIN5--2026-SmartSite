@@ -2,7 +2,7 @@ import axios from "axios";
 import type { Incident } from "../types";
 
 const api = axios.create({
-  baseURL: "http://localhost:3002",
+  baseURL: import.meta.env.VITE_INCIDENT_URL || "https://incident-management-q3g2.onrender.com",
 });
 
 export const fetchIncidents = async (): Promise<Incident[]> => {

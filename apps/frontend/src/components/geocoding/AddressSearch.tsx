@@ -34,8 +34,9 @@ interface GeocodingResponse {
 class GeocodingService {
   static async searchAddress(address: string): Promise<GeocodingResponse> {
     try {
+      const siteUrl = (import.meta.env.VITE_GESTION_SITE_URL || 'https://smartsite-api-gateway.onrender.com/sites').replace(/\/sites$/, '');
       const response = await fetch(
-        `http://localhost:3001/gestion-sites/geocode/search?address=${encodeURIComponent(address)}`
+        `${siteUrl}/sites/gestion-sites/geocode/search?address=${encodeURIComponent(address)}`
       );
       return response.json();
     } catch (error) {
@@ -50,8 +51,9 @@ class GeocodingService {
     country = 'Tunisia'
   ): Promise<GeocodingResponse> {
     try {
+      const siteUrl = (import.meta.env.VITE_GESTION_SITE_URL || 'https://smartsite-api-gateway.onrender.com/sites').replace(/\/sites$/, '');
       const response = await fetch(
-        'http://localhost:3001/gestion-sites/geocode/search-advanced',
+        `${siteUrl}/sites/gestion-sites/geocode/search-advanced`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

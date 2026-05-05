@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3005";
+const API_URL = import.meta.env.VITE_GESTION_SUPPLIERS_URL || "https://smartsite-api-gateway.onrender.com/suppliers";
 
 export interface FournisseurContact {
   nom: string;

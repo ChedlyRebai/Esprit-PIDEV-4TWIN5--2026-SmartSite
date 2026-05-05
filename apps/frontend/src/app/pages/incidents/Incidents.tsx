@@ -78,25 +78,25 @@ function IncidentDashboardSkeleton() {
 
 // API pour rechercher des utilisateurs
 const api = axios.create({
-  baseURL: "http://localhost:3000",
-  timeout: 10000, // 10 secondes timeout
+  baseURL: import.meta.env.VITE_AUTH_API_URL || "https://smartsite-user-authentication.onrender.com",
+  timeout: 10000,
 });
 
-// API pour les incidents (port 3003)
+// API pour les incidents
 const incidentsApi = axios.create({
-  baseURL: "http://localhost:3003",
+  baseURL: import.meta.env.VITE_INCIDENT_URL || "https://incident-management-q3g2.onrender.com",
   timeout: 10000,
 });
 
-// API pour les projets (port 3010)
+// API pour les projets
 const projectsApi = axios.create({
-  baseURL: "https://smartsite-gestion-projects-latest.onrender.com",
+  baseURL: (import.meta.env.VITE_GESTION_PROJECTS_URL || "https://smartsite-api-gateway.onrender.com/projects").replace(/\/projects$/, ""),
   timeout: 10000,
 });
 
-// API pour les sites (port 3001 avec préfixe /api)
+// API pour les sites
 const sitesApi = axios.create({
-  baseURL: "http://localhost:3001/api",
+  baseURL: (import.meta.env.VITE_GESTION_SITE_URL || "https://smartsite-api-gateway.onrender.com/sites").replace(/\/sites$/, "") + "/sites",
   timeout: 10000,
 });
 

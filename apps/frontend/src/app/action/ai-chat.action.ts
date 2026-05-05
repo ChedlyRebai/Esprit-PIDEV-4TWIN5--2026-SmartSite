@@ -6,15 +6,15 @@ import { API_GATEWAY_URL } from '@/lib/api-gateway-url';
  */
 const SERVICES = {
   'user-authentication': {
-    url: import.meta.env.VITE_AUTH_API_URL?.trim() || 'http://localhost:3000',
+    url: import.meta.env.VITE_AUTH_API_URL?.trim() || 'https://smartsite-user-authentication.onrender.com',
     endpoint: '/ai-chat/message',
-    useAuthEndpoint: false, // utilise le nouveau module Groq
+    useAuthEndpoint: false,
     label: 'Assistant Principal',
     keywords: ['user', 'team', 'role', 'permission', 'auth', 'login', 'worker', 'équipe', 'utilisateur'],
   },
   'gestion-site': {
-    url: (import.meta.env.VITE_GESTION_SITE_URL?.trim() || 'http://localhost:3001/api').replace('/api', ''),
-    endpoint: '/api/chat/message',
+    url: (import.meta.env.VITE_GESTION_SITE_URL?.trim() || 'https://smartsite-api-gateway.onrender.com/sites').replace('/sites', ''),
+    endpoint: '/sites/chat/message',
     useAuthEndpoint: false,
     label: 'Gestion des Sites',
     keywords: ['site', 'chantier', 'construction', 'localisation', 'budget', 'terrain'],
@@ -27,7 +27,7 @@ const SERVICES = {
     keywords: ['task', 'tâche', 'milestone', 'planning', 'deadline', 'stage', 'étape', 'projet'],
   },
   'incident-management': {
-    url: import.meta.env.VITE_INCIDENT_URL?.trim() || 'http://localhost:3003',
+    url: import.meta.env.VITE_INCIDENT_URL?.trim() || 'https://incident-management-q3g2.onrender.com',
     endpoint: '/chat/message',
     useAuthEndpoint: false,
     label: 'Incidents',
@@ -41,29 +41,29 @@ const SERVICES = {
     keywords: ['notification', 'alerte', 'alert', 'message', 'email'],
   },
   'gestion-fournisseurs': {
-    url: import.meta.env.VITE_FOURNISSEURS_URL?.trim() || 'http://localhost:3005',
+    url: import.meta.env.VITE_GESTION_SUPPLIERS_URL?.trim() || 'https://smartsite-api-gateway.onrender.com/suppliers',
     endpoint: '/chat/message',
     useAuthEndpoint: false,
     label: 'Fournisseurs',
     keywords: ['fournisseur', 'supplier', 'article', 'prix', 'price', 'catalog', 'catalogue'],
   },
   'paiement': {
-    url: (import.meta.env.VITE_PAYMENT_URL?.trim() || 'http://localhost:3007/api/payments').replace('/api/payments', ''),
+    url: (import.meta.env.VITE_PAYMENT_URL?.trim() || 'https://smartsite-api-gateway.onrender.com/payments/api/payments').replace('/api/payments', ''),
     endpoint: '/chat/message',
     useAuthEndpoint: false,
     label: 'Paiements',
     keywords: ['paiement', 'payment', 'facture', 'invoice', 'stripe', 'finance', 'argent'],
   },
   'materials-service': {
-    url: import.meta.env.VITE_MATERIALS_URL?.trim() || 'http://localhost:3002',
+    url: import.meta.env.VITE_MATERIALS_URL?.trim() || 'https://smartsite-api-gateway.onrender.com/materials',
     endpoint: '/api/chat/message',
     useAuthEndpoint: false,
     label: 'Matériaux',
     keywords: ['material', 'matériau', 'stock', 'inventaire', 'inventory', 'qr', 'équipement'],
   },
   'resource-optimization': {
-    url: import.meta.env.VITE_RESOURCE_OPTIMIZATION_URL?.trim() || 'http://localhost:3007',
-    endpoint: '/api/chat/message',
+    url: import.meta.env.VITE_RESOURCE_OPTIMIZATION_URL?.trim() || 'https://resource-optimization-m21a.onrender.com/api',
+    endpoint: '/chat/message',
     useAuthEndpoint: false,
     label: 'Optimisation',
     keywords: ['resource', 'ressource', 'optimization', 'optimisation', 'performance', 'analyse'],
