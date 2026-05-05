@@ -64,13 +64,8 @@ pipeline {
                             """
                         }
                     }
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                dir("${SERVICE_DIR}") {
+                    
+                    // Quality Gate dans le même dir et après withSonarQubeEnv
                     timeout(time: 10, unit: 'MINUTES') {
                         waitForQualityGate abortPipeline: false  // ✅ non bloquant
                     }
