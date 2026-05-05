@@ -18,7 +18,7 @@ import { getSyncedProjectsWithDetails, type SyncedProject } from "../../action/s
 
 const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL
   ? (import.meta as any).env.VITE_GESTION_PROJECTS_URL.replace(/\/projects\/?$/, '')
-  : "http://localhost:3010";
+  : "https://smartsite-api-gateway.onrender.com";
 
 
 export default function Projects() {
