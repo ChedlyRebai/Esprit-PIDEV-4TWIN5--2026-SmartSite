@@ -96,7 +96,7 @@ const projectsApi = axios.create({
 
 // API pour les sites
 const sitesApi = axios.create({
-  baseURL: (import.meta.env.VITE_GESTION_SITE_URL || "https://smartsite-api-gateway.onrender.com/sites").replace(/\/sites$/, "") + "/sites",
+  baseURL: (import.meta.env.VITE_GESTION_SITE_URL || "https://smartsite-gestion-site.onrender.com/api"),
   timeout: 10000,
 });
 
