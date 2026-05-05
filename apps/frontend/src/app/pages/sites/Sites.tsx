@@ -137,7 +137,8 @@ export default function Sites() {
 
   useEffect(() => {
     if (isProjectContext && currentProjectId) {
-      axios.get(`http://localhost:3010/projects/${currentProjectId}`)
+      const projectsUrl = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim() ?? 'http://localhost:9001/projects';
+      axios.get(`${projectsUrl}/projects/${currentProjectId}`)
         .then(res => {
           if (res.data?.siteCount !== undefined) {
             setProjectSiteLimit(res.data.siteCount);
