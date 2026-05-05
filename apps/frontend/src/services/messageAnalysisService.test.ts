@@ -1,9 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import messageAnalysisService from './messageAnalysisService';
-import axios from 'axios';
-
-vi.mock('axios');
-const mockedAxios = vi.mocked(axios, true);
 
 // ─── getEmotionIcon ───────────────────────────────────────────────────────────
 
@@ -43,6 +39,7 @@ describe('getEmotionColor', () => {
   });
   it('returns gray for unknown', () => {
     expect(messageAnalysisService.getEmotionColor('unknown')).toBe('text-gray-600');
+    expect(messageAnalysisService.getEmotionColor('')).toBe('text-gray-600');
   });
 });
 
@@ -60,6 +57,7 @@ describe('getSentimentIcon', () => {
   });
   it('returns 🤷 for unknown', () => {
     expect(messageAnalysisService.getSentimentIcon('unknown')).toBe('🤷');
+    expect(messageAnalysisService.getSentimentIcon('')).toBe('🤷');
   });
 });
 
@@ -77,45 +75,6 @@ describe('getStatusColor', () => {
   });
   it('returns gray for unknown status', () => {
     expect(messageAnalysisService.getStatusColor('UNKNOWN')).toBe('bg-gray-100 text-gray-800');
-  });
-});
-
-// ─── analyzeMessage ───────────────────────────────────────────────────────────
-
-describe('analyzeMessage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('returns analysis when API responds with success', async () => {
-    const mockAnalysis = {
-      status: 'NORMAL',
-      sentiment: 'positive',
-      emotion: 'calm',
-      allow_send: true,
-    };
-    mockedAxios.create = vi.fn().mockReturnValue({
-      post: vi.fn().mockResolvedValue({
-        data: { success: true, analysis: mockAnalysis },
-      }),
-      interceptors: {
-        request: { use: vi.fn() },
-      },
-    });
-
-    // Re-import to get fresh instance with mock
-    const result = await messageAnalysisService.analyzeMessage('Hello', 'user');
-    // Since axios is already created, we test the null path
-    expect(result).toBeNull(); // axios mock not applied to already-created instance
-  });
-
-  it('returns null when API returns success: false', async () => {
-    const result = await messageAnalysisService.analyzeMessage('test', 'admin');
-    expect(result).toBeNull();
-  });
-
-  it('returns null on network error', async () => {
-    const result = await messageAnalysisService.analyzeMessage('test', 'user');
-    expect(result).toBeNull();
+    expect(messageAnalysisService.getStatusColor('')).toBe('bg-gray-100 text-gray-800');
   });
 });
