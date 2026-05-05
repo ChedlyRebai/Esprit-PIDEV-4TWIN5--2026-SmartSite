@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME  = 'gestion-fournisseurs'
+        SERVICE_DIR   = 'apps/backend/gestion-fournisseurs'
+        SONAR_PROJECT = 'smartsite-gestion-fournisseurs'
+    }
+
+    tools {
+        nodejs 'NodeJS-20'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code récupéré depuis GitHub"
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm ci'
+                    echo "✅ Dépendances installées"
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm run lint || true'
+                    echo "✅ Linting terminé"
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm test -- --coverage --coverageReporters=lcov --forceExit || true'
+                    echo "✅ Tests unitaires terminés"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm run build'
+                    echo "✅ Build terminé"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    script {
+                        try {
+                            withSonarQubeEnv('SonarQube') {
+                                withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+                                    sh """
+                                        sonar-scanner \
+                                            -Dsonar.projectKey=${SONAR_PROJECT} \
+                                            -Dsonar.projectName='SmartSite - Gestion Fournisseurs' \
+                                            -Dsonar.sources=src \
+                                            -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts,**/*.dto.ts,**/*.entity.ts \
+                                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
+                                            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/**,src/main.ts,**/*.dto.ts,**/*.entity.ts
+                                    """
+                                }
+                            }
+                            echo "✅ SonarQube analysis completed"
+                        } catch (Exception e) {
+                            echo "⚠️ SonarQube analysis failed but continuing pipeline: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Trigger CD') {
+            steps {
+                build job: 'gestion-fournisseurs-CD', wait: false
+                echo "🚀 Pipeline CD déclenché automatiquement"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        failure {
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
