@@ -93,7 +93,6 @@ pipeline {
             steps {
                 script {
                     def imageTag = "${PLANNING_IMAGE}:latest"
-
                     dir('apps/backend/gestion-planing') {
                         sh "docker build -t ${imageTag} ."
                     }
