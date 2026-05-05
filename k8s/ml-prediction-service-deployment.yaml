@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-prediction-service
+  labels:
+    app: ml-prediction-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ml-prediction-service
+  template:
+    metadata:
+      labels:
+        app: ml-prediction-service
+    spec:
+      containers:
+      - name: ml-prediction-service
+        image: ghada/smartsite-ml-prediction-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PORT
+          value: "8000"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-prediction-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ml-prediction-service
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
