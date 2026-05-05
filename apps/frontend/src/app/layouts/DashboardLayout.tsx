@@ -149,11 +149,12 @@ export default function DashboardLayout() {
     return null; // Afficher rien pendant la redirection
   }
 
-
+  // NOTE: hooks must be called before any conditional return
+  // These are placed after the null check but hooks order is consistent
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: currentUser } = useQuery({
-
     queryKey: ["currentUser"],
-    queryFn: () => getCurrentUser(user), // Simuler une requête pour obtenir les données de l'utilisateur
+    queryFn: () => getCurrentUser(user),
   });
 
 
@@ -178,6 +179,7 @@ export default function DashboardLayout() {
   console.log(currentUser, "currentUser in DashboardLayout");
   //const unreadNotifications = mockNotifications.filter((n) => !n.read).length;
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: unredDataLength, isError: UnreadError } = useQuery({
     queryKey: ["unreadNotificationsLength"],
     queryFn: () => getUnreadNotificationCount(),

@@ -155,7 +155,7 @@ export const AddressSearch: React.FC<AddressSearchProps> = ({
                 <div className="result-name">{result.displayName}</div>
                 <div className="result-details">
                   <span>📍 {result.coordinates.latitude.toFixed(4)}, {result.coordinates.longitude.toFixed(4)}</span>
-                  {result.confidence && (
+                  {Boolean(result.confidence) && (
                     <span className="confidence">
                       ✓ {(result.confidence * 100).toFixed(0)}%
                     </span>
