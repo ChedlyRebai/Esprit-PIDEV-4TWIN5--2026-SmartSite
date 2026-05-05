@@ -32,15 +32,10 @@ export default function AnomalyAlert({ anomalyData, onClose, onViewDetails }: An
 
   const { anomalyResult } = anomalyData;
 
-  // Vérification de sécurité pour éviter les erreurs
-  if (!anomalyResult) {
-    console.warn('AnomalyAlert: anomalyResult is undefined');
-    return null;
-  }
-
   useEffect(() => {
     // Auto-fermer après 30 secondes pour les anomalies de niveau bas
-    if (anomalyResult?.riskLevel === 'LOW') {
+    if (!anomalyResult) return;
+    if (anomalyResult.riskLevel === 'LOW') {
       const timer = setTimeout(() => {
         handleClose();
       }, 30000);
@@ -50,13 +45,20 @@ export default function AnomalyAlert({ anomalyData, onClose, onViewDetails }: An
 
   useEffect(() => {
     // Simuler l'envoi d'email pour les anomalies critiques
-    if (anomalyResult?.shouldSendAlert && anomalyResult?.riskLevel === 'HIGH') {
+    if (!anomalyResult) return;
+    if (anomalyResult.shouldSendAlert && anomalyResult.riskLevel === 'HIGH') {
       setTimeout(() => {
         setEmailSent(true);
         toast.success('📧 Alerte email envoyée aux responsables');
       }, 2000);
     }
   }, [anomalyResult]);
+
+  // Vérification de sécurité pour éviter les erreurs
+  if (!anomalyResult) {
+    console.warn('AnomalyAlert: anomalyResult is undefined');
+    return null;
+  }
 
   const handleClose = () => {
     setIsVisible(false);

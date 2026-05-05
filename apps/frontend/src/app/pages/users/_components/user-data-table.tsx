@@ -266,7 +266,9 @@ export function UserDataTable<TData, TValue>({
           <>
             <Button
               onClick={() => {
-                (onOpen(), setType("edit"), setId(id));
+                onOpen();
+                setType("edit");
+                setId(id);
               }}
               variant="ghost"
               size="sm"
@@ -375,7 +377,8 @@ export function UserDataTable<TData, TValue>({
           variant="default"
           className=""
           onClick={() => {
-            (onOpen(), setType("add"));
+            onOpen();
+            setType("add");
           }}
         >
           <ListPlusIcon className="mr-2 h-4 w-4" />

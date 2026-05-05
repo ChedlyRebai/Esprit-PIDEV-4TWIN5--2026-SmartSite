@@ -262,7 +262,7 @@ export const SiteRecommendationCard: React.FC<SiteRecommendationCardProps> = ({
                         </div>
                       )}
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">{rec.description}</p>
-                      {rec.estimatedSavings && (
+                      {Boolean(rec.estimatedSavings) && (
                         <div className="text-xs text-green-600 mt-1">
                           Savings: {rec.estimatedSavings} TND
                         </div>
