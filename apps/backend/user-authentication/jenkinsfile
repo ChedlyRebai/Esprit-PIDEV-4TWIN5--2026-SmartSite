@@ -104,7 +104,7 @@ pipeline {
                         sh "docker build -t ${imageTag} ."
                     }
                     
-                    sh "docker build -t ${imageTag} ."
+                    
                     echo " Docker image built: ${imageTag}"
                 }
             }
