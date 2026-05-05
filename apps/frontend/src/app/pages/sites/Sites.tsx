@@ -134,36 +134,35 @@ export default function Sites() {
 
   const [projectSiteLimit, setProjectSiteLimit] = useState<number | null>(null);
   const [projectBudget, setProjectBudget] = useState<number | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isProjectContext && currentProjectId) {
-      // VITE_GESTION_PROJECTS_URL already ends with /projects (via gateway)
-      // so we just append /:id — avoid double /projects/projects
-      const raw = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim()
-        ?? 'http://localhost:9001/projects';
-      // Strip trailing slash then append the project id
-      const projectUrl = `${raw.replace(/\/$/, '')}/${currentProjectId}`;
-      axios.get(projectUrl)
-        .then(res => {
-          const data = res.data;
-          // siteCount = max number of sites allowed for this project
-          if (data?.siteCount !== undefined && data.siteCount !== null && Number(data.siteCount) > 0) {
-            setProjectSiteLimit(Number(data.siteCount));
-          }
-          // budget = total project budget
-          if (data?.budget !== undefined && data.budget !== null && Number(data.budget) > 0) {
-            setProjectBudget(Number(data.budget));
-          }
-          console.log('[Sites] Project data loaded:', {
-            siteCount: data?.siteCount,
-            budget: data?.budget,
-            projectUrl,
-          });
-        })
-        .catch(err => {
-          console.error('[Sites] Error fetching project limits:', err?.message, projectUrl);
-        });
-    }
+    if (!isProjectContext || !currentProjectId) return;
+
+    // Build the correct URL: VITE_GESTION_PROJECTS_URL already ends with /projects
+    const base = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim()
+      ?? 'http://localhost:9001/projects';
+    const projectUrl = `${base.replace(/\/$/, '')}/${currentProjectId}`;
+
+    console.log('[Sites] Fetching project from:', projectUrl);
+
+    axios.get(projectUrl)
+      .then(res => {
+        const data = res.data;
+        console.log('[Sites] Project response:', data);
+
+        setProjectName(data?.name ?? null);
+
+        // siteCount > 0 means a limit is set; 0 or undefined means unlimited
+        const limit = Number(data?.siteCount ?? 0);
+        setProjectSiteLimit(limit > 0 ? limit : null);
+
+        const budget = Number(data?.budget ?? 0);
+        setProjectBudget(budget > 0 ? budget : null);
+      })
+      .catch(err => {
+        console.error('[Sites] Failed to load project limits:', err?.message, '| URL:', projectUrl);
+      });
   }, [isProjectContext, currentProjectId]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,7 +183,6 @@ export default function Sites() {
   const currentSiteCount = sites.filter(s => s.projectId === currentProjectId).length;
   // isLimitReached: only when siteCount > 0 (0 means unlimited) AND limit is reached
   const isLimitReached = projectSiteLimit !== null && projectSiteLimit > 0 && currentSiteCount >= projectSiteLimit;
-
   // Real-time refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -1121,11 +1119,25 @@ export default function Sites() {
         <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-orange-500" />
           <div>
-            <span className="font-semibold">Site limit reached — </span>
-            This project is limited to <span className="font-semibold">{projectSiteLimit} site{projectSiteLimit !== 1 ? 's' : ''}</span>.
-            You already have {currentSiteCount} site{currentSiteCount !== 1 ? 's' : ''} created.
-            To add a new site, update the limit in the project settings.
+            <span className="font-semibold">
+              {currentSiteCount}/{projectSiteLimit} sites — Limit reached.
+            </span>
+            {' '}You cannot add more sites to this project. To increase the limit, edit the project settings.
           </div>
+        </div>
+      )}
+
+      {/* Site count indicator (always visible when limit is set) */}
+      {isProjectContext && projectSiteLimit !== null && !isLimitReached && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+          <span className="font-semibold">{currentSiteCount}/{projectSiteLimit} sites used</span>
+          <div className="flex-1 max-w-32 bg-blue-200 rounded-full h-1.5">
+            <div
+              className="bg-blue-500 h-1.5 rounded-full transition-all"
+              style={{ width: `${Math.min(100, (currentSiteCount / projectSiteLimit) * 100)}%` }}
+            />
+          </div>
+          <span className="text-blue-500">{projectSiteLimit - currentSiteCount} remaining</span>
         </div>
       )}
 
@@ -1194,10 +1206,15 @@ export default function Sites() {
                 <Button
                   className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLimitReached}
-                  title={isLimitReached ? `Limite de ${projectSiteLimit} site(s) atteinte` : undefined}
+                  title={isLimitReached ? `Site limit reached: ${currentSiteCount}/${projectSiteLimit}` : undefined}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  New Site
+                  {isLimitReached
+                    ? `${currentSiteCount}/${projectSiteLimit} sites — Limit reached`
+                    : projectSiteLimit !== null
+                      ? `New Site (${currentSiteCount}/${projectSiteLimit})`
+                      : 'New Site'
+                  }
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

@@ -7,9 +7,10 @@ async function bootstrap() {
 
   // Enable CORS so the frontend can call the gateway directly
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: true,   // reflect the request origin — works with credentials
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type,Authorization,Accept',
   });
 
   const port = process.env.PORT ?? 9001;
