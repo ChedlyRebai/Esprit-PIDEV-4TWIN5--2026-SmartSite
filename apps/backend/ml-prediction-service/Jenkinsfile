@@ -1,17 +1,32 @@
 pipeline {
-    agent any
+    agent {
+        label 'any'
+    }
+
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        preserveStashes(buildCount: 5)
+    }
 
     environment {
         SERVICE_NAME  = 'ml-prediction-service'
         SERVICE_DIR   = 'apps/backend/ml-prediction-service'
         SONAR_PROJECT = 'smartsite-ml-prediction-service'
+        PIP_TIMEOUT = '300'
+        PIP_RETRIES = '5'
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    retry(3) {
+                        checkout scm
+                    }
+                }
                 echo "✅ Code récupéré depuis GitHub"
             }
         }
@@ -19,12 +34,18 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh '''
-                        python3 -m venv venv
-                        . venv/bin/activate
-                        pip install --upgrade pip
-                        pip install -r requirements.txt
-                    '''
+                    script {
+                        retry(2) {
+                            timeout(time: 10, unit: 'MINUTES') {
+                                sh '''
+                                    python3 -m venv venv
+                                    . venv/bin/activate
+                                    pip install --upgrade pip
+                                    pip install -r requirements.txt
+                                '''
+                            }
+                        }
+                    }
                     echo "✅ Dépendances Python installées dans venv"
                 }
             }
@@ -78,13 +99,29 @@ pipeline {
 
     post {
         success {
-            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            script {
+                def serviceName = env.SERVICE_NAME ?: 'ml-prediction-service'
+                echo "🎉 CI réussi pour ${serviceName} — build #${BUILD_NUMBER}"
+            }
         }
         failure {
-            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            script {
+                def serviceName = env.SERVICE_NAME ?: 'ml-prediction-service'
+                echo "❌ CI échoué pour ${serviceName} — build #${BUILD_NUMBER}"
+            }
         }
         always {
-            cleanWs()
+            script {
+                try {
+                    cleanWs(
+                        deleteDirs: true,
+                        disableDeferredWipeout: true,
+                        notFailBuild: true
+                    )
+                } catch (Exception e) {
+                    echo "⚠️ Nettoyage workspace échoué (non bloquant): ${e.message}"
+                }
+            }
         }
     }
 }
