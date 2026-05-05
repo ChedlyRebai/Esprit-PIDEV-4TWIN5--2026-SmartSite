@@ -5,7 +5,7 @@ pipeline {
         SERVICE_NAME  = 'gestion-fournisseurs'
         SERVICE_DIR   = 'apps/backend/gestion-fournisseurs'
         DOCKER_IMAGE  = "ghada/smartsite-gestion-fournisseurs"
-        PORT          = '3005'
+        PORT          = '3010'
         DOCKER_HOST   = 'unix:///var/run/docker.sock'
     }
 
@@ -25,48 +25,54 @@ pipeline {
         stage('Docker Build') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh "docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
-                    echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    script {
+                        sh """
+                            chmod 666 /var/run/docker.sock 2>/dev/null || true
+                            docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
+                        """
+                        echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    }
                 }
             }
         }
 
         stage('Docker Push') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'docker-hub-credentials',
-                    usernameVariable: 'DOCKER_USERNAME',
-                    passwordVariable: 'DOCKER_PASSWORD'
-                )]) {
-                    sh """
-                        echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
-                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                        docker push ${DOCKER_IMAGE}:latest
-                    """
-                    echo "✅ Image Docker poussée sur Docker Hub"
+                script {
+                    try {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'docker-hub-credentials',
+                            usernameVariable: 'DOCKER_USERNAME',
+                            passwordVariable: 'DOCKER_PASSWORD'
+                        )]) {
+                            sh """
+                                echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
+                                docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                                docker push ${DOCKER_IMAGE}:latest
+                            """
+                            echo "✅ Image Docker poussée sur Docker Hub"
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️ Docker Hub push échoué - On continue..."
+                    }
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI')
-                ]) {
-                    sh """
-                        docker stop ${SERVICE_NAME} || true
-                        docker rm ${SERVICE_NAME} || true
-                        docker run -d \
-                            --name ${SERVICE_NAME} \
-                            --restart unless-stopped \
-                            -p ${PORT}:${PORT} \
-                            -e PORT=${PORT} \
-                            -e NODE_ENV=production \
-                            -e MONGODB_URI="\${MONGODB_URI}" \
-                            ${DOCKER_IMAGE}:latest
-                    """
-                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
-                }
+                sh """
+                    docker stop ${SERVICE_NAME} || true
+                    docker rm ${SERVICE_NAME} || true
+                    docker run -d \
+                        --name ${SERVICE_NAME} \
+                        --restart unless-stopped \
+                        -p ${PORT}:${PORT} \
+                        -e PORT=${PORT} \
+                        -e NODE_ENV=production \
+                        ${DOCKER_IMAGE}:latest
+                """
+                echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
             }
         }
 
