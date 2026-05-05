@@ -147,15 +147,22 @@ export default function Sites() {
         .then(res => {
           const data = res.data;
           // siteCount = max number of sites allowed for this project
-          if (data?.siteCount !== undefined && data.siteCount !== null) {
+          if (data?.siteCount !== undefined && data.siteCount !== null && Number(data.siteCount) > 0) {
             setProjectSiteLimit(Number(data.siteCount));
           }
           // budget = total project budget
-          if (data?.budget !== undefined && data.budget !== null) {
+          if (data?.budget !== undefined && data.budget !== null && Number(data.budget) > 0) {
             setProjectBudget(Number(data.budget));
           }
+          console.log('[Sites] Project data loaded:', {
+            siteCount: data?.siteCount,
+            budget: data?.budget,
+            projectUrl,
+          });
         })
-        .catch(err => console.error('Error fetching project limits:', err));
+        .catch(err => {
+          console.error('[Sites] Error fetching project limits:', err?.message, projectUrl);
+        });
     }
   }, [isProjectContext, currentProjectId]);
 
@@ -175,7 +182,8 @@ export default function Sites() {
 
   const canManageSites = true;
   const currentSiteCount = sites.filter(s => s.projectId === currentProjectId).length;
-  const isLimitReached = projectSiteLimit !== null && currentSiteCount >= projectSiteLimit;
+  // isLimitReached: only when siteCount > 0 (0 means unlimited) AND limit is reached
+  const isLimitReached = projectSiteLimit !== null && projectSiteLimit > 0 && currentSiteCount >= projectSiteLimit;
 
   // Real-time refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -581,26 +589,41 @@ export default function Sites() {
   const validateForm = () => {
     const newErrors: { name?: string; address?: string; area?: string; budget?: string } = {};
 
+    // Name
     if (!newSite.name.trim()) {
       newErrors.name = 'Site name is required';
+    } else if (newSite.name.trim().length < 3) {
+      newErrors.name = 'Site name must be at least 3 characters';
+    } else if (newSite.name.trim().length > 100) {
+      newErrors.name = 'Site name must be less than 100 characters';
     }
 
+    // Address
     if (!newSite.address.trim()) {
       newErrors.address = 'Address is required';
+    } else if (newSite.address.trim().length < 5) {
+      newErrors.address = 'Address must be at least 5 characters';
     }
 
+    // Area
     if (!newSite.area) {
       newErrors.area = 'Area is required';
+    } else if (isNaN(Number(newSite.area)) || !Number.isInteger(Number(newSite.area))) {
+      newErrors.area = 'Area must be a whole number';
     } else if (parseInt(newSite.area) <= 0) {
       newErrors.area = 'Area must be greater than 0';
+    } else if (parseInt(newSite.area) > 10_000_000) {
+      newErrors.area = 'Area seems too large (max 10,000,000 m²)';
     }
 
+    // Budget
     if (!newSite.budget) {
       newErrors.budget = 'Budget is required';
+    } else if (isNaN(Number(newSite.budget)) || !Number.isInteger(Number(newSite.budget))) {
+      newErrors.budget = 'Budget must be a whole number (TND)';
     } else if (parseInt(newSite.budget) <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
-    } else if (currentProjectId && projectBudget !== null) {
-      // Sum of existing sites budgets for this project
+    } else if (currentProjectId && projectBudget !== null && projectBudget > 0) {
       const existingSitesBudget = sites
         .filter(s => s.projectId === currentProjectId)
         .reduce((sum, s) => sum + (s.budget || 0), 0);
@@ -611,6 +634,7 @@ export default function Sites() {
       }
     }
 
+    // GPS position
     if (!mapPosition) {
       toast.error('Please select a location on the map');
       return false;
@@ -624,18 +648,26 @@ export default function Sites() {
 
     if (!manageData.name.trim()) {
       newErrors.name = 'Site name is required';
+    } else if (manageData.name.trim().length < 3) {
+      newErrors.name = 'Site name must be at least 3 characters';
     }
 
     if (!manageData.address.trim()) {
       newErrors.address = 'Address is required';
+    } else if (manageData.address.trim().length < 5) {
+      newErrors.address = 'Address must be at least 5 characters';
     }
 
     if (!manageData.area || manageData.area <= 0) {
       newErrors.area = 'Area must be greater than 0';
+    } else if (!Number.isInteger(manageData.area)) {
+      newErrors.area = 'Area must be a whole number';
     }
 
     if (!manageData.budget || manageData.budget <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
+    } else if (!Number.isInteger(manageData.budget)) {
+      newErrors.budget = 'Budget must be a whole number (TND)';
     }
 
     setErrors(newErrors);
@@ -1176,6 +1208,28 @@ export default function Sites() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
+
+                  {/* Project constraints summary */}
+                  {isProjectContext && (
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm space-y-1">
+                      <p className="font-semibold text-blue-800">Project constraints</p>
+                      <div className="flex flex-wrap gap-4 text-blue-700">
+                        {projectSiteLimit !== null && projectSiteLimit > 0 ? (
+                          <span>🏗 Sites: <strong>{currentSiteCount} / {projectSiteLimit}</strong> used</span>
+                        ) : (
+                          <span>🏗 Sites: <strong>unlimited</strong></span>
+                        )}
+                        {projectBudget !== null && projectBudget > 0 ? (
+                          <span>💰 Budget: <strong>{new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(
+                            projectBudget - sites.filter(s => s.projectId === currentProjectId).reduce((sum, s) => sum + (s.budget || 0), 0)
+                          )}</strong> remaining</span>
+                        ) : (
+                          <span>💰 Budget: <strong>not set</strong></span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="site-name" className="text-sm font-medium">
@@ -1284,7 +1338,13 @@ export default function Sites() {
                             {errors.budget}
                           </p>
                         )}
-                        {!errors.budget && currentProjectId && projectBudget !== null && (() => {
+                        {budgetError && !errors.budget && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {budgetError}
+                          </p>
+                        )}
+                        {!errors.budget && !budgetError && currentProjectId && projectBudget !== null && projectBudget > 0 && (() => {
                           const existingSitesBudget = sites
                             .filter(s => s.projectId === currentProjectId)
                             .reduce((sum, s) => sum + (s.budget || 0), 0);
@@ -1292,13 +1352,14 @@ export default function Sites() {
                           const entered = parseInt(newSite.budget) || 0;
                           const afterNew = existingSitesBudget + entered;
                           const isOver = afterNew > projectBudget;
+                          const pct = projectBudget > 0 ? Math.round((afterNew / projectBudget) * 100) : 0;
                           return (
-                            <p className={`text-xs flex items-center gap-1 ${isOver ? 'text-red-500' : 'text-gray-500'}`}>
+                            <div className={`text-xs rounded px-2 py-1 flex items-center gap-1 ${isOver ? 'bg-red-50 text-red-600' : pct >= 80 ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}`}>
                               {isOver
                                 ? `⚠ Exceeds project budget by ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(afterNew - projectBudget)}`
-                                : `Remaining project budget: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining)}`
+                                : `✓ Remaining: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining - entered)} (${100 - pct}% left)`
                               }
-                            </p>
+                            </div>
                           );
                         })()}
                       </div>
