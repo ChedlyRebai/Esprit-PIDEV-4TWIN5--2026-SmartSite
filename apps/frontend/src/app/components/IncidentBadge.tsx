@@ -105,7 +105,7 @@ interface IncidentBadgeProps {
 }
 
 const incidentsApi = axios.create({
-  baseURL: 'http://localhost:3003',
+  baseURL: (import.meta.env.VITE_INCIDENT_URL as string | undefined)?.trim() ?? 'http://localhost:9001/incidents',
   timeout: 5000,
 });
 
