@@ -43,10 +43,12 @@ import { canEdit } from "../../utils/permissions";
 import { mockIncidents } from "../../utils/mockData";
 import { toast } from "sonner";
 import axios from "axios";
+import { io } from "socket.io-client";
 import { trackAuditEvent } from "../../action/audit.action";
 import { incidentMatchesSearch } from "../../utils/incidentSearchFilter";
 import { incidentEvents } from "../../components/IncidentBadge";
 import { NotificationPanel } from "../../components/NotificationPanel";
+import { HelmetDetection } from "../../components/HelmetDetection";
 
 const IncidentBiDashboard = lazy(() => import("../../components/IncidentBiDashboard").then((module) => ({ default: module.IncidentBiDashboard })));
 
@@ -482,6 +484,28 @@ export default function Incidents() {
       loadIncidents();
     });
 
+    // Écouter les incidents créés par l'AI Helmet Detection
+    const unsubscribeCreated = incidentEvents.on("created", (data) => {
+      console.log("📢 Incident page received AI creation:", data);
+      toast.info("🤖 New incident created by AI Helmet Detection", {
+        duration: 4000,
+      });
+      setCurrentPage(1);
+      loadIncidents();
+    });
+
+    // Écouter le WebSocket incident:created (créé par FastAPI via incident-management)
+    const socket = io("http://localhost:3004", {
+      reconnection: true,
+      transports: ["websocket", "polling"],
+    });
+
+    socket.on("incident:created", (data: any) => {
+      console.log("🔌 WebSocket: incident:created reçu", data);
+      setCurrentPage(1);
+      loadIncidents();
+    });
+
     // Charger les projets depuis le service gestion-projects (port 3007)
     const loadProjects = async () => {
       try {
@@ -546,6 +570,8 @@ export default function Incidents() {
     return () => {
       unsubscribeUpdated();
       unsubscribeDeleted();
+      unsubscribeCreated();
+      socket.disconnect();
     };
   }, []);
 
@@ -885,6 +911,9 @@ Pour toute question, veuillez contacter l'administrateur système.
 
   return (
     <div className="space-y-6">
+      {/* ── AI Helmet Detection ─────────────────────────────────────────── */}
+      <HelmetDetection />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">

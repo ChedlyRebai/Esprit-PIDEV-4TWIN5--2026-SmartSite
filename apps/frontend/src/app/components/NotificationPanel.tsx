@@ -67,8 +67,8 @@ export function NotificationPanel() {
       console.log('🔔 NotificationPanel: Received created event', data);
       addNotification({
         type: 'created',
-        message: 'Nouvel incident',
-        description: `Un nouvel incident a été créé`,
+        message: 'New incident',
+        description: `A new incident has been created`,
         incidentId: data.incidentId,
       });
     });
