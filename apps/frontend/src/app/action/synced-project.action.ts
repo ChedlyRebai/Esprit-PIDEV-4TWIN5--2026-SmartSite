@@ -1,4 +1,4 @@
-import axios from "axios";
+ pouimport axios from "axios";
 import { GESTION_SITE_API_URL } from "../../lib/gestion-site-api-url";
 import { PLANNING_API_URL } from "../../lib/planning-api-url";
 import { AUTH_API_URL } from "../../lib/auth-api-url";
@@ -180,7 +180,14 @@ export const getProjectsWithSites = async (): Promise<ProjectWithSites[]> => {
 
     const projectsData =
       projectsResponse.status === "fulfilled"
-        ? projectsResponse.value.data?.projects ?? projectsResponse.value.data ?? []
+        ? (() => {
+            const d = projectsResponse.value.data;
+            if (Array.isArray(d)) return d;
+            if (Array.isArray(d?.projects)) return d.projects;
+            if (Array.isArray(d?.data)) return d.data;
+            if (Array.isArray(d?.items)) return d.items;
+            return [];
+          })()
         : [];
 
     const sitesRaw =
