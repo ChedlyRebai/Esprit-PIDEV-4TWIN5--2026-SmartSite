@@ -1,10 +1,26 @@
 pipeline {
-    agent any
+    agent {
+        label 'any'
+    }
+
+    options {
+        // Empêcher les builds concurrents
+        disableConcurrentBuilds()
+        // Timeout global pour éviter les builds bloqués
+        timeout(time: 30, unit: 'MINUTES')
+        // Garder seulement les 10 derniers builds
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        // Permettre la reprise après redémarrage Jenkins
+        preserveStashes(buildCount: 5)
+    }
 
     environment {
         SERVICE_NAME  = 'frontend'
         SERVICE_DIR   = 'apps/frontend'
         SONAR_PROJECT = 'smartsite-frontend'
+        // Augmenter le timeout npm
+        NPM_CONFIG_FETCH_TIMEOUT = '300000'
+        NPM_CONFIG_FETCH_RETRIES = '5'
     }
 
     tools {
@@ -15,7 +31,12 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    // Retry en cas d'échec du checkout
+                    retry(3) {
+                        checkout scm
+                    }
+                }
                 echo "✅ Code récupéré depuis GitHub"
             }
         }
@@ -23,7 +44,14 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 dir("${SERVICE_DIR}") {
-                    sh 'npm ci'
+                    script {
+                        // Retry avec timeout pour npm ci
+                        retry(2) {
+                            timeout(time: 10, unit: 'MINUTES') {
+                                sh 'npm ci --prefer-offline --no-audit'
+                            }
+                        }
+                    }
                     echo "✅ Dépendances installées"
                 }
             }
@@ -85,13 +113,30 @@ pipeline {
 
     post {
         success {
-            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            script {
+                def serviceName = env.SERVICE_NAME ?: 'frontend'
+                echo "🎉 CI réussi pour ${serviceName} — build #${BUILD_NUMBER}"
+            }
         }
         failure {
-            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            script {
+                def serviceName = env.SERVICE_NAME ?: 'frontend'
+                echo "❌ CI échoué pour ${serviceName} — build #${BUILD_NUMBER}"
+            }
         }
         always {
-            cleanWs()
+            script {
+                // Nettoyage sécurisé même après perte de contexte
+                try {
+                    cleanWs(
+                        deleteDirs: true,
+                        disableDeferredWipeout: true,
+                        notFailBuild: true
+                    )
+                } catch (Exception e) {
+                    echo "⚠️ Nettoyage workspace échoué (non bloquant): ${e.message}"
+                }
+            }
         }
     }
 }
