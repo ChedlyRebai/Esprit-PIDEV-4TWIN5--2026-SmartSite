@@ -103,7 +103,7 @@ pipeline {
                     dir('apps/backend/user-authentication') {
                         sh "docker build -t ${imageTag} ."
                     }
-                    u
+                    
                     sh "docker build -t ${imageTag} ."
                     echo " Docker image built: ${imageTag}"
                 }
