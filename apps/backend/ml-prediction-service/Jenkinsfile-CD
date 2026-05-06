@@ -22,20 +22,10 @@ pipeline {
             steps {
                 dir("${SERVICE_DIR}") {
                     script {
-                        try {
-                            sh """
-                                chmod 666 /var/run/docker.sock || true
-                                docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
-                            """
-                            echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                        } catch (Exception e) {
-                            echo "⚠️ Erreur Docker build: ${e.message}"
-                            echo "Tentative avec sudo..."
-                            sh """
-                                sudo chmod 666 /var/run/docker.sock
-                                sudo docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
-                            """
-                        }
+                        // Utiliser l'agent Docker directement via le plugin
+                        docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}", "--no-cache .")
+                        docker.build("${DOCKER_IMAGE}:latest", "--no-cache .")
+                        echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     }
                 }
             }
@@ -45,18 +35,13 @@ pipeline {
             steps {
                 script {
                     try {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'docker-hub-credentials',
-                            usernameVariable: 'DOCKER_USERNAME',
-                            passwordVariable: 'DOCKER_PASSWORD'
-                        )]) {
-                            sh """
-                                echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
-                                docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                                docker push ${DOCKER_IMAGE}:latest
-                            """
-                            echo "✅ Image Docker poussée sur Docker Hub"
+                        docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                            def image = docker.image("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                            image.push()
+                            def latestImage = docker.image("${DOCKER_IMAGE}:latest")
+                            latestImage.push()
                         }
+                        echo "✅ Image Docker poussée sur Docker Hub"
                     } catch (Exception e) {
                         echo "⚠️ Docker Hub push échoué (credentials manquants?) - On continue..."
                     }
@@ -67,31 +52,18 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    try {
-                        sh """
-                            docker stop ${SERVICE_NAME} || true
-                            docker rm ${SERVICE_NAME} || true
-                            docker run -d \
-                                --name ${SERVICE_NAME} \
-                                --restart unless-stopped \
-                                -p ${PORT}:${PORT} \
-                                -e PORT=${PORT} \
-                                ${DOCKER_IMAGE}:latest
-                        """
-                        echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
-                    } catch (Exception e) {
-                        echo "⚠️ Erreur déploiement: ${e.message}"
-                        sh """
-                            sudo docker stop ${SERVICE_NAME} || true
-                            sudo docker rm ${SERVICE_NAME} || true
-                            sudo docker run -d \
-                                --name ${SERVICE_NAME} \
-                                --restart unless-stopped \
-                                -p ${PORT}:${PORT} \
-                                -e PORT=${PORT} \
-                                ${DOCKER_IMAGE}:latest
-                        """
-                    }
+                    // Arrêter et supprimer le conteneur existant
+                    sh "docker stop ${SERVICE_NAME} || true"
+                    sh "docker rm ${SERVICE_NAME} || true"
+                    
+                    // Déployer avec le plugin Docker
+                    docker.image("${DOCKER_IMAGE}:latest").run(
+                        "--name ${SERVICE_NAME} " +
+                        "--restart unless-stopped " +
+                        "-p ${PORT}:${PORT} " +
+                        "-e PORT=${PORT}"
+                    )
+                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
                 }
             }
         }
@@ -122,10 +94,22 @@ pipeline {
         }
         failure {
             echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
-            sh "docker start ${SERVICE_NAME} || true"
+            script {
+                try {
+                    sh "docker start ${SERVICE_NAME} || true"
+                } catch (Exception e) {
+                    echo "⚠️ Impossible de redémarrer le service"
+                }
+            }
         }
         always {
-            sh "docker image prune -f || true"
+            script {
+                try {
+                    sh "docker image prune -f || true"
+                } catch (Exception e) {
+                    echo "⚠️ Nettoyage des images ignoré"
+                }
+            }
             cleanWs()
         }
     }
