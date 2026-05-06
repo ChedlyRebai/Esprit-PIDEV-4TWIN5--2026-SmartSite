@@ -1,12 +1,17 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:24-dind'
+            args '-v /var/run/docker.sock:/var/run/docker.sock --group-add docker'
+            reuseNode true
+        }
+    }
 
     environment {
         SERVICE_NAME  = 'ml-prediction-service'
         SERVICE_DIR   = 'apps/backend/ml-prediction-service'
         DOCKER_IMAGE  = "ghada/smartsite-ml-prediction-service"
         PORT          = '8000'
-        DOCKER_HOST   = 'unix:///var/run/docker.sock'
     }
 
     stages {
@@ -22,9 +27,10 @@ pipeline {
             steps {
                 dir("${SERVICE_DIR}") {
                     script {
-                        // Utiliser l'agent Docker directement via le plugin
-                        docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}", "--no-cache .")
-                        docker.build("${DOCKER_IMAGE}:latest", "--no-cache .")
+                        sh """
+                            docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                            docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                        """
                         echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     }
                 }
@@ -35,13 +41,18 @@ pipeline {
             steps {
                 script {
                     try {
-                        docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                            def image = docker.image("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-                            image.push()
-                            def latestImage = docker.image("${DOCKER_IMAGE}:latest")
-                            latestImage.push()
+                        withCredentials([usernamePassword(
+                            credentialsId: 'docker-hub-credentials',
+                            usernameVariable: 'DOCKER_USERNAME',
+                            passwordVariable: 'DOCKER_PASSWORD'
+                        )]) {
+                            sh """
+                                echo "\${DOCKER_PASSWORD}" | docker login -u "\${DOCKER_USERNAME}" --password-stdin
+                                docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                                docker push ${DOCKER_IMAGE}:latest
+                            """
+                            echo "✅ Image Docker poussée sur Docker Hub"
                         }
-                        echo "✅ Image Docker poussée sur Docker Hub"
                     } catch (Exception e) {
                         echo "⚠️ Docker Hub push échoué (credentials manquants?) - On continue..."
                     }
@@ -52,17 +63,16 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Arrêter et supprimer le conteneur existant
-                    sh "docker stop ${SERVICE_NAME} || true"
-                    sh "docker rm ${SERVICE_NAME} || true"
-                    
-                    // Déployer avec le plugin Docker
-                    docker.image("${DOCKER_IMAGE}:latest").run(
-                        "--name ${SERVICE_NAME} " +
-                        "--restart unless-stopped " +
-                        "-p ${PORT}:${PORT} " +
-                        "-e PORT=${PORT}"
-                    )
+                    sh """
+                        docker stop ${SERVICE_NAME} || true
+                        docker rm ${SERVICE_NAME} || true
+                        docker run -d \
+                            --name ${SERVICE_NAME} \
+                            --restart unless-stopped \
+                            -p ${PORT}:${PORT} \
+                            -e PORT=${PORT} \
+                            ${DOCKER_IMAGE}:latest
+                    """
                     echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
                 }
             }
@@ -110,7 +120,6 @@ pipeline {
                     echo "⚠️ Nettoyage des images ignoré"
                 }
             }
-            cleanWs()
         }
     }
 }
