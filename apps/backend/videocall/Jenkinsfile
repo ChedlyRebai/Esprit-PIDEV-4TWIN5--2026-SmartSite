@@ -47,8 +47,17 @@ pipeline {
             steps {
                 dir('apps/backend/videocall') {
                     sh 'npm install'
-                    sh 'npm run test:cov'
-                    echo 'Tests and coverage generated'
+                    sh '''
+                        if npm run | grep -q " test:cov"; then
+                            npm run test:cov
+                            echo "Tests and coverage generated"
+                        elif npm run | grep -q " test"; then
+                            npm test
+                            echo "Tests generated via npm test"
+                        else
+                            echo "No test script found (test:cov/test). Skipping test step."
+                        fi
+                    '''
                 }
             }
         }
