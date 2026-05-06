@@ -1,4 +1,52 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuthService } from './auth.service';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+
+describe('AuthService', () => {
+  let service: AuthService;
+
+  const mockUsersService = {
+    findOneByEmail: jest.fn(),
+    // add other user service methods used by AuthService if needed
+  } as unknown as UsersService;
+
+  const mockJwtService = {
+    sign: jest.fn().mockReturnValue('signed-token'),
+  } as unknown as JwtService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: UsersService, useValue: mockUsersService },
+        { provide: JwtService, useValue: mockJwtService },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('login() should return access_token using JwtService.sign', async () => {
+    const user = { _id: '1', email: 'test@example.com' } as any;
+    const res = await service.login(user);
+    expect(mockJwtService.sign).toHaveBeenCalled();
+    expect(res).toEqual({ access_token: 'signed-token' });
+  });
+
+  it('validateUser() should return null when user not found', async () => {
+    mockUsersService.findOneByEmail = jest.fn().mockResolvedValue(null);
+    const res = await service.validateUser('noone@example.com', 'pwd');
+    expect(res).toBeNull();
+  });
+});
+import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
 import { RolesService } from '../roles/roles.service';

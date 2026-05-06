@@ -1,0 +1,119 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        SERVICE_NAME = 'videocall'
+        SERVICE_DIR  = 'apps/backend/videocall'
+        CD_JOB_NAME  = 'videocall-CD'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/devops']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
+                        credentialsId: 'pidev-github-credentials'
+                    ]]
+                ])
+
+                script {
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    env.GIT_BRANCH = sh(
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Branch: ${env.GIT_BRANCH}"
+                    echo "Commit: ${env.GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir('apps/backend/videocall') {
+                    sh 'npm install'
+                    sh 'npm run test:cov'
+                    echo 'Tests and coverage generated'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sq1') {
+                    withCredentials([string(credentialsId: 'video-call-sonarqube', variable: 'SONAR_LOGIN')]) {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+
+                            sh '''
+                                cd apps/backend/videocall
+
+                                ''' + scannerHome + '''/bin/sonar-scanner \
+                                    -Dsonar.projectKey=video-call \
+                                    -Dsonar.projectName="SmartSite - Video Call" \
+                                    -Dsonar.sources=src \
+                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                    -Dsonar.coverage.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**
+
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        stage('BUILD DOCKER IMAGE') {
+            steps {
+                script {
+                    def imageTag = "${USER_AUTH_IMAGE}:latest"
+                    dir('apps/backend/videocall') {
+                        sh "docker build -t ${imageTag} ."
+                    }
+
+                    echo " Docker image built: ${imageTag}"
+                }
+            }
+        }
+
+        stage('Push docker image') {
+            steps {
+                script {
+                    withDockerRegistry([
+                      credentialsId: 'chedlyrebai-dockerhub',
+                      url: 'https://index.docker.io/v1/'
+                  ]) {
+                        sh 'echo docker login successful'
+                        sh " docker push ${USER_AUTH_IMAGE}:latest"
+                  }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 CI réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        failure {
+            echo "❌ CI échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
