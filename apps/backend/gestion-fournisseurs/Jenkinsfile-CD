@@ -10,6 +10,17 @@ pipeline {
 
     stages {
 
+        stage('Fix Docker Permissions') {
+            steps {
+                script {
+                    sh '''
+                        sudo chmod 666 /var/run/docker.sock || true
+                        ls -la /var/run/docker.sock
+                    '''
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
