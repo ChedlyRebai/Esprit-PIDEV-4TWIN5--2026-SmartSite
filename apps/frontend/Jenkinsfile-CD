@@ -1,16 +1,17 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:24-dind'
+            args '-v /var/run/docker.sock:/var/run/docker.sock --group-add docker'
+            reuseNode true
+        }
+    }
 
     environment {
         SERVICE_NAME  = 'frontend'
         SERVICE_DIR   = 'apps/frontend'
         DOCKER_IMAGE  = "doniamaazoun/smartsite-frontend"
         PORT          = '80'
-        DOCKER_HOST   = 'unix:///var/run/docker.sock'
-    }
-
-    tools {
-        nodejs 'NodeJS-20'
     }
 
     stages {
@@ -27,8 +28,8 @@ pipeline {
                 dir("${SERVICE_DIR}") {
                     script {
                         sh """
-                            chmod 666 /var/run/docker.sock 2>/dev/null || true
-                            docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
+                            docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                            docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
                         """
                         echo "✅ Image Docker construite: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     }
@@ -46,7 +47,7 @@ pipeline {
                             passwordVariable: 'DOCKER_PASSWORD'
                         )]) {
                             sh """
-                                echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
+                                echo "\${DOCKER_PASSWORD}" | docker login -u "\${DOCKER_USERNAME}" --password-stdin
                                 docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
                                 docker push ${DOCKER_IMAGE}:latest
                                 docker logout
@@ -62,16 +63,18 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh """
-                    docker stop ${SERVICE_NAME} || true
-                    docker rm ${SERVICE_NAME} || true
-                    docker run -d \
-                        --name ${SERVICE_NAME} \
-                        --restart unless-stopped \
-                        -p ${PORT}:${PORT} \
-                        ${DOCKER_IMAGE}:latest
-                """
-                echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
+                script {
+                    sh """
+                        docker stop ${SERVICE_NAME} || true
+                        docker rm ${SERVICE_NAME} || true
+                        docker run -d \
+                            --name ${SERVICE_NAME} \
+                            --restart unless-stopped \
+                            -p ${PORT}:${PORT} \
+                            ${DOCKER_IMAGE}:latest
+                    """
+                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
+                }
             }
         }
     }
@@ -82,9 +85,22 @@ pipeline {
         }
         failure {
             echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            script {
+                try {
+                    sh "docker start ${SERVICE_NAME} || true"
+                } catch (Exception e) {
+                    echo "⚠️ Impossible de redémarrer le service"
+                }
+            }
         }
         always {
-            cleanWs()
+            script {
+                try {
+                    sh "docker image prune -f || true"
+                } catch (Exception e) {
+                    echo "⚠️ Nettoyage des images ignoré"
+                }
+            }
         }
     }
 }
