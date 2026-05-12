@@ -14,24 +14,40 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         { name: Task.name, schema: TaskSchema },
         { name: TaskStage.name, schema: TaskStageSchema },
       ]),
+      
       ClientsModule.register([
-        {
-          name: 'NOTIFICATION_SERVICE',
-          transport: Transport.KAFKA,
-          options: {
-            client: {
-              clientId: process.env.KAFKA_CLIENT_ID ?? 'gestion-planing',
-              brokers: (process.env.KAFKA_BROKERS ?? 'localhost:9092')
-                .split(',')
-                .map((broker) => broker.trim())
-                .filter(Boolean),
-            },
-            producer: {
-              allowAutoTopicCreation: true,
-            },
-          },
+  {
+    name: 'NOTIFICATION_SERVICE',
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        clientId:
+          process.env.KAFKA_CLIENT_ID ?? 'gestion-planing',
+
+        brokers: [
+          process.env.KAFKA_BROKER ??
+            'kafka-22f5b619-rebaichedly3-d151.c.aivencloud.com:12294',
+        ],
+
+        ssl: true,
+
+        sasl: {
+          mechanism: 'plain',
+          username: process.env.KAFKA_USERNAME ?? 'avnadmin',
+          password: process.env.KAFKA_PASSWORD ?? 'AVNS_7NgdKSX4QgHZM2h5QXF',
         },
-      ]),
+      },
+
+      producer: {
+        allowAutoTopicCreation: true,
+      },
+
+      consumer: {
+        groupId: 'gestion-planing-consumer',
+      },
+    },
+  },
+])
     ],
   controllers: [TaskController],
   providers: [TaskService],
