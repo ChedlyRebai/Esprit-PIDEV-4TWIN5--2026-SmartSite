@@ -1,2 +1,0 @@
-FROM doniamaazoun/materials-service:latest
-CMD ["node", "dist/main"]
