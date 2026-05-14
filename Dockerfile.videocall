@@ -1,0 +1,7 @@
+FROM chedlyrebai/video-call:latest
+USER root
+RUN npm install -g tsx
+EXPOSE 10000
+ENV NODE_ENV=production
+ENV PORT=10000
+CMD ["tsx", "src/server.ts"]

@@ -135,7 +135,7 @@ export default function SuppliersList() {
 
       {/* Filter tabs — visible for qhse only */}
       {isQhse && (
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-4 flex-wrap" role="group" aria-label="Filter suppliers by status">
           {[
             { key: 'all', label: `All (${counts.all})` },
             { key: 'pending_qhse', label: `Pending (${counts.pending_qhse})` },
@@ -145,7 +145,8 @@ export default function SuppliersList() {
             <button
               key={tab.key}
               onClick={() => setFilterStatus(tab.key)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              aria-pressed={filterStatus === tab.key}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 filterStatus === tab.key
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
@@ -159,12 +160,15 @@ export default function SuppliersList() {
 
       {/* Search */}
       <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
         <Input
+          id="supplier-search"
           placeholder="Search by name, category or code..."
           className="pl-9"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search suppliers by name, category or code"
+          type="search"
         />
       </div>
 
@@ -184,14 +188,25 @@ export default function SuppliersList() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" role="list" aria-label="Suppliers list">
           {filtered.map((supplier) => {
             const status = STATUS_CONFIG[supplier.status] || STATUS_CONFIG.pending_qhse;
             return (
-              <Card
+              <div
                 key={supplier._id}
-                className={`hover:shadow-md transition-shadow cursor-pointer`}
+                role="listitem"
+              >
+              <Card
+                className={`hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+                tabIndex={0}
+                aria-label={`Supplier ${supplier.name}, ${supplier.category}, status: ${status.label}`}
                 onClick={() => navigate(`/suppliers/${supplier._id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/suppliers/${supplier._id}`);
+                  }
+                }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -206,60 +221,63 @@ export default function SuppliersList() {
                         </Badge>
                         {supplier.ratingCount && supplier.ratingCount > 0 && (
                           <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">
-                            <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                            {supplier.averageRating?.toFixed(1)}/10 ({supplier.ratingCount})
+                            <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" aria-hidden="true" />
+                            <span aria-label={`Rating: ${supplier.averageRating?.toFixed(1)} out of 10, ${supplier.ratingCount} ratings`}>
+                              {supplier.averageRating?.toFixed(1)}/10 ({supplier.ratingCount})
+                            </span>
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 mt-0.5">{supplier.category}</p>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+                      <p className="text-sm text-gray-600 mt-0.5">{supplier.category}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-600">
                         <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {supplier.email}
+                          <Mail className="w-3 h-3" aria-hidden="true" /> {supplier.email}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> {supplier.phone}
+                          <Phone className="w-3 h-3" aria-hidden="true" /> {supplier.phone}
                         </span>
                         <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> {supplier.address}
+                          <MapPin className="w-3 h-3" aria-hidden="true" /> {supplier.address}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-xs text-gray-400 text-right shrink-0">
+                      <div className="text-xs text-gray-600 text-right shrink-0">
                         <p>By {supplier.createdByName}</p>
                         <p>{new Date(supplier.createdAt).toLocaleDateString()}</p>
                       </div>
                       <button
-                        className="p-1.5 rounded hover:bg-gray-100 text-blue-600"
-                        title="View Details"
+                        className="p-1.5 rounded hover:bg-gray-100 text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        aria-label={`View details for ${supplier.name}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/suppliers/${supplier._id}`);
                         }}
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-4 h-4" aria-hidden="true" />
                       </button>
                       {isProcurement && (
                         <div className="flex items-center gap-1">
                           <button
-                            className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
-                            title="Edit"
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            aria-label={`Edit supplier ${supplier.name}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/suppliers/${supplier._id}/edit`);
                             }}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-4 h-4" aria-hidden="true" />
                           </button>
                           <button
-                            className={`p-1.5 rounded hover:bg-gray-100 ${supplier.estArchive ? 'text-green-600' : 'text-gray-600'}`}
-                            title={supplier.estArchive ? 'Unarchive' : 'Archive'}
+                            className={`p-1.5 rounded hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${supplier.estArchive ? 'text-green-600' : 'text-gray-600'}`}
+                            aria-label={supplier.estArchive ? `Unarchive supplier ${supplier.name}` : `Archive supplier ${supplier.name}`}
+                            aria-pressed={!!supplier.estArchive}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleArchive(supplier);
                             }}
                           >
-                            <Archive className="w-4 h-4" />
+                            <Archive className="w-4 h-4" aria-hidden="true" />
                           </button>
                         </div>
                       )}
@@ -267,6 +285,7 @@ export default function SuppliersList() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             );
           })}
         </div>

@@ -137,7 +137,8 @@ export default function Sites() {
 
   useEffect(() => {
     if (isProjectContext && currentProjectId) {
-      axios.get(`http://localhost:3010/projects/${currentProjectId}`)
+      const projectsUrl = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim() ?? 'http://localhost:9001/projects';
+      axios.get(`${projectsUrl}/projects/${currentProjectId}`)
         .then(res => {
           if (res.data?.siteCount !== undefined) {
             setProjectSiteLimit(res.data.siteCount);
@@ -355,8 +356,8 @@ export default function Sites() {
       if (data && data.length > 0) {
         const result = data[0];
         const newPosition = {
-          lat: result.lat,
-          lng: result.lng
+          lat: Number(result.lat),
+          lng: Number(result.lon ?? result.lng)  // Nominatim returns 'lon', not 'lng'
         };
         setMapPosition(newPosition);
         setErrors(prev => ({ ...prev, address: undefined }));
@@ -804,7 +805,9 @@ export default function Sites() {
       clientName: site.clientName || '',
       teamId: (site.teams?.[0] as any)?._id || (site.teams?.[0] as any) || ''
     });
-    setEditMapPosition(site.coordinates || null);
+    setEditMapPosition(site.coordinates
+      ? { lat: Number(site.coordinates.lat), lng: Number(site.coordinates.lng) }
+      : null);
     setErrors({});
     // Charger les teams disponibles si pas encore chargées
     if (availableTeams.length === 0) {
@@ -1329,7 +1332,7 @@ export default function Sites() {
                       {mapPosition ? (
                         <p className="text-sm text-green-600 flex items-center gap-1">
                           <CheckCircle2 className="h-4 w-4" />
-                          Selected position: {mapPosition.lat.toFixed(4)}, {mapPosition.lng.toFixed(4)}
+                          Selected position: {Number(mapPosition.lat).toFixed(4)}, {Number(mapPosition.lng).toFixed(4)}
                         </p>
                       ) : (
                         <p className="text-sm text-gray-500 flex items-center gap-1">
@@ -1926,8 +1929,8 @@ export default function Sites() {
                         if (response.data.success && response.data.results.length > 0) {
                           const firstResult = response.data.results[0];
                           setEditMapPosition({
-                            lat: firstResult.lat,
-                            lng: firstResult.lng
+                            lat: Number(firstResult.lat),
+                            lng: Number(firstResult.lng)
                           });
                           toast.success(`Address found: ${firstResult.displayName}`, { id: 'geocode-search' });
                         } else {
@@ -2087,7 +2090,7 @@ export default function Sites() {
                 {editMapPosition && (
                   <p className="text-sm text-green-600 flex items-center gap-1">
                     <CheckCircle2 className="h-4 w-4" />
-                    Position: {editMapPosition.lat.toFixed(4)}, {editMapPosition.lng.toFixed(4)}
+                    Position: {Number(editMapPosition.lat).toFixed(4)}, {Number(editMapPosition.lng).toFixed(4)}
                   </p>
                 )}
               </div>

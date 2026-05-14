@@ -56,12 +56,11 @@ pipeline {
                             sh """
                                 ${scannerHome}/bin/sonar-scanner \
                                     -Dsonar.projectKey=${SONAR_PROJECT} \
-                                    -Dsonar.projectName='SmartSite - Materials Service' \
                                     -Dsonar.sources=src \
-                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/*.module.ts,src/main.ts,**/*.dto.ts,**/*.entity.ts \
-                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                    -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
-                                    -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts,**/node_modules/**,**/dist/**,src/main.ts,**/*.dto.ts,**/*.entity.ts
+                                    -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/** \
+                                    -Dsonar.tests=src \
+                                    -Dsonar.test.inclusions=**/*.spec.ts \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
                             """
                         }
                     }

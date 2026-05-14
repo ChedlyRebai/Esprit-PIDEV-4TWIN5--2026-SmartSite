@@ -1,36 +1,33 @@
 pipeline {
     agent any
-
     environment {
         SERVICE_NAME  = 'gestion-site'
         SERVICE_DIR   = 'apps/backend/gestion-site'
         DOCKER_IMAGE  = "asmaamh/smartsite-gestion-site"
         PORT          = '3001'
+<<<<<<< HEAD
+        DOCKER_HOST   = 'unix:///var/run/docker.sock'  // ✅ corrigé
+=======
       DOCKER_HOST   = 'unix:///var/run/docker.sock'
+>>>>>>> 9320e27b9bc4ee873115ad40f8f9ca4cabd05025
     }
-
     tools {
         nodejs 'NodeJS-20'
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
                 echo "✅ Code récupéré depuis GitHub"
             }
         }
-
         stage('Docker Build') {
             steps {
                 dir("${SERVICE_DIR}") {
                     sh "docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
-                    echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                 }
             }
         }
-
         stage('Docker Push') {
             steps {
                 withCredentials([usernamePassword(
@@ -43,11 +40,9 @@ pipeline {
                         docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
                         docker push ${DOCKER_IMAGE}:latest
                     """
-                    echo "✅ Image Docker poussée sur Docker Hub"
                 }
             }
         }
-
         stage('Deploy') {
             steps {
                 withCredentials([string(
@@ -66,18 +61,16 @@ pipeline {
                             -e MONGODB_URI="\${MONGODB_URI}" \
                             ${DOCKER_IMAGE}:latest
                     """
-                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
                 }
             }
         }
     }
-
     post {
         success {
-            echo "🎉 CD réussi — ${SERVICE_NAME} déployé (build #${BUILD_NUMBER})"
+            echo "🎉 Pipeline réussi — ${SERVICE_NAME} build #${BUILD_NUMBER}"
         }
         failure {
-            echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "❌ Pipeline échoué — ${SERVICE_NAME} build #${BUILD_NUMBER}"
         }
         always {
             cleanWs()

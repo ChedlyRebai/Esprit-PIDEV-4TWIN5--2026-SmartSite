@@ -127,24 +127,29 @@ export default function ChangePasswordFirstLogin() {
                   id="currentPassword"
                   type={showCurrentPassword ? "text" : "password"}
                   placeholder="Entrez votre mot de passe temporaire"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.currentPassword}
+                  aria-describedby={form.formState.errors.currentPassword ? "currentPassword-error" : undefined}
                   {...form.register("currentPassword")}
                   className="pr-10"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
+                  aria-label={showCurrentPassword ? "Masquer le mot de passe temporaire" : "Afficher le mot de passe temporaire"}
+                  aria-controls="currentPassword"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
                 >
                   {showCurrentPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   )}
                 </button>
               </div>
               {form.formState.errors.currentPassword && (
-                <p className="text-xs text-red-500">
+                <p id="currentPassword-error" role="alert" className="text-xs text-red-500">
                   {form.formState.errors.currentPassword.message}
                 </p>
               )}
@@ -160,24 +165,32 @@ export default function ChangePasswordFirstLogin() {
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   placeholder="Entrez votre nouveau mot de passe"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.newPassword}
+                  aria-describedby={form.formState.errors.newPassword ? "newPassword-error" : "newPassword-hint"}
                   {...form.register("newPassword")}
                   className="pr-10"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
+                  aria-label={showNewPassword ? "Masquer le nouveau mot de passe" : "Afficher le nouveau mot de passe"}
+                  aria-controls="newPassword"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
                 >
                   {showNewPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   )}
                 </button>
               </div>
+              <p id="newPassword-hint" className="text-xs text-gray-500">
+                Minimum 8 caractères, avec majuscule, minuscule, chiffre et caractère spécial.
+              </p>
               {form.formState.errors.newPassword && (
-                <p className="text-xs text-red-500">
+                <p id="newPassword-error" role="alert" className="text-xs text-red-500">
                   {form.formState.errors.newPassword.message}
                 </p>
               )}
@@ -193,24 +206,29 @@ export default function ChangePasswordFirstLogin() {
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirmez votre nouveau mot de passe"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.confirmPassword}
+                  aria-describedby={form.formState.errors.confirmPassword ? "confirmPassword-error" : undefined}
                   {...form.register("confirmPassword")}
                   className="pr-10"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
+                  aria-label={showConfirmPassword ? "Masquer la confirmation du mot de passe" : "Afficher la confirmation du mot de passe"}
+                  aria-controls="confirmPassword"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   )}
                 </button>
               </div>
               {form.formState.errors.confirmPassword && (
-                <p className="text-xs text-red-500">
+                <p id="confirmPassword-error" role="alert" className="text-xs text-red-500">
                   {form.formState.errors.confirmPassword.message}
                 </p>
               )}

@@ -26,7 +26,7 @@ const Navbar = () => {
             <img
               className="h-8 w-auto"
               src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
-              alt=""
+              alt="SmartSite"
             />
           </a>
         </div>
@@ -37,8 +37,7 @@ const Navbar = () => {
             onClick={() => setMobileMenuOpen(true)}
           >
             <span className="sr-only">Ouvrir le menu principal</span>
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          </button>
+            <Menu className="h-6 w-6" aria-hidden="true" />          </button>
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-center">
           <SiteInfoPanel />

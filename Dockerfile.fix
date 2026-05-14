@@ -1,0 +1,2 @@
+FROM chedlyrebai/user-authentication-api:latest
+CMD ["node", "dist/main"]

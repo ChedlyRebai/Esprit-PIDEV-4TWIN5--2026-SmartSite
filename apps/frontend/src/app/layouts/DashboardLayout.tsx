@@ -292,7 +292,7 @@ export default function DashboardLayout() {
                   aria-label={t("accessibility.fontSize", "Taille du texte")}
                   title="Taille du texte"
                 >
-                  <Type className="h-5 w-5" />
+                  <Type className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-56 p-4">
@@ -303,9 +303,10 @@ export default function DashboardLayout() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      aria-label={t("accessibility.decreaseFontSize", "Decrease font size")}
                       onClick={() => setFontSize(prev => Math.max(80, prev - 10))}
                     >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Slider
                       min={80}
@@ -319,12 +320,18 @@ export default function DashboardLayout() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      aria-label={t("accessibility.increaseFontSize", "Increase font size")}
                       onClick={() => setFontSize(prev => Math.min(140, prev + 10))}
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
-                  <div className="text-center text-xs text-muted-foreground">
+                  <div
+                    className="text-center text-xs text-muted-foreground"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    aria-label={`Current font size: ${fontSize}%`}
+                  >
                     {fontSize}%
                   </div>
                   <Button
@@ -478,7 +485,7 @@ export default function DashboardLayout() {
               "accessibility.closeSidebarOverlay",
               "Close sidebar overlay",
             )}
-            className="fixed inset-0  bg-opacity-10 z-20 lg:hidden"
+            className="fixed inset-0 bg-black/20 z-20 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

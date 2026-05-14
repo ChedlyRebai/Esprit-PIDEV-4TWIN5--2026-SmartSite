@@ -229,8 +229,9 @@ export default function AddSupplier() {
           size="icon"
           onClick={() => navigate(-1)}
           className="rounded-full"
+          aria-label="Go back"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Add New Supplier</h1>
@@ -253,12 +254,16 @@ export default function AddSupplier() {
             {/* Supplier Name */}
             <div className="space-y-1.5">
               <Label htmlFor="name">
-                Supplier Name <span className="text-red-500">*</span>
+                Supplier Name <span className="text-red-500" aria-hidden="true">*</span>
               </Label>
               <Input
                 id="name"
                 placeholder="e.g. Lafarge"
                 value={form.name}
+                required
+                aria-required="true"
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? "name-error" : undefined}
                 onChange={(e) => {
                   setForm((p) => ({ ...p, name: e.target.value }));
                   if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
@@ -266,14 +271,14 @@ export default function AddSupplier() {
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && (
-                <p className="text-xs text-red-500">{errors.name}</p>
+                <p id="name-error" role="alert" className="text-xs text-red-500">{errors.name}</p>
               )}
             </div>
 
             {/* Category */}
             <div className="space-y-1.5">
               <Label htmlFor="category">
-                Category <span className="text-red-500">*</span>
+                Category <span className="text-red-500" aria-hidden="true">*</span>
               </Label>
               <Select
                 value={form.category}
@@ -284,6 +289,9 @@ export default function AddSupplier() {
               >
                 <SelectTrigger
                   id="category"
+                  aria-required="true"
+                  aria-invalid={!!errors.category}
+                  aria-describedby={errors.category ? "category-error" : undefined}
                   className={errors.category ? 'border-red-500' : ''}
                 >
                   <SelectValue placeholder="-- Select --" />
@@ -297,21 +305,25 @@ export default function AddSupplier() {
                 </SelectContent>
               </Select>
               {errors.category && (
-                <p className="text-xs text-red-500">{errors.category}</p>
+                <p id="category-error" role="alert" className="text-xs text-red-500">{errors.category}</p>
               )}
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
               <Label htmlFor="email">
-                <Mail className="w-3.5 h-3.5 inline mr-1" />
-                Email <span className="text-red-500">*</span>
+                <Mail className="w-3.5 h-3.5 inline mr-1" aria-hidden="true" />
+                Email <span className="text-red-500" aria-hidden="true">*</span>
               </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="contact@supplier.com"
                 value={form.email}
+                required
+                aria-required="true"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 onChange={(e) => {
                   setForm((p) => ({ ...p, email: e.target.value }));
                   if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
@@ -319,21 +331,25 @@ export default function AddSupplier() {
                 className={errors.email ? 'border-red-500' : ''}
               />
               {errors.email && (
-                <p className="text-xs text-red-500">{errors.email}</p>
+                <p id="email-error" role="alert" className="text-xs text-red-500">{errors.email}</p>
               )}
             </div>
 
             {/* Phone */}
             <div className="space-y-1.5">
               <Label htmlFor="phone">
-                <Phone className="w-3.5 h-3.5 inline mr-1" />
-                Phone <span className="text-red-500">*</span>
+                <Phone className="w-3.5 h-3.5 inline mr-1" aria-hidden="true" />
+                Phone <span className="text-red-500" aria-hidden="true">*</span>
               </Label>
               <Input
                 id="phone"
                 type="tel"
                 placeholder="0123456789"
                 value={form.phone}
+                required
+                aria-required="true"
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
                 onChange={(e) => {
                   setForm((p) => ({ ...p, phone: e.target.value }));
                   if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }));
@@ -341,20 +357,24 @@ export default function AddSupplier() {
                 className={errors.phone ? 'border-red-500' : ''}
               />
               {errors.phone && (
-                <p className="text-xs text-red-500">{errors.phone}</p>
+                <p id="phone-error" role="alert" className="text-xs text-red-500">{errors.phone}</p>
               )}
             </div>
 
             {/* Address */}
             <div className="space-y-1.5">
               <Label htmlFor="address">
-                <MapPin className="w-3.5 h-3.5 inline mr-1" />
-                Address <span className="text-red-500">*</span>
+                <MapPin className="w-3.5 h-3.5 inline mr-1" aria-hidden="true" />
+                Address <span className="text-red-500" aria-hidden="true">*</span>
               </Label>
               <Textarea
                 id="address"
                 placeholder="10 rue du Béton, 75001 Paris"
                 value={form.address}
+                required
+                aria-required="true"
+                aria-invalid={!!errors.address}
+                aria-describedby={errors.address ? "address-error" : undefined}
                 onChange={(e) => {
                   setForm((p) => ({ ...p, address: e.target.value }));
                   if (errors.address) setErrors((p) => ({ ...p, address: undefined }));
@@ -363,14 +383,14 @@ export default function AddSupplier() {
                 rows={2}
               />
               {errors.address && (
-                <p className="text-xs text-red-500">{errors.address}</p>
+                <p id="address-error" role="alert" className="text-xs text-red-500">{errors.address}</p>
               )}
             </div>
 
             {/* SIRET */}
             <div className="space-y-1.5">
               <Label htmlFor="siret">
-                SIRET <span className="text-red-500">*</span>
+                SIRET <span className="text-red-500" aria-hidden="true">*</span>
                 <span className="text-gray-400 font-normal ml-1">(14 digits)</span>
               </Label>
               <Input
@@ -378,6 +398,10 @@ export default function AddSupplier() {
                 placeholder="12345678900012"
                 maxLength={14}
                 value={form.siret}
+                required
+                aria-required="true"
+                aria-invalid={!!errors.siret}
+                aria-describedby={errors.siret ? "siret-error" : "siret-hint"}
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '');
                   setForm((p) => ({ ...p, siret: val }));
@@ -385,9 +409,9 @@ export default function AddSupplier() {
                 }}
                 className={errors.siret ? 'border-red-500' : ''}
               />
-              <p className="text-xs text-gray-400">{form.siret.length}/14 digits</p>
+              <p id="siret-hint" className="text-xs text-gray-400">{form.siret.length}/14 digits</p>
               {errors.siret && (
-                <p className="text-xs text-red-500">{errors.siret}</p>
+                <p id="siret-error" role="alert" className="text-xs text-red-500">{errors.siret}</p>
               )}
             </div>
           </CardContent>
@@ -405,81 +429,92 @@ export default function AddSupplier() {
 
             {/* Contract */}
             <div className="space-y-1.5">
-              <Label>
-                Contract Document <span className="text-red-500">*</span>
+              <Label htmlFor="contract-upload">
+                Contract Document <span className="text-red-500" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </Label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+              <label
+                htmlFor="contract-upload"
+                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors block ${
                   errors.contract
                     ? 'border-red-400 bg-red-50'
                     : contractFile
                     ? 'border-green-400 bg-green-50'
                     : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                 }`}
-                onClick={() => contractRef.current?.click()}
               >
                 <input
                   ref={contractRef}
+                  id="contract-upload"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
+                  className="sr-only"
+                  aria-required="true"
+                  aria-invalid={!!errors.contract}
+                  aria-describedby={errors.contract ? "contract-error" : "contract-hint"}
                   onChange={(e) => handleFileChange(e, 'contract')}
                 />
                 {contractFile ? (
                   <div className="flex items-center justify-center gap-2 text-green-700">
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
                     <span className="text-sm font-medium">{contractFile.name}</span>
                   </div>
                 ) : (
                   <div className="text-gray-500">
-                    <Upload className="w-6 h-6 mx-auto mb-1" />
+                    <Upload className="w-6 h-6 mx-auto mb-1" aria-hidden="true" />
                     <p className="text-sm">Click to upload contract</p>
-                    <p className="text-xs text-gray-400 mt-0.5">PDF, JPG, PNG — max 5MB</p>
+                    <p id="contract-hint" className="text-xs text-gray-400 mt-0.5">PDF, JPG, PNG — max 5MB</p>
                   </div>
                 )}
-              </div>
+              </label>
               {errors.contract && (
-                <p className="text-xs text-red-500">{errors.contract}</p>
+                <p id="contract-error" role="alert" className="text-xs text-red-500">{errors.contract}</p>
               )}
             </div>
 
             {/* Insurance Document */}
             <div className="space-y-1.5">
-              <Label>
-                <Shield className="w-3.5 h-3.5 inline mr-1" />
-                Insurance Document <span className="text-red-500">*</span>
+              <Label htmlFor="insurance-upload">
+                <Shield className="w-3.5 h-3.5 inline mr-1" aria-hidden="true" />
+                Insurance Document <span className="text-red-500" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </Label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+              <label
+                htmlFor="insurance-upload"
+                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors block ${
                   errors.insuranceDocument
                     ? 'border-red-400 bg-red-50'
                     : insuranceDocumentFile
                     ? 'border-green-400 bg-green-50'
                     : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                 }`}
-                onClick={() => insuranceDocumentRef.current?.click()}
               >
                 <input
                   ref={insuranceDocumentRef}
+                  id="insurance-upload"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
+                  className="sr-only"
+                  aria-required="true"
+                  aria-invalid={!!errors.insuranceDocument}
+                  aria-describedby={errors.insuranceDocument ? "insurance-error" : "insurance-hint"}
                   onChange={(e) => handleFileChange(e, 'insuranceDocument')}
                 />
                  {insuranceDocumentFile ? (
                    <div className="flex items-center justify-center gap-2 text-green-700">
-                     <FileText className="w-4 h-4" />
+                     <FileText className="w-4 h-4" aria-hidden="true" />
                      <span className="text-sm font-medium">{insuranceDocumentFile.name}</span>
                    </div>
                  ) : (
                     <div className="text-gray-500">
-                      <Upload className="w-6 h-6 mx-auto mb-1 opacity-50" />
-                      <span className="text-sm">Click to upload insurance document (PDF, JPG, PNG)</span>
+                      <Upload className="w-6 h-6 mx-auto mb-1 opacity-50" aria-hidden="true" />
+                      <span className="text-sm">Click to upload insurance document</span>
+                      <p id="insurance-hint" className="text-xs text-gray-400 mt-0.5">PDF, JPG, PNG — max 5MB</p>
                     </div>
                  )}
-               </div>
+               </label>
                {errors.insuranceDocument && (
-                 <p className="text-xs text-red-500">{errors.insuranceDocument}</p>
+                 <p id="insurance-error" role="alert" className="text-xs text-red-500">{errors.insuranceDocument}</p>
                )}
             </div>
           </CardContent>
