@@ -33,4 +33,4 @@ EXPOSE 3009
 ENV NODE_ENV=production
 ENV PORT=3009
 
-CMD ["node", "dist/src/main"]
+CMD ["node", "dist/main"]
