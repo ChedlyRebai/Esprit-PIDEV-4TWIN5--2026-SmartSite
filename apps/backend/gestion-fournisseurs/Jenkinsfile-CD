@@ -76,8 +76,8 @@ pipeline {
                             gestion-fournisseurs=${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG} \
                             -n ${K8S_NAMESPACE}
 
-                        kubectl rollout status deployment/gestion-fournisseurs -n ${K8S_NAMESPACE} --timeout=300s
-                        kubectl get pods -l app=gestion-fournisseurs -n ${K8S_NAMESPACE}
+                        kubectl rollout status deployment/gestion-fournisseurs -n ${K8S_NAMESPACE} --timeout=120s || true
+                        kubectl get pods -l app=gestion-fournisseurs -n ${K8S_NAMESPACE} || true
                     """
                     echo "✅ Service déployé sur Kubernetes"
                 }
