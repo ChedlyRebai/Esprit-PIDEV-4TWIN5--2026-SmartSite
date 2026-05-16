@@ -29,7 +29,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/feat/gatewway']],
+                    branches: [[name: '*/devops']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/ChedlyRebai/Esprit-PIDEV-4TWIN5--2026-SmartSite.git',
                         credentialsId: 'pidev-github-credentials'
@@ -58,7 +58,7 @@ pipeline {
                 dir('apps/backend/gestion-planing') {
                     sh 'npm install'
                     sh 'npm run test:cov'
-                    echo "✅ Tests and coverage generated"
+                    echo '✅ Tests and coverage generated'
                 }
             }
         }
@@ -74,7 +74,6 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName='SmartSite - Gestion Planning' \
-                                -Dsonar.branch.name=feat/gatewway \
                                 -Dsonar.sources=src \
                                 -Dsonar.tests=src \
                                 -Dsonar.test.inclusions=**/*.spec.ts \
@@ -86,6 +85,33 @@ pipeline {
                             """
                         }
                     }
+                }
+            }
+        }
+
+        stage('BUILD DOCKER IMAGE') {
+            steps {
+                script {
+                    def imageTag = "${PLANNING_IMAGE}:latest"
+                    dir('apps/backend/gestion-planing') {
+                        sh "docker build -t ${imageTag} ."
+                    }
+
+                    echo "Docker image built: ${imageTag}"
+                }
+            }
+        }
+
+        stage('Push docker image') {
+            steps {
+                script {
+                    withDockerRegistry([
+                      credentialsId: 'chedlyrebai-dockerhub',
+                      url: 'https://index.docker.io/v1/'
+                  ]) {
+                        sh 'echo docker login successful'
+                        sh " docker push ${PLANNING_IMAGE}:latest"
+                  }
                 }
             }
         }

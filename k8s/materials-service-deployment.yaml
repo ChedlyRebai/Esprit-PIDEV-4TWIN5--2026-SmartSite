@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: materials-service
+  namespace: smartsite
+  labels:
+    app: materials-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: materials-service
+  template:
+    metadata:
+      labels:
+        app: materials-service
+    spec:
+      containers:
+        - name: materials-service
+          image: chedlyrebai/materials-service:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: materials-service-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: materials-service-secret
+                  key: JWT_SECRET
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: materials-service-secret
+                  key: GROQ_API_KEY
+            - name: GROQ_MODEL
+              value: "llama-3.3-70b-versatile"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: materials-service-secret
+                  key: OPENAI_API_KEY
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: materials-service
+  namespace: smartsite
+  labels:
+    app: materials-service
+spec:
+  type: ClusterIP
+  selector:
+    app: materials-service
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP

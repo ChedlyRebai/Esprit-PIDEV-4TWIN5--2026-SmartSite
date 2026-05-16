@@ -1,0 +1,102 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        DOCKER_USERNAME = 'chedlyrebai'
+        SERVICE_NAME    = 'videocall'
+        SERVICE_DIR     = 'apps/backend/videocall'
+        DOCKER_IMAGE    = "${DOCKER_USERNAME}/video-call"
+        CONTAINER_NAME  = 'videocall'
+        APP_PORT        = '9000'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                }
+                echo '✅ Code récupéré depuis GitHub'
+            }
+        }
+
+
+        stage('Install Dependencies') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'npm ci'
+                    echo ' Dépendances installées'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh "docker build --no-cache -t ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT} -t ${DOCKER_IMAGE}:latest ."
+                    echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'chedlyrebai-dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo \"$DOCKER_PASS\" | docker login -u \"$DOCKER_USER\" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    """
+                    echo '✅ Image Docker poussée'
+                }
+            }
+        }
+
+        // stage('Deploy Container') {
+        //     steps {
+        //         withCredentials([string(credentialsId: 'mongodb-uri', variable: 'MONGO_URI')]) {
+        //             sh """
+        //                 docker stop ${CONTAINER_NAME} 2>/dev/null || true
+        //                 docker rm ${CONTAINER_NAME} 2>/dev/null || true
+
+        //                 docker run -d \
+        //                     --name ${CONTAINER_NAME} \
+        //                     --restart unless-stopped \
+        //                     -p ${APP_PORT}:${APP_PORT} \
+        //                     -e PORT=${APP_PORT} \
+        //                     -e NODE_ENV=production \
+        //                     -e MONGO_URI=\"${MONGO_URI}\" \
+        //                     ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}
+        //             """
+        //             echo "✅ ${SERVICE_NAME} déployé sur le port ${APP_PORT}"
+        //         }
+        //     }
+        // }
+    }
+
+
+    post {
+        success {
+            echo "🎉 CD réussi — ${SERVICE_NAME} déployé"
+        }
+        failure {
+            echo "❌ CD échoué pour ${SERVICE_NAME}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

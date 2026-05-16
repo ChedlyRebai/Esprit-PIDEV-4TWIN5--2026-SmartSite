@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestion-projects
+  namespace: smartsite
+  labels:
+    app: gestion-projects
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gestion-projects
+  template:
+    metadata:
+      labels:
+        app: gestion-projects
+    spec:
+      containers:
+        - name: gestion-projects
+          image: chedlyrebai/gestion-projects-api:latest
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-projects-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-projects-secret
+                  key: JWT_SECRET
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-projects-secret
+                  key: GROQ_API_KEY
+            - name: GROQ_MODEL
+              value: "llama-3.3-70b-versatile"
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gestion-projects
+  namespace: smartsite
+  labels:
+    app: gestion-projects
+spec:
+  type: ClusterIP
+  selector:
+    app: gestion-projects
+  ports:
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP

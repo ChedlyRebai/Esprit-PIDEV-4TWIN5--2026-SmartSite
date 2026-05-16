@@ -1,28 +1,103 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
+import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: UsersService;
-  let jwtService: JwtService;
 
   const mockUsersService = {
-    findByCin: jest.fn(),
-    create: jest.fn(),
-    findById: jest.fn(),
-  };
+    findOneByEmail: jest.fn(),
+    // add other user service methods used by AuthService if needed
+  } as unknown as UsersService;
 
   const mockJwtService = {
-    sign: jest.fn(),
-    verify: jest.fn(),
-  };
+    sign: jest.fn().mockReturnValue('signed-token'),
+  } as unknown as JwtService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        { provide: UsersService, useValue: mockUsersService },
+        { provide: JwtService, useValue: mockJwtService },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('login() should return access_token using JwtService.sign', async () => {
+    const user = { _id: '1', email: 'test@example.com' } as any;
+    const res = await service.login(user);
+    expect(mockJwtService.sign).toHaveBeenCalled();
+    expect(res).toEqual({ access_token: 'signed-token' });
+  });
+
+  it('validateUser() should return null when user not found', async () => {
+    mockUsersService.findOneByEmail = jest.fn().mockResolvedValue(null);
+    const res = await service.validateUser('noone@example.com', 'pwd');
+    expect(res).toBeNull();
+  });
+});
+import { Test, TestingModule } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
+import { EmailService } from '../email/email.service';
+import { RolesService } from '../roles/roles.service';
+import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { Types } from 'mongoose';
+
+jest.mock('bcrypt');
+
+describe('AuthService', () => {
+  let service: AuthService;
+  let usersService: UsersService;
+  let jwtService: JwtService;
+  let emailService: EmailService;
+  let rolesService: RolesService;
+
+  const mockUsersService = {
+    findByCin: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    updatePassword: jest.fn(),
+    update: jest.fn(),
+    findByEmail: jest.fn(),
+  };
+
+  const mockJwtService = {
+    sign: jest.fn().mockReturnValue('token123'),
+    verify: jest.fn(),
+  };
+
+  const mockEmailService = {
+    sendTemporaryPasswordEmail: jest.fn().mockResolvedValue({}),
+    sendOTPEmail: jest.fn().mockResolvedValue({}),
+    sendApprovalEmail: jest.fn().mockResolvedValue({}),
+    sendRejectionEmail: jest.fn().mockResolvedValue({}),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue({}),
+  } as any;
+
+  const mockRolesService = {
+    findByName: jest.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+  } as any;
+
+  const mockUserId = new Types.ObjectId();
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        
         {
           provide: UsersService,
           useValue: mockUsersService,
@@ -31,12 +106,23 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: mockJwtService,
         },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
+        },
+        {
+          provide: RolesService,
+          useValue: mockRolesService,
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     usersService = module.get<UsersService>(UsersService);
     jwtService = module.get<JwtService>(JwtService);
+    emailService = module.get<EmailService>(EmailService);
+    rolesService = module.get<RolesService>(RolesService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -44,71 +130,287 @@ describe('AuthService', () => {
   });
 
   describe('validateUser', () => {
-    it('should return user if credentials are valid', async () => {
+    it('should return null if cin or password is missing', async () => {
+      const result1 = await service.validateUser('', 'password');
+      const result2 = await service.validateUser('12345678', '');
+      
+      expect(result1).toBeNull();
+      expect(result2).toBeNull();
+    });
+
+    it('should return null if user not found', async () => {
+      mockUsersService.findByCin.mockResolvedValue(null);
+
+      const result = await service.validateUser('12345678', 'password');
+
+      expect(result).toBeNull();
+      expect(mockUsersService.findByCin).toHaveBeenCalledWith('12345678');
+    });
+
+    it('should return null if user status is not approved', async () => {
       const mockUser = {
         cin: '12345678',
-        password: '$2b$10$hashed',
-        toObject: () => ({ cin: '12345678', nom: 'Test' }),
+        password: '$2b$10$hashedPassword',
+        status: 'pending',
       };
       mockUsersService.findByCin.mockResolvedValue(mockUser);
 
       const result = await service.validateUser('12345678', 'password');
-      // Note: In real scenario, bcrypt.compare would validate
-      expect(mockUsersService.findByCin).toHaveBeenCalledWith('12345678');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if user has no password', async () => {
+      const mockUser = {
+        cin: '12345678',
+        password: null,
+        status: 'approved',
+      };
+      mockUsersService.findByCin.mockResolvedValue(mockUser);
+
+      const result = await service.validateUser('12345678', 'password');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return user if bcrypt password matches', async () => {
+      const mockUser = {
+        _id: mockUserId,
+        cin: '12345678',
+        password: '$2b$10$hashedPassword',
+        status: 'approved',
+        toObject: jest.fn().mockReturnValue({
+          _id: mockUserId,
+          cin: '12345678',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      };
+      mockUsersService.findByCin.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await service.validateUser('12345678', 'password');
+
+      expect(result).toBeDefined();
+      expect(result.cin).toBe('12345678');
+      expect(result.password).toBeUndefined();
+    });
+
+    it('should hash and update plain text password when it matches', async () => {
+      const mockUser = {
+        _id: mockUserId,
+        cin: '12345678',
+        password: 'plainPassword',
+        status: 'approved',
+        toObject: jest.fn().mockReturnValue({
+          _id: mockUserId,
+          cin: '12345678',
+          firstName: 'John',
+        }),
+      };
+      mockUsersService.findByCin.mockResolvedValue(mockUser);
+      // First compare fails (not a bcrypt hash), second compare succeeds for plain text
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$newHash');
+
+      const result = await service.validateUser('12345678', 'plainPassword');
+
+      expect(mockUsersService.updatePassword).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should return null if password does not match', async () => {
+      const mockUser = {
+        _id: mockUserId,
+        cin: '12345678',
+        password: '$2b$10$hashedPassword',
+        status: 'approved',
+      };
+      mockUsersService.findByCin.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      const result = await service.validateUser('12345678', 'wrongPassword');
+
+      expect(result).toBeNull();
     });
   });
 
-  // describe('login', () => {
-  //   it('should return access token and user data', async () => {
-  //     const user = {
-  //       _id: '123',
-  //       cin: '12345678',
-  //       nom: 'Test',
-  //       prenom: 'User',
-  //       roles: [],
-  //     };
-  //     mockJwtService.sign.mockReturnValue('token123');
+  describe('login', () => {
+    it('should return access token and user data', async () => {
+      const mockUser = {
+        _id: mockUserId,
+        cin: '12345678',
+        firstName: 'John',
+        lastName: 'Doe',
+        role: { _id: new Types.ObjectId(), name: 'admin' },
+        firstLogin: false,
+        toObject: jest.fn().mockReturnValue({
+          _id: mockUserId,
+          cin: '12345678',
+          firstName: 'John',
+          lastName: 'Doe',
+          role: { name: 'admin' },
+          firstLogin: false,
+        }),
+      };
 
-  //     const result = await service.login(user);
-  //     expect(result.access_token).toBe('token123');
-  //     expect(result.user).toEqual({
-  //       id: '123',
-  //       cin: '12345678',
-  //       nom: 'Test',
-  //       prenom: 'User',
-  //       roles: [],
-  //     });
-  //     expect(jwtService.sign).toHaveBeenCalledWith({
-  //       cin: '12345678',
-  //       sub: '123',
-  //       roles: [],
-  //     });
-  //   });
-  // });
+      const result = await service.login(mockUser);
 
-  // describe('register', () => {
-  //   it('should create a new user with hashed password', async () => {
-  //     const newUser = {
-  //       _id: '456',
-  //       cin: '87654321',
-  //       nom: 'New',
-  //       prenom: 'User',
-  //     };
-  //     mockUsersService.findByCin.mockResolvedValue(null);
-  //     mockUsersService.create.mockResolvedValue(newUser);
+      expect(result.access_token).toBe('token123');
+      expect(result.id).toEqual(mockUserId);
+      expect(result.cin).toBe('12345678');
+      expect(result.firstName).toBe('John');
+      expect(result.lastName).toBe('Doe');
+      expect(result.session_id).toBeDefined();
+      expect(mockJwtService.sign).toHaveBeenCalled();
+    });
 
-  //     const result = await service.register('87654321', 'password', 'New', 'User');
-  //     expect(result).toEqual(newUser);
-  //     expect(mockUsersService.findByCin).toHaveBeenCalledWith('87654321');
-  //     expect(usersService.create).toHaveBeenCalled();
-  //   });
+    it('should handle user without toObject method', async () => {
+      const mockUser = {
+        _id: mockUserId,
+        cin: '12345678',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        role: null,
+        firstLogin: true,
+      };
 
-  //   it('should throw error if user already exists', async () => {
-  //     mockUsersService.findByCin.mockResolvedValue({ cin: '11111111' });
+      const result = await service.login(mockUser);
 
-  //     await expect(
-  //       service.register('11111111', 'password', 'Existing', 'User'),
-  //     ).rejects.toThrow('User already exists');
-  //   });
-  // });
+      expect(result.access_token).toBe('token123');
+      expect(result.role).toBeNull();
+      expect(result.firstLogin).toBe(true);
+    });
+  });
+
+  describe('registration and verification flows', () => {
+    it('should register a new user and send OTP', async () => {
+      mockUsersService.findByCin.mockResolvedValue(null);
+      const createdUser = {
+        _id: mockUserId,
+        cin: '99999999',
+        email: 'test@example.com',
+        firstName: 'New',
+        lastName: 'User',
+      } as any;
+      mockUsersService.create.mockResolvedValue(createdUser);
+
+      const result = await service.register(
+        '99999999',
+        'pass',
+        'New',
+        'User',
+        'test@example.com',
+      );
+
+      expect(result).toEqual(createdUser);
+      expect(mockUsersService.create).toHaveBeenCalled();
+      expect(mockEmailService.sendOTPEmail).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when verifyOTP user not found', async () => {
+      mockUsersService.findByCin.mockResolvedValue(null);
+
+      await expect(service.verifyOTP('nope', '123456')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('should verify OTP successfully', async () => {
+      const user = {
+        _id: mockUserId,
+        cin: '11111111',
+        emailVerificationOtp: '123456',
+        otpExpiresAt: new Date(Date.now() + 10000),
+        emailVerified: false,
+        firstName: 'A',
+        lastName: 'B',
+        email: 'ok@example.com',
+      } as any;
+      mockUsersService.findByCin.mockResolvedValue(user);
+      const updated = { ...user, emailVerified: true };
+      mockUsersService.update.mockResolvedValue(updated);
+
+      const res = await service.verifyOTP('11111111', '123456');
+      expect(res).toHaveProperty('success', true);
+      expect(mockUsersService.update).toHaveBeenCalled();
+    });
+
+    it('should resend OTP and handle missing email', async () => {
+      const userNoEmail = { _id: mockUserId, cin: '222', emailVerified: false } as any;
+      mockUsersService.findByCin.mockResolvedValue(userNoEmail);
+
+      await expect(service.resendOTP('222')).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('approval and rejection flows', () => {
+    it('approveUser should throw if user not found', async () => {
+      mockUsersService.findById.mockResolvedValue(null);
+      await expect(service.approveUser('nope', 'pwd', 'adminId')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('approveUser should approve and send email when provided password', async () => {
+      const pending = { _id: mockUserId, status: 'pending', email: 'x@y.com', firstName: 'F', lastName: 'L', cin: '333' } as any;
+      mockUsersService.findById.mockResolvedValue(pending);
+      const updated = { ...pending, status: 'approved' };
+      mockUsersService.update.mockResolvedValue(updated);
+
+      const res = await service.approveUser(mockUserId.toString(), 'newpass', 'adminId');
+      expect(res).toEqual(updated);
+      expect(mockEmailService.sendApprovalEmail).toHaveBeenCalled();
+    });
+
+    it('rejectUser should reject and send email', async () => {
+      const pending = { _id: mockUserId, status: 'pending', email: 'r@y.com', firstName: 'F', lastName: 'L', cin: '444' } as any;
+      mockUsersService.findById.mockResolvedValue(pending);
+      const updated = { ...pending, status: 'rejected' };
+      mockUsersService.update.mockResolvedValue(updated);
+
+      const res = await service.rejectUser(mockUserId.toString(), 'bad');
+      expect(res).toEqual(updated);
+      expect(mockEmailService.sendRejectionEmail).toHaveBeenCalled();
+    });
+  });
+
+  describe('password reset flows', () => {
+    it('forgotPassword should throw NotFoundException when email missing', async () => {
+      mockUsersService.findByEmail.mockResolvedValue(null);
+      await expect(service.forgotPassword('nope@example.com')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('forgotPassword should send reset code', async () => {
+      const u = { _id: mockUserId, email: 'p@y.com', firstName: 'F' } as any;
+      mockUsersService.findByEmail.mockResolvedValue(u);
+      mockUsersService.update.mockResolvedValue({});
+
+      const res = await service.forgotPassword('p@y.com');
+      expect(res).toHaveProperty('success', true);
+      expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalled();
+    });
+
+    it('resetPassword should reset when code matches', async () => {
+      const u = {
+        _id: mockUserId,
+        cin: '555',
+        passwordResetCode: '999999',
+        passwordResetCodeExpiresAt: new Date(Date.now() + 10000),
+      } as any;
+      mockUsersService.findByEmail.mockResolvedValue(u);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$newhash');
+      mockUsersService.update.mockResolvedValue({});
+
+      const res = await service.resetPassword('any', '999999', 'newpass');
+      expect(res).toHaveProperty('success', true);
+      expect(mockUsersService.update).toHaveBeenCalled();
+    });
+
+    it('resendResetCode should resend when user exists', async () => {
+      const u = { _id: mockUserId, email: 'r@y.com', firstName: 'F' } as any;
+      mockUsersService.findByEmail.mockResolvedValue(u);
+      mockUsersService.update.mockResolvedValue({});
+
+      const res = await service.resendResetCode('r@y.com');
+      expect(res).toHaveProperty('success', true);
+      expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalled();
+    });
+  });
 });

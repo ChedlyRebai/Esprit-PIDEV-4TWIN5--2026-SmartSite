@@ -1,0 +1,46 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: smartsite
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: materials-service-pdb
+  namespace: smartsite
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: materials-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-pdb
+  namespace: smartsite
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gestion-projects-pdb
+  namespace: smartsite
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: gestion-projects

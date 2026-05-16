@@ -1,0 +1,106 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smartsite-ingress
+  namespace: smartsite
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.smartsite.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 3007
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: user-auth
+                port:
+                  number: 3000
+          - path: /sites
+            pathType: Prefix
+            backend:
+              service:
+                name: gestion-site
+                port:
+                  number: 3001
+          - path: /projects
+            pathType: Prefix
+            backend:
+              service:
+                name: gestion-projects
+                port:
+                  number: 3002
+          - path: /planning
+            pathType: Prefix
+            backend:
+              service:
+                name: gestion-planing
+                port:
+                  number: 3002
+          - path: /materials
+            pathType: Prefix
+            backend:
+              service:
+                name: materials-service
+                port:
+                  number: 3000
+          - path: /suppliers
+            pathType: Prefix
+            backend:
+              service:
+                name: gestion-suppliers
+                port:
+                  number: 3005
+          - path: /incidents
+            pathType: Prefix
+            backend:
+              service:
+                name: incident-management
+                port:
+                  number: 3006
+          - path: /notifications
+            pathType: Prefix
+            backend:
+              service:
+                name: notification
+                port:
+                  number: 3004
+          - path: /optimization
+            pathType: Prefix
+            backend:
+              service:
+                name: resource-optimization
+                port:
+                  number: 3007
+          - path: /payments
+            pathType: Prefix
+            backend:
+              service:
+                name: paiement
+                port:
+                  number: 3008
+          - path: /fournisseurs
+            pathType: Prefix
+            backend:
+              service:
+                name: gestion-fournisseurs
+                port:
+                  number: 3009
+          - path: /video
+            pathType: Prefix
+            backend:
+              service:
+                name: videocall
+                port:
+                  number: 9000

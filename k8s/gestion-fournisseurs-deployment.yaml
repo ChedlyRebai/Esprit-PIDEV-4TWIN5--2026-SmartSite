@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestion-fournisseurs
+  namespace: smartsite
+  labels:
+    app: gestion-fournisseurs
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gestion-fournisseurs
+  template:
+    metadata:
+      labels:
+        app: gestion-fournisseurs
+    spec:
+      containers:
+        - name: gestion-fournisseurs
+          image: chedlyrebai/gestion-fournisseurs-api:latest
+          ports:
+            - containerPort: 3009
+          env:
+            - name: PORT
+              value: "3009"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-fournisseurs-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-fournisseurs-secret
+                  key: JWT_SECRET
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gestion-fournisseurs
+  namespace: smartsite
+  labels:
+    app: gestion-fournisseurs
+spec:
+  type: ClusterIP
+  selector:
+    app: gestion-fournisseurs
+  ports:
+    - port: 3009
+      targetPort: 3009
+      protocol: TCP

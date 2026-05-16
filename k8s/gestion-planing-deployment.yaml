@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestion-planing
+  namespace: smartsite
+  labels:
+    app: gestion-planing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gestion-planing
+  template:
+    metadata:
+      labels:
+        app: gestion-planing
+    spec:
+      containers:
+        - name: gestion-planing
+          image: chedlyrebai/planing-api:latest
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-planing-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gestion-planing-secret
+                  key: JWT_SECRET
+          envFrom:
+            - configMapRef:
+                name: smartsite-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gestion-planing
+  namespace: smartsite
+  labels:
+    app: gestion-planing
+spec:
+  type: ClusterIP
+  selector:
+    app: gestion-planing
+  ports:
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP

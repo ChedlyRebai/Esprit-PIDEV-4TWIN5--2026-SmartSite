@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification
+  namespace: smartsite
+  labels:
+    app: notification
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification
+  template:
+    metadata:
+      labels:
+        app: notification
+    spec:
+      containers:
+        - name: notification
+          image: chedlyrebai/notification-service:latest
+          ports:
+            - containerPort: 3004
+          env:
+            - name: PORT
+              value: "3004"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: JWT_SECRET
+            - name: KAFKA_BROKERS
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: KAFKA_BROKERS
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: GROQ_API_KEY
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification
+  namespace: smartsite
+  labels:
+    app: notification
+spec:
+  type: ClusterIP
+  selector:
+    app: notification
+  ports:
+    - port: 3004
+      targetPort: 3004
+      protocol: TCP
