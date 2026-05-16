@@ -1,73 +1,81 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+
     environment {
-        SERVICE_NAME  = 'ml-prediction-service'
-        SERVICE_DIR   = 'apps/backend/ml-prediction-service'
-        DOCKER_IMAGE  = "ghada/smartsite-ml-prediction-service"
-        PORT          = '8000'
+        SERVICE_NAME = 'ml-prediction-service'
+        SERVICE_DIR = 'apps/backend/ml-prediction-service'
+        DOCKER_IMAGE = 'ghadabannourii/smartsite-ml-prediction-service'
+        K8S_NAMESPACE = 'default'
+        DOCKER_REGISTRY = 'docker.io'
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "✅ Code récupéré depuis GitHub"
+                echo "✅ Code récupéré pour le déploiement"
             }
         }
 
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
                 dir("${SERVICE_DIR}") {
                     script {
+                        def imageTag = "${BUILD_NUMBER}"
+                        def imageName = "${DOCKER_IMAGE}:${imageTag}"
+                        
                         sh """
-                            docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
-                            docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                            docker build -t ${imageName} .
+                            docker tag ${imageName} ${DOCKER_IMAGE}:latest
                         """
-                        echo "✅ Image Docker construite : ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        
+                        env.DOCKER_IMAGE_TAG = imageTag
+                        echo "✅ Image Docker construite: ${imageName}"
                     }
                 }
             }
         }
 
-        stage('Docker Push') {
+        stage('Push to Registry') {
             steps {
                 script {
-                    try {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'docker-hub-credentials',
-                            usernameVariable: 'DOCKER_USERNAME',
-                            passwordVariable: 'DOCKER_PASSWORD'
-                        )]) {
-                            sh """
-                                echo "\${DOCKER_PASSWORD}" | docker login -u "\${DOCKER_USERNAME}" --password-stdin
-                                docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                                docker push ${DOCKER_IMAGE}:latest
-                            """
-                            echo "✅ Image Docker poussée sur Docker Hub"
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️ Docker Hub push échoué (credentials manquants?) - On continue..."
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', 
+                                                   usernameVariable: 'DOCKER_USER', 
+                                                   passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                            docker push ${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG}
+                            docker push ${DOCKER_IMAGE}:latest
+                        """
                     }
+                    echo "✅ Image pushée vers Docker Hub"
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
                 script {
                     sh """
-                        docker stop ${SERVICE_NAME} || true
-                        docker rm ${SERVICE_NAME} || true
-                        docker run -d \
-                            --name ${SERVICE_NAME} \
-                            --restart unless-stopped \
-                            -p ${PORT}:${PORT} \
-                            -e PORT=${PORT} \
-                            ${DOCKER_IMAGE}:latest
+                        if ! kubectl get deployment ml-prediction-service -n ${K8S_NAMESPACE} > /dev/null 2>&1; then
+                            echo "Deployment inexistant, application du manifest..."
+                            kubectl apply -f ${SERVICE_DIR}/k8s/deployment.yaml
+                        fi
+
+                        kubectl set image deployment/ml-prediction-service \
+                            ml-prediction-service=${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG} \
+                            -n ${K8S_NAMESPACE}
+
+                        kubectl rollout status deployment/ml-prediction-service -n ${K8S_NAMESPACE} --timeout=300s
+                        kubectl get pods -l app=ml-prediction-service -n ${K8S_NAMESPACE}
                     """
-                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
+                    echo "✅ Service déployé sur Kubernetes"
                 }
             }
         }
@@ -75,17 +83,19 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    sleep(time: 10, unit: 'SECONDS')
-                    def response = sh(
-                        script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:${PORT}/ || echo '000'",
-                        returnStdout: true
-                    ).trim()
+                    sleep(time: 30, unit: 'SECONDS')
                     
-                    if (response == '200') {
-                        echo "✅ Health check réussi - Service opérationnel"
-                    } else {
-                        echo "⚠️ Health check échoué - Code HTTP: ${response}"
-                    }
+                    sh """
+                        # Vérifier que le service répond
+                        kubectl get service ml-prediction-service -n ${K8S_NAMESPACE}
+                        
+                        # Test de santé
+                        timeout 10s kubectl port-forward service/ml-prediction-service 8000:8000 -n ${K8S_NAMESPACE} &
+                        sleep 5
+                        curl -f http://localhost:8000/health || echo "Health check via port-forward failed"
+                        pkill -f "kubectl port-forward" || true
+                    """
+                    echo "✅ Vérification de santé terminée"
                 }
             }
         }
@@ -93,27 +103,15 @@ pipeline {
 
     post {
         success {
-            echo "🎉 CD réussi — ${SERVICE_NAME} déployé (build #${BUILD_NUMBER})"
-            echo "🌐 Service accessible sur: http://localhost:${PORT}"
+            echo "🎉 Déploiement réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "📦 Image: ${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG}"
         }
         failure {
-            echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
-            script {
-                try {
-                    sh "docker start ${SERVICE_NAME} || true"
-                } catch (Exception e) {
-                    echo "⚠️ Impossible de redémarrer le service"
-                }
-            }
+            echo "❌ Déploiement échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         always {
-            script {
-                try {
-                    sh "docker image prune -f || true"
-                } catch (Exception e) {
-                    echo "⚠️ Nettoyage des images ignoré"
-                }
-            }
+            sh 'docker system prune -f || true'
+            cleanWs(deleteDirs: true, notFailBuild: true)
         }
     }
 }

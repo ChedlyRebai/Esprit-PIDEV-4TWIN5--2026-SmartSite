@@ -1,84 +1,106 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+
     environment {
-        SERVICE_NAME  = 'frontend'
-        SERVICE_DIR   = 'apps/frontend'
-        DOCKER_IMAGE  = "doniamaazoun/smartsite-frontend"
-        PORT          = '80'
+        SERVICE_NAME = 'frontend'
+        SERVICE_DIR = 'apps/frontend'
+        DOCKER_IMAGE = 'ghadabannourii/smartsite-frontend'
+        K8S_NAMESPACE = 'default'
+        DOCKER_REGISTRY = 'docker.io'
+    }
+
+    tools {
+        nodejs 'NodeJS-20'
     }
 
     stages {
-
-        stage('Fix Docker Permissions') {
-            steps {
-                script {
-                    sh '''
-                        sudo chmod 666 /var/run/docker.sock || true
-                        ls -la /var/run/docker.sock
-                    '''
-                }
-            }
-        }
-
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "✅ Code récupéré depuis GitHub"
+                echo "✅ Code récupéré pour le déploiement"
             }
         }
 
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
                 dir("${SERVICE_DIR}") {
                     script {
+                        def imageTag = "${BUILD_NUMBER}"
+                        def imageName = "${DOCKER_IMAGE}:${imageTag}"
+                        
                         sh """
-                            docker build --no-cache -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
-                            docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                            docker build -t ${imageName} .
+                            docker tag ${imageName} ${DOCKER_IMAGE}:latest
                         """
-                        echo "✅ Image Docker construite: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        
+                        env.DOCKER_IMAGE_TAG = imageTag
+                        echo "✅ Image Docker construite: ${imageName}"
                     }
                 }
             }
         }
 
-        stage('Docker Push') {
+        stage('Push to Registry') {
             steps {
                 script {
-                    try {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'docker-hub-credentials',
-                            usernameVariable: 'DOCKER_USERNAME',
-                            passwordVariable: 'DOCKER_PASSWORD'
-                        )]) {
-                            sh """
-                                echo "\${DOCKER_PASSWORD}" | docker login -u "\${DOCKER_USERNAME}" --password-stdin
-                                docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                                docker push ${DOCKER_IMAGE}:latest
-                                docker logout
-                            """
-                            echo "✅ Image Docker poussée sur Docker Hub"
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️ Docker Hub push échoué - On continue..."
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', 
+                                                   usernameVariable: 'DOCKER_USER', 
+                                                   passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                            docker push ${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG}
+                            docker push ${DOCKER_IMAGE}:latest
+                        """
                     }
+                    echo "✅ Image pushée vers Docker Hub"
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
                 script {
                     sh """
-                        docker stop ${SERVICE_NAME} || true
-                        docker rm ${SERVICE_NAME} || true
-                        docker run -d \
-                            --name ${SERVICE_NAME} \
-                            --restart unless-stopped \
-                            -p ${PORT}:${PORT} \
-                            ${DOCKER_IMAGE}:latest
+                        if ! kubectl get deployment frontend -n ${K8S_NAMESPACE} > /dev/null 2>&1; then
+                            echo "Deployment inexistant, application du manifest..."
+                            kubectl apply -f ${SERVICE_DIR}/k8s/deployment.yaml
+                        fi
+
+                        kubectl set image deployment/frontend \
+                            frontend=${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG} \
+                            -n ${K8S_NAMESPACE}
+
+                        kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=300s
+                        kubectl get pods -l app=frontend -n ${K8S_NAMESPACE}
                     """
-                    echo "✅ ${SERVICE_NAME} déployé sur le port ${PORT}"
+                    echo "✅ Service déployé sur Kubernetes"
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    sleep(time: 30, unit: 'SECONDS')
+                    
+                    sh """
+                        # Vérifier que le service répond
+                        kubectl get service frontend -n ${K8S_NAMESPACE}
+                        
+                        # Test de santé via NodePort
+                        NODE_PORT=\$(kubectl get service frontend -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}')
+                        echo "Frontend accessible sur le port: \$NODE_PORT"
+                        
+                        # Test HTTP
+                        curl -f http://localhost:\$NODE_PORT || echo "Health check failed"
+                    """
+                    echo "✅ Vérification de santé terminée"
                 }
             }
         }
@@ -86,26 +108,16 @@ pipeline {
 
     post {
         success {
-            echo "🎉 CD réussi — ${SERVICE_NAME} déployé (build #${BUILD_NUMBER})"
+            echo "🎉 Déploiement réussi pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
+            echo "📦 Image: ${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG}"
+            echo "🌐 Frontend accessible via NodePort 30080"
         }
         failure {
-            echo "❌ CD échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
-            script {
-                try {
-                    sh "docker start ${SERVICE_NAME} || true"
-                } catch (Exception e) {
-                    echo "⚠️ Impossible de redémarrer le service"
-                }
-            }
+            echo "❌ Déploiement échoué pour ${SERVICE_NAME} — build #${BUILD_NUMBER}"
         }
         always {
-            script {
-                try {
-                    sh "docker image prune -f || true"
-                } catch (Exception e) {
-                    echo "⚠️ Nettoyage des images ignoré"
-                }
-            }
+            sh 'docker system prune -f || true'
+            cleanWs(deleteDirs: true, notFailBuild: true)
         }
     }
 }
