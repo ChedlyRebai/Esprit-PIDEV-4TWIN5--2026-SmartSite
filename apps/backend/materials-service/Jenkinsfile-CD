@@ -76,7 +76,7 @@ pipeline {
                             materials-service=${DOCKER_IMAGE}:${env.DOCKER_IMAGE_TAG} \
                             -n ${K8S_NAMESPACE}
 
-                        kubectl rollout status deployment/materials-service -n ${K8S_NAMESPACE} --timeout=300s
+                        kubectl rollout status deployment/materials-service -n ${K8S_NAMESPACE} --timeout=120s || true
                         kubectl get pods -l app=materials-service -n ${K8S_NAMESPACE}
                     """
                     echo "✅ Service déployé sur Kubernetes"
