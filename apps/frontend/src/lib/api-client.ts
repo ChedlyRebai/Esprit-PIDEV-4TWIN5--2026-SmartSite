@@ -6,7 +6,7 @@ import { PAYMENT_API_URL } from "@/lib/payment-api-url";
 
 export const FACTURE_API_URL = import.meta.env.VITE_PAYMENT_URL 
   ? import.meta.env.VITE_PAYMENT_URL.replace('/payments', '/factures')
-  : "http://localhost:3007/api/factures";
+  : "https://smartsite-paiement.onrender.com/api/factures";
 
 export const planingApi = axios.create({
   baseURL: `${API_GATEWAY_URL}/planning`,

@@ -134,21 +134,35 @@ export default function Sites() {
 
   const [projectSiteLimit, setProjectSiteLimit] = useState<number | null>(null);
   const [projectBudget, setProjectBudget] = useState<number | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isProjectContext && currentProjectId) {
-      const projectsUrl = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim() ?? 'http://localhost:9001/projects';
-      axios.get(`${projectsUrl}/projects/${currentProjectId}`)
-        .then(res => {
-          if (res.data?.siteCount !== undefined) {
-            setProjectSiteLimit(res.data.siteCount);
-          }
-          if (res.data?.budget !== undefined) {
-            setProjectBudget(res.data.budget);
-          }
-        })
-        .catch(err => console.error('Error fetching project:', err));
-    }
+    if (!isProjectContext || !currentProjectId) return;
+
+    // Build the correct URL: VITE_GESTION_PROJECTS_URL already ends with /projects
+    const base = (import.meta.env.VITE_GESTION_PROJECTS_URL as string | undefined)?.trim()
+      ?? 'http://localhost:9001/projects';
+    const projectUrl = `${base.replace(/\/$/, '')}/${currentProjectId}`;
+
+    console.log('[Sites] Fetching project from:', projectUrl);
+
+    axios.get(projectUrl)
+      .then(res => {
+        const data = res.data;
+        console.log('[Sites] Project response:', data);
+
+        setProjectName(data?.name ?? null);
+
+        // siteCount > 0 means a limit is set; 0 or undefined means unlimited
+        const limit = Number(data?.siteCount ?? 0);
+        setProjectSiteLimit(limit > 0 ? limit : null);
+
+        const budget = Number(data?.budget ?? 0);
+        setProjectBudget(budget > 0 ? budget : null);
+      })
+      .catch(err => {
+        console.error('[Sites] Failed to load project limits:', err?.message, '| URL:', projectUrl);
+      });
   }, [isProjectContext, currentProjectId]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -167,8 +181,8 @@ export default function Sites() {
 
   const canManageSites = true;
   const currentSiteCount = sites.filter(s => s.projectId === currentProjectId).length;
-  const isLimitReached = projectSiteLimit !== null && currentSiteCount >= projectSiteLimit;
-
+  // isLimitReached: only when siteCount > 0 (0 means unlimited) AND limit is reached
+  const isLimitReached = projectSiteLimit !== null && projectSiteLimit > 0 && currentSiteCount >= projectSiteLimit;
   // Real-time refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -573,26 +587,41 @@ export default function Sites() {
   const validateForm = () => {
     const newErrors: { name?: string; address?: string; area?: string; budget?: string } = {};
 
+    // Name
     if (!newSite.name.trim()) {
       newErrors.name = 'Site name is required';
+    } else if (newSite.name.trim().length < 3) {
+      newErrors.name = 'Site name must be at least 3 characters';
+    } else if (newSite.name.trim().length > 100) {
+      newErrors.name = 'Site name must be less than 100 characters';
     }
 
+    // Address
     if (!newSite.address.trim()) {
       newErrors.address = 'Address is required';
+    } else if (newSite.address.trim().length < 5) {
+      newErrors.address = 'Address must be at least 5 characters';
     }
 
+    // Area
     if (!newSite.area) {
       newErrors.area = 'Area is required';
+    } else if (isNaN(Number(newSite.area)) || !Number.isInteger(Number(newSite.area))) {
+      newErrors.area = 'Area must be a whole number';
     } else if (parseInt(newSite.area) <= 0) {
       newErrors.area = 'Area must be greater than 0';
+    } else if (parseInt(newSite.area) > 10_000_000) {
+      newErrors.area = 'Area seems too large (max 10,000,000 m²)';
     }
 
+    // Budget
     if (!newSite.budget) {
       newErrors.budget = 'Budget is required';
+    } else if (isNaN(Number(newSite.budget)) || !Number.isInteger(Number(newSite.budget))) {
+      newErrors.budget = 'Budget must be a whole number (TND)';
     } else if (parseInt(newSite.budget) <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
-    } else if (currentProjectId && projectBudget !== null) {
-      // Sum of existing sites budgets for this project
+    } else if (currentProjectId && projectBudget !== null && projectBudget > 0) {
       const existingSitesBudget = sites
         .filter(s => s.projectId === currentProjectId)
         .reduce((sum, s) => sum + (s.budget || 0), 0);
@@ -603,6 +632,7 @@ export default function Sites() {
       }
     }
 
+    // GPS position
     if (!mapPosition) {
       toast.error('Please select a location on the map');
       return false;
@@ -616,18 +646,26 @@ export default function Sites() {
 
     if (!manageData.name.trim()) {
       newErrors.name = 'Site name is required';
+    } else if (manageData.name.trim().length < 3) {
+      newErrors.name = 'Site name must be at least 3 characters';
     }
 
     if (!manageData.address.trim()) {
       newErrors.address = 'Address is required';
+    } else if (manageData.address.trim().length < 5) {
+      newErrors.address = 'Address must be at least 5 characters';
     }
 
     if (!manageData.area || manageData.area <= 0) {
       newErrors.area = 'Area must be greater than 0';
+    } else if (!Number.isInteger(manageData.area)) {
+      newErrors.area = 'Area must be a whole number';
     }
 
     if (!manageData.budget || manageData.budget <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
+    } else if (!Number.isInteger(manageData.budget)) {
+      newErrors.budget = 'Budget must be a whole number (TND)';
     }
 
     setErrors(newErrors);
@@ -1076,6 +1114,53 @@ export default function Sites() {
           Back to Projects
         </Button>
       )}
+      {/* Site limit banner */}
+      {isProjectContext && isLimitReached && (
+        <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-orange-500" />
+          <div>
+            <span className="font-semibold">
+              {currentSiteCount}/{projectSiteLimit} sites — Limit reached.
+            </span>
+            {' '}You cannot add more sites to this project. To increase the limit, edit the project settings.
+          </div>
+        </div>
+      )}
+
+      {/* Site count indicator (always visible when limit is set) */}
+      {isProjectContext && projectSiteLimit !== null && !isLimitReached && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+          <span className="font-semibold">{currentSiteCount}/{projectSiteLimit} sites used</span>
+          <div className="flex-1 max-w-32 bg-blue-200 rounded-full h-1.5">
+            <div
+              className="bg-blue-500 h-1.5 rounded-full transition-all"
+              style={{ width: `${Math.min(100, (currentSiteCount / projectSiteLimit) * 100)}%` }}
+            />
+          </div>
+          <span className="text-blue-500">{projectSiteLimit - currentSiteCount} remaining</span>
+        </div>
+      )}
+
+      {/* Budget info banner */}
+      {isProjectContext && projectBudget !== null && !isLimitReached && (() => {
+        const used = sites.filter(s => s.projectId === currentProjectId).reduce((sum, s) => sum + (s.budget || 0), 0);
+        const remaining = projectBudget - used;
+        const pct = projectBudget > 0 ? Math.round((used / projectBudget) * 100) : 0;
+        if (pct < 80) return null; // only show when >= 80% used
+        return (
+          <div className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${pct >= 100 ? 'border-red-200 bg-red-50 text-red-800' : 'border-yellow-200 bg-yellow-50 text-yellow-800'}`}>
+            <AlertCircle className={`h-4 w-4 mt-0.5 shrink-0 ${pct >= 100 ? 'text-red-500' : 'text-yellow-500'}`} />
+            <div>
+              <span className="font-semibold">{pct >= 100 ? 'Budget exceeded — ' : 'Budget warning — '}</span>
+              {pct >= 100
+                ? `Sites budget (${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(used)}) exceeds project budget (${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(projectBudget)}).`
+                : `${pct}% of project budget used. Remaining: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining)}.`
+              }
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1121,10 +1206,15 @@ export default function Sites() {
                 <Button
                   className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLimitReached}
-                  title={isLimitReached ? `Limite de ${projectSiteLimit} site(s) atteinte` : undefined}
+                  title={isLimitReached ? `Site limit reached: ${currentSiteCount}/${projectSiteLimit}` : undefined}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  New Site
+                  {isLimitReached
+                    ? `${currentSiteCount}/${projectSiteLimit} sites — Limit reached`
+                    : projectSiteLimit !== null
+                      ? `New Site (${currentSiteCount}/${projectSiteLimit})`
+                      : 'New Site'
+                  }
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -1135,6 +1225,28 @@ export default function Sites() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
+
+                  {/* Project constraints summary */}
+                  {isProjectContext && (
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm space-y-1">
+                      <p className="font-semibold text-blue-800">Project constraints</p>
+                      <div className="flex flex-wrap gap-4 text-blue-700">
+                        {projectSiteLimit !== null && projectSiteLimit > 0 ? (
+                          <span>🏗 Sites: <strong>{currentSiteCount} / {projectSiteLimit}</strong> used</span>
+                        ) : (
+                          <span>🏗 Sites: <strong>unlimited</strong></span>
+                        )}
+                        {projectBudget !== null && projectBudget > 0 ? (
+                          <span>💰 Budget: <strong>{new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(
+                            projectBudget - sites.filter(s => s.projectId === currentProjectId).reduce((sum, s) => sum + (s.budget || 0), 0)
+                          )}</strong> remaining</span>
+                        ) : (
+                          <span>💰 Budget: <strong>not set</strong></span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="site-name" className="text-sm font-medium">
@@ -1243,7 +1355,13 @@ export default function Sites() {
                             {errors.budget}
                           </p>
                         )}
-                        {!errors.budget && currentProjectId && projectBudget !== null && (() => {
+                        {budgetError && !errors.budget && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {budgetError}
+                          </p>
+                        )}
+                        {!errors.budget && !budgetError && currentProjectId && projectBudget !== null && projectBudget > 0 && (() => {
                           const existingSitesBudget = sites
                             .filter(s => s.projectId === currentProjectId)
                             .reduce((sum, s) => sum + (s.budget || 0), 0);
@@ -1251,13 +1369,14 @@ export default function Sites() {
                           const entered = parseInt(newSite.budget) || 0;
                           const afterNew = existingSitesBudget + entered;
                           const isOver = afterNew > projectBudget;
+                          const pct = projectBudget > 0 ? Math.round((afterNew / projectBudget) * 100) : 0;
                           return (
-                            <p className={`text-xs flex items-center gap-1 ${isOver ? 'text-red-500' : 'text-gray-500'}`}>
+                            <div className={`text-xs rounded px-2 py-1 flex items-center gap-1 ${isOver ? 'bg-red-50 text-red-600' : pct >= 80 ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}`}>
                               {isOver
                                 ? `⚠ Exceeds project budget by ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(afterNew - projectBudget)}`
-                                : `Remaining project budget: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining)}`
+                                : `✓ Remaining: ${new Intl.NumberFormat('fr-TN', { style: 'currency', currency: 'TND', minimumFractionDigits: 0 }).format(remaining - entered)} (${100 - pct}% left)`
                               }
-                            </p>
+                            </div>
                           );
                         })()}
                       </div>

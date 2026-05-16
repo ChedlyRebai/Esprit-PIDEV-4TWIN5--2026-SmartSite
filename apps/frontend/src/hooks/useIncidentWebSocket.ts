@@ -25,7 +25,7 @@ export function useIncidentWebSocket(userCin: string) {
 
     console.log('🔌 Connecting to incident Socket.io...');
 
-    const ws = io('http://localhost:3004', {
+    const ws = io(import.meta.env.VITE_INCIDENT_URL || 'https://incident-management-q3g2.onrender.com', {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,

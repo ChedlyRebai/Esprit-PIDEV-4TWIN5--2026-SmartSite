@@ -16,7 +16,12 @@ import { canEdit } from "../../utils/permissions";
 import { toast } from "sonner";
 import { getSyncedProjectsWithDetails, type SyncedProject } from "../../action/synced-project.action";
 
-const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL ?? "http://localhost:3010/api";
+// API_URL = base URL ending with /projects
+// e.g. https://smartsite-api-gateway.onrender.com/projects
+// All calls: ${API_URL}/:id, ${API_URL}?params, etc. (no extra /projects)
+const API_URL = (import.meta as any).env?.VITE_GESTION_PROJECTS_URL?.trim()
+  ?? 'https://smartsite-api-gateway.onrender.com/projects';
+
 
 export default function Projects() {
   const navigate = useNavigate();
@@ -56,7 +61,7 @@ export default function Projects() {
       if (searchName.trim()) params.search = searchName.trim();
       if (dateFrom) params.startDateFrom = dateFrom;
       if (dateTo) params.startDateTo = dateTo;
-      const response = await axios.get(`${API_URL}/projects`, { params });
+      const response = await axios.get(`${API_URL}`, { params });
       setProjects(response.data.projects || []);
       setTotalPages((response.data.totalPages ?? Math.ceil((response.data.total || 0) / PAGE_SIZE)) || 1);
       setTotalProjects(response.data.total || 0);
@@ -85,12 +90,11 @@ export default function Projects() {
   const handleAddProject = async () => {
     setCreateError(null);
     if (!newProject.name || !newProject.budget) { setCreateError("Project name and budget are required."); return; }
-    if (newProject.siteCount < 1) { setCreateError("You must specify at least 1 site to create a project."); return; }
     if (newProject.startDate && newProject.endDate && newProject.startDate >= newProject.endDate) {
       setCreateError("End date must be after start date."); return;
     }
     try {
-      await axios.post(`${API_URL}/projects`, {
+      await axios.post(`${API_URL}`, {
         name: newProject.name, budget: parseFloat(newProject.budget),
         siteCount: newProject.siteCount, sites: selectedSites, status: "planning", priority: "medium",
         startDate: newProject.startDate || undefined, endDate: newProject.endDate || undefined,
@@ -176,7 +180,7 @@ export default function Projects() {
   const handleDeleteProject = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
     try {
-      await axios.delete(`${API_URL}/projects/${id}`);
+      await axios.delete(`${API_URL}/${id}`);
       const newPage = projects.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       setCurrentPage(newPage);
       await loadProjects(newPage);
@@ -423,7 +427,7 @@ export default function Projects() {
 
   const handleSaveEdit = async () => {
     if (!editData.name || !editData.budget) { toast.error("Name and budget are required"); return; }
-    if (editData.siteCount < 1) { toast.error("Number of sites must be at least 1"); return; }
+    if (editData.siteCount < 0) { toast.error("Number of sites cannot be negative"); return; }
     try {
       await axios.put(`${API_URL}/projects/${selectedProject?._id}`, {
         name: editData.name, budget: parseFloat(editData.budget),
@@ -490,9 +494,10 @@ export default function Projects() {
                       onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Number of Sites</Label>
-                    <Input type="number" min="1" placeholder="e.g., 5" value={newProject.siteCount} className="border-gray-200 focus:border-gray-400"
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Max Sites (0 = unlimited)</Label>
+                    <Input type="number" min="0" placeholder="e.g., 5 (0 = no limit)" value={newProject.siteCount} className="border-gray-200 focus:border-gray-400"
                       onChange={(e) => { setNewProject({ ...newProject, siteCount: parseInt(e.target.value) || 0 }); setCreateError(null); }} />
+                    <p className="text-xs text-gray-400">Set to 0 for no limit. Set to 1+ to restrict the number of sites.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -785,9 +790,10 @@ export default function Projects() {
                             onChange={(e) => setEditData({ ...editData, budget: e.target.value })} />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Number of Sites</Label>
-                          <Input type="number" min="1" value={editData.siteCount} className="border-purple-200"
+                          <Label className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Max Sites (0 = unlimited)</Label>
+                          <Input type="number" min="0" value={editData.siteCount} className="border-purple-200"
                             onChange={(e) => setEditData({ ...editData, siteCount: parseInt(e.target.value) || 0 })} />
+                          <p className="text-xs text-gray-400">Set to 0 for no limit. Set to 1+ to restrict the number of sites.</p>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs font-semibold text-yellow-700 uppercase tracking-wide">Status</Label>

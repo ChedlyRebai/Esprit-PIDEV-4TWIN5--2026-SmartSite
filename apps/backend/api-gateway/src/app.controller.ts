@@ -21,16 +21,12 @@ export class AppController {
     resources:    (process.env.RESOURCE_OPTIMIZATION_URL ?? 'http://localhost:3007') + '/api',
     // incident-management has no global prefix
     incidents:    process.env.INCIDENT_URL                ?? 'http://localhost:3003',
-<<<<<<< HEAD
+    // user-authentication service
     users:        process.env.USER_AUTHENTICATION_URL     ?? 'http://localhost:3000',
     // gestion-suppliers
     suppliers:    process.env.GESTION_SUPPLIERS_URL       ?? 'http://localhost:3011',
-=======
     // materials-service uses /api global prefix
-    materials:    (process.env.MATERIALS_SERVICE_URL     ?? 'http://localhost:3002') + '/api',
-    // user-authentication service
-    users:        process.env.USER_AUTHENTICATION_URL     ?? 'http://localhost:3000',
->>>>>>> 1daf379a8947e70ffa633c32985421e82ae57972
+    materials:    (process.env.MATERIALS_SERVICE_URL      ?? 'http://localhost:3002') + '/api',
   };
 
   // ── Generic proxy ───────────────────────────────────────────────────────────

@@ -92,7 +92,6 @@ const ResourceOptimizationDashboard = lazy(() => import("@/features/resource-opt
 const AccountBanned = lazy(() => import("./pages/AccountBanned"));
 const Materials = lazy(() => import("./pages/materials/Materials"));
 
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
